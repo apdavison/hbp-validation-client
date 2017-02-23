@@ -20,9 +20,9 @@ import json
 import quantities
 import requests
 
-#VALIDATION_FRAMEWORK_URL = "https://validate.eu/"
+
+VALIDATION_FRAMEWORK_URL = "https://validation.brainsimulation.eu"
 #VALIDATION_FRAMEWORK_URL = "http://127.0.0.1:8001"
-VALIDATION_FRAMEWORK_URL = "http://37.139.18.169:8080"
 
 
 class ValidationTestLibrary(object):

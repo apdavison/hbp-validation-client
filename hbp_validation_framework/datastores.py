@@ -39,7 +39,7 @@ class CollabDataStore(object):
         self.root = self.doc_client.get_path_by_id(project["_uuid"])
 
     def upload_data(self, file_paths):
-        collab_folder = self.root + self.base_folder
+        collab_folder = self.root + "/" + self.base_folder
         self.doc_client.mkdir(collab_folder)
 
         if len(file_paths) > 1:
@@ -58,5 +58,5 @@ class CollabDataStore(object):
             collab_paths.append(collab_path)
             content_type = mimetypes.guess_type(local_path)[0]
             if content_type:
-                self.doc_client.set_standard_attr(collab_path, {'_contentType': content_type})
+                self.doc_client.set_standard_attr(collab_path, {'_contentType': content_type})  # this doesn't seem to be working
         return "collab://{}".format(collab_folder)
