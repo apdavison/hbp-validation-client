@@ -12,13 +12,16 @@ from importlib import import_module
 import platform
 try:  # Python 3
     from urllib.request import urlopen
+    from urllib.parse import urlparse
     from urllib.error import URLError
 except ImportError:  # Python 2
     from urllib2 import urlopen, URLError
+    from urlparse import urlparse
 import socket
 import json
 import quantities
 import requests
+from .datastores import URI_SCHEME_MAP
 
 
 VALIDATION_FRAMEWORK_URL = "https://validation.brainsimulation.eu"
@@ -73,30 +76,38 @@ class ValidationTestLibrary(object):
         test_cls = getattr(test_module, cls_name)
 
         # Load the reference data ("observations")
-        # For now this is assumed to be in JSON format, but we
-        # should support other data formats.
-        # For now, data is assumed to be on the local disk, but we
-        # need to add support for remote downloads.
-        with open(config["data_location"]) as fp:
-            observation_data = json.load(fp)
+        observation_data = self._load_reference_data(config["data_location"])
 
         # Transform string representations of quantities, e.g. "-65 mV",
         # into :class:`quantities.Quantity` objects.
         observations = {}
         for key, val in observation_data.items():
-            quantity_parts = val.split(" ")
-            number = float(quantity_parts[0])
-            if len(quantity_parts) > 1:
-                assert len(quantity_parts) == 2
-                units = getattr(quantities, quantity_parts[1])
-            else:
-                units = getattr(quantities, "unitless")
-            observations[key] = number * units
+            try:
+                observations[key] = int(val)
+            except ValueError:
+                try:
+                    observations[key] = float(val)
+                except ValueError:
+                    quantity_parts = val.split(" ")
+                    number = float(quantity_parts[0])
+                    units = " ".join(quantity_parts[1:])
+                    observations[key] = quantities.Quantity(number, units)
 
         # Create the :class:`sciunit.Test` instance
         test_instance = test_cls(observations, **params)
         test_instance.id = test_uri
         return test_instance
+
+    def _load_reference_data(self, uri):
+        # Load the reference data ("observations")
+        # For now this is assumed to be in JSON format, but we
+        # should support other data formats.
+        # For now, data is assumed to be on the local disk, but we
+        # need to add support for remote downloads.
+        parse_result = urlparse(uri)
+        datastore = URI_SCHEME_MAP[parse_result.scheme]()
+        observation_data = datastore.load_data(uri)
+        return observation_data
 
     def register(self, test_result, data_store=None):
         """

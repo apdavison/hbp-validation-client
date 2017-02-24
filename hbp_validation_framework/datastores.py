@@ -13,12 +13,29 @@ Other possibilities:
     - ...
 """
 
-import os.path
+import os
 import mimetypes
+import json
+try:
+    input = raw_input  # Py2
+except NameError:
+    pass  # Py3
 from bbp_client.oidc.client import BBPOIDCClient
 from bbp_client.document_service.client import Client as DocClient
 import bbp_services.client as bsc
 
+
+class FileSystemDataStore(object):
+    """
+    A class for interacting with the local file system
+    """
+
+    def __init__(self):
+        pass
+
+    def load_data(self, local_path):
+        with open(local_path) as fp:
+            observation_data = json.load(fp)
 
 
 class CollabDataStore(object):
@@ -26,20 +43,23 @@ class CollabDataStore(object):
     A class for uploading data to HBP Collaboratory storage.
     """
 
-    def __init__(self, username, collab_id, base_folder=None):
+    def __init__(self, username=None, collab_id=None, base_folder=None):
+        if username is None:
+            username = os.environ.get('HBP_USERNAME', None)
+            if username is None:
+                username = input("Please enter your HBP username: ")
         self.collab_id = collab_id
         self.base_folder = base_folder
 
         services = bsc.get_services()
-
         oidc_client = BBPOIDCClient.implicit_auth(username)
         self.doc_client = DocClient(services['document_service']['prod']['url'], oidc_client)
-
-        project = self.doc_client.get_project_by_collab_id(collab_id)
-        self.root = self.doc_client.get_path_by_id(project["_uuid"])
+        #'https://services.humanbrainproject.eu/document/v0/api'
 
     def upload_data(self, file_paths):
-        collab_folder = self.root + "/" + self.base_folder
+        project = self.doc_client.get_project_by_collab_id(self.collab_id)
+        root = self.doc_client.get_path_by_id(project["_uuid"])
+        collab_folder = root + "/" + self.base_folder
         self.doc_client.mkdir(collab_folder)
 
         if len(file_paths) > 1:
@@ -60,3 +80,24 @@ class CollabDataStore(object):
             if content_type:
                 self.doc_client.set_standard_attr(collab_path, {'_contentType': content_type})  # this doesn't seem to be working
         return "collab://{}".format(collab_folder)
+
+    def download_data(self, remote_paths, local_directory="."):
+        if isinstance(remote_paths, str):
+            remote_paths = [remote_paths]
+        local_paths = []
+        for remote_path in remote_paths:
+            local_path = os.path.join(local_directory, os.path.basename(remote_path))
+            self.doc_client.download_file(remote_path, local_path)
+            local_paths.append(local_path)
+        return local_paths
+
+    def load_data(self, remote_path):
+        # need to support other formats besides JSON
+        if remote_path.startswith("collab:/"):
+            remote_path = remote_path[len("collab:/"):]
+        return json.loads(self.doc_client.download_file(remote_path))
+
+
+URI_SCHEME_MAP = {
+    "collab": CollabDataStore
+}
