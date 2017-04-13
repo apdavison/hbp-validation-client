@@ -18,8 +18,13 @@ import mimetypes
 import json
 try:
     input = raw_input  # Py2
-except NameError:
-    pass  # Py3
+    from urllib import urlretrieve
+    from urlparse import urlparse
+except (NameError, ImportError):
+    from urllib.request import urlretrieve  # Py3
+    from urllib.parse import urlparse
+import mimetypes
+import requests
 from bbp_client.oidc.client import BBPOIDCClient
 from bbp_client.document_service.client import Client as DocClient
 import bbp_services.client as bsc
@@ -98,6 +103,33 @@ class CollabDataStore(object):
         return json.loads(self.doc_client.download_file(remote_path))
 
 
+class HTTPDataStore(object):
+    """
+    A class for downloading data from the web.
+    """
+
+    def upload_data(self, file_paths):
+        raise NotImplementedError("The HTTPDataStore does not support uploading data.")
+
+    def download_data(self, remote_paths, local_directory="."):
+        local_paths = []
+        for url in remote_paths:
+            local_path = os.path.join(local_directory, os.path.basename(urlparse(url).path))
+            filename, headers = urlretrieve(url, local_path)
+            local_paths.append(filename)
+        return local_paths
+
+    def load_data(self, remote_path):
+        content_type, encoding = mimetypes.guess_type(remote_path)
+        if content_type == "application/json":
+            return requests.get(remote_path).json()
+        else:
+            local_paths = self.download_data([remote_path])
+            return local_paths[0]
+
+
 URI_SCHEME_MAP = {
-    "collab": CollabDataStore
+    "collab": CollabDataStore,
+    "http": HTTPDataStore,
+    "https": HTTPDataStore
 }
