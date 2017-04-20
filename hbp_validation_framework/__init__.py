@@ -139,7 +139,7 @@ class ValidationTestLibrary(object):
         # For now, data is assumed to be on the local disk, but we
         # need to add support for remote downloads.
         parse_result = urlparse(uri)
-        datastore = URI_SCHEME_MAP[parse_result.scheme]()
+        datastore = URI_SCHEME_MAP[parse_result.scheme](auth=self.auth)
         observation_data = datastore.load_data(uri)
         return observation_data
 

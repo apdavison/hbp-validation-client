@@ -48,16 +48,19 @@ class CollabDataStore(object):
     A class for uploading data to HBP Collaboratory storage.
     """
 
-    def __init__(self, username=None, collab_id=None, base_folder=None):
-        if username is None:
-            username = os.environ.get('HBP_USERNAME', None)
-            if username is None:
-                username = input("Please enter your HBP username: ")
+    def __init__(self, username=None, collab_id=None, base_folder=None, auth=None):
         self.collab_id = collab_id
         self.base_folder = base_folder
 
         services = bsc.get_services()
-        oidc_client = BBPOIDCClient.implicit_auth(username)
+        if auth is None:
+            if username is None:
+                username = os.environ.get('HBP_USERNAME', None)
+                if username is None:
+                    username = input("Please enter your HBP username: ")
+            oidc_client = BBPOIDCClient.implicit_auth(username)
+        else:
+            oidc_client = BBPOIDCClient.bearer_auth(services['oidc_service']['prod']['url'], auth.token)
         self.doc_client = DocClient(services['document_service']['prod']['url'], oidc_client)
         #'https://services.humanbrainproject.eu/document/v0/api'
 
