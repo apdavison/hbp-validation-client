@@ -236,7 +236,7 @@ class ValidationTestLibrary(object):
             else:
                 res = rNMPI1.content
                 state = res[res.find("state")+6:res.find("&redirect_uri")]
-                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri=https://validation.brainsimulation.eu/complete/hbp/&response_type=code&client_id=8a6b7458-1044-4ebd-9b7e-f8fd3469069c".format(state)
+                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id=8a6b7458-1044-4ebd-9b7e-f8fd3469069c".format(state, self.url)
             # get the exchange cookie
             cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
             self.session.headers.update({'cookie': cookie})
