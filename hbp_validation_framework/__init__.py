@@ -43,7 +43,96 @@ class HBPAuth(AuthBase):
         return r
 
 
-class ValidationTestLibrary(object):
+
+class BaseClient(object):
+    """
+    
+    """
+
+    def __init__(self, username,
+                 password=None,
+                 url=VALIDATION_FRAMEWORK_URL):
+        self.username = username
+        self.url = url
+        self.verify = True
+        if password is None:
+            # prompt for password
+            password = getpass.getpass()
+        self._hbp_auth(username, password)
+        self.auth = HBPAuth(self.token)
+
+    def _hbp_auth(self, username, password):
+        """
+        """
+        redirect_uri = self.url + '/complete/hbp/'
+
+        self.session = requests.Session()
+        # 1. login button on NMPI
+        rNMPI1 = self.session.get(self.url + "/login/hbp/?next=/config.json",
+                                  allow_redirects=False, verify=self.verify)
+        # 2. receives a redirect or some Javascript for doing an XMLHttpRequest
+        if rNMPI1.status_code in (302, 200):
+            # Get its new destination (location)
+            if rNMPI1.status_code == 302:
+                url = rNMPI1.headers.get('location')
+            else:
+                res = rNMPI1.content
+                state = res[res.find("state")+6:res.find("&redirect_uri")]
+                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id=8a6b7458-1044-4ebd-9b7e-f8fd3469069c".format(state, self.url)
+            # get the exchange cookie
+            cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
+            self.session.headers.update({'cookie': cookie})
+            # 3. request to the provided url at HBP
+            rHBP1 = self.session.get(url, allow_redirects=False, verify=self.verify)
+            # 4. receives a redirect to HBP login page
+            if rHBP1.status_code == 302:
+                # Get its new destination (location)
+                url = rHBP1.headers.get('location')
+                cookie = rHBP1.headers.get('set-cookie').split(";")[0]
+                self.session.headers.update({'cookie': cookie})
+                # 5. request to the provided url at HBP
+                rHBP2 = self.session.get(url, allow_redirects=False, verify=self.verify)
+                # 6. HBP responds with the auth form
+                if rHBP2.text:
+                    # 7. Request to the auth service url
+                    formdata = {
+                        'j_username': username,
+                        'j_password': password,
+                        'submit': 'Login',
+                        'redirect_uri': redirect_uri + '&response_type=code&client_id=nmpi'
+                    }
+                    headers = {'accept': 'application/json'}
+                    rNMPI2 = self.session.post("https://services.humanbrainproject.eu/oidc/j_spring_security_check",
+                                               data=formdata,
+                                               allow_redirects=True,
+                                               verify=self.verify,
+                                               headers=headers)
+                    # check good communication
+                    if rNMPI2.status_code == requests.codes.ok:
+                        #import pdb; pdb.set_trace()
+                        # check success address
+                        if rNMPI2.url == self.url + '/config.json':
+                            # print rNMPI2.text
+                            res = rNMPI2.json()
+                            self.token = res['auth']['token']['access_token']
+                            self.config = res
+                        # unauthorized
+                        else:
+                            if 'error' in rNMPI2.url:
+                                raise Exception("Authentication Failure: No token retrieved." + rNMPI2.url)
+                            else:
+                                raise Exception("Unhandled error in Authentication." + rNMPI2.url)
+                    else:
+                        raise Exception("Communication error")
+                else:
+                    raise Exception("Something went wrong. No text.")
+            else:
+                raise Exception("Something went wrong. Status code {} from HBP, expected 302".format(rHBP1.status_code))
+        else:
+            raise Exception("Something went wrong. Status code {} from NMPI, expected 302".format(rNMPI1.status_code))
+
+
+class ValidationTestLibrary(BaseClient):
     """
     Client for the HBP Validation Test library.
 
@@ -65,20 +154,6 @@ class ValidationTestLibrary(object):
     # Register the result
     test_library.register(score)
     """
-
-    def __init__(self, username,
-                 password=None,
-                 url=VALIDATION_FRAMEWORK_URL):
-        self.username = username
-        self.url = url
-        self.verify = True
-        if password is None:
-            # prompt for password
-            password = getpass.getpass()
-        self._hbp_auth(username, password)
-        self.auth = HBPAuth(self.token)
-
-
 
     def get_validation_test(self, test_uri, **params):
         """
@@ -219,78 +294,9 @@ class ValidationTestLibrary(object):
     #
     #def list_validation_results(self, **filters):
     #
-    def _hbp_auth(self, username, password):
-        """
-        """
-        redirect_uri = self.url + '/complete/hbp/'
-
-        self.session = requests.Session()
-        # 1. login button on NMPI
-        rNMPI1 = self.session.get(self.url + "/login/hbp/?next=/config.json",
-                                  allow_redirects=False, verify=self.verify)
-        # 2. receives a redirect or some Javascript for doing an XMLHttpRequest
-        if rNMPI1.status_code in (302, 200):
-            # Get its new destination (location)
-            if rNMPI1.status_code == 302:
-                url = rNMPI1.headers.get('location')
-            else:
-                res = rNMPI1.content
-                state = res[res.find("state")+6:res.find("&redirect_uri")]
-                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id=8a6b7458-1044-4ebd-9b7e-f8fd3469069c".format(state, self.url)
-            # get the exchange cookie
-            cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
-            self.session.headers.update({'cookie': cookie})
-            # 3. request to the provided url at HBP
-            rHBP1 = self.session.get(url, allow_redirects=False, verify=self.verify)
-            # 4. receives a redirect to HBP login page
-            if rHBP1.status_code == 302:
-                # Get its new destination (location)
-                url = rHBP1.headers.get('location')
-                cookie = rHBP1.headers.get('set-cookie').split(";")[0]
-                self.session.headers.update({'cookie': cookie})
-                # 5. request to the provided url at HBP
-                rHBP2 = self.session.get(url, allow_redirects=False, verify=self.verify)
-                # 6. HBP responds with the auth form
-                if rHBP2.text:
-                    # 7. Request to the auth service url
-                    formdata = {
-                        'j_username': username,
-                        'j_password': password,
-                        'submit': 'Login',
-                        'redirect_uri': redirect_uri + '&response_type=code&client_id=nmpi'
-                    }
-                    headers = {'accept': 'application/json'}
-                    rNMPI2 = self.session.post("https://services.humanbrainproject.eu/oidc/j_spring_security_check",
-                                               data=formdata,
-                                               allow_redirects=True,
-                                               verify=self.verify,
-                                               headers=headers)
-                    # check good communication
-                    if rNMPI2.status_code == requests.codes.ok:
-                        #import pdb; pdb.set_trace()
-                        # check success address
-                        if rNMPI2.url == self.url + '/config.json':
-                            # print rNMPI2.text
-                            res = rNMPI2.json()
-                            self.token = res['auth']['token']['access_token']
-                            self.config = res
-                        # unauthorized
-                        else:
-                            if 'error' in rNMPI2.url:
-                                raise Exception("Authentication Failure: No token retrieved." + rNMPI2.url)
-                            else:
-                                raise Exception("Unhandled error in Authentication." + rNMPI2.url)
-                    else:
-                        raise Exception("Communication error")
-                else:
-                    raise Exception("Something went wrong. No text.")
-            else:
-                raise Exception("Something went wrong. Status code {} from HBP, expected 302".format(rHBP1.status_code))
-        else:
-            raise Exception("Something went wrong. Status code {} from NMPI, expected 302".format(rNMPI1.status_code))
 
 
-class ModelRepository(object):
+class ModelRepository(BaseClient):
     """
     Client for the HBP Model Repository.
 
@@ -306,7 +312,20 @@ class ModelRepository(object):
     model_description = model_library.get_model(model_uri)
 
     """
-    pass
+
+    def list_models(self, **filters):
+        model_list_uri = self.url + "/models/"  # todo: support filters
+        models = requests.get(model_list_uri, auth=self.auth).json()
+        return models
+
+    def register(self, name, description="",  species="", brain_region="",
+                 cell_type="", author="", source=""):
+        data = locals()
+        data.pop("self")
+        model_list_uri = self.url + "/models/"
+        response = requests.post(model_list_uri, data=json.dumps(data),
+                                 auth=self.auth)
+        return response.json()
 
 
 def _have_internet_connection():
