@@ -313,6 +313,10 @@ class ModelRepository(BaseClient):
 
     """
 
+    def get_model(self, model_uri):
+        model = requests.get(self.url + model_uri, auth=self.auth).json()
+        return model
+
     def list_models(self, **filters):
         model_list_uri = self.url + "/models/"  # todo: support filters
         models = requests.get(model_list_uri, auth=self.auth).json()
