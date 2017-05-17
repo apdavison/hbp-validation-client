@@ -155,6 +155,22 @@ class ValidationTestLibrary(BaseClient):
     test_library.register(score)
     """
 
+    def get_validation_test_definition(self, test_uri):
+        """
+        Download a test definition from the given URL, or load from a local JSON file.
+
+        Returns a dict containing information about the test.
+         
+        Also see: `get_validation_test()`.
+        """
+        if os.path.isfile(test_uri):
+            # test_uri is a local path
+            with open(test_uri) as fp:
+                config = json.load(fp)
+        else:
+            config = requests.get(test_uri, auth=self.auth).json()
+        return config
+
     def get_validation_test(self, test_uri, **params):
         """
         Download a test definition from the given URL, or load from a local JSON file.
@@ -163,12 +179,7 @@ class ValidationTestLibrary(BaseClient):
 
         Returns a :class:`sciunit.Test` instance.
         """
-        if os.path.isfile(test_uri):
-            # test_uri is a local path
-            with open(test_uri) as fp:
-                config = json.load(fp)
-        else:
-            config = requests.get(test_uri, auth=self.auth).json()
+        config = self.get_validation_test_definition(test_uri)
 
         # Import the Test class specified in the definition.
         # This assumes that the module containing the class is installed.
