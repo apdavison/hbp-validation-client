@@ -12,11 +12,12 @@ from importlib import import_module
 import platform
 try:  # Python 3
     from urllib.request import urlopen
-    from urllib.parse import urlparse
+    from urllib.parse import urlparse, urlencode
     from urllib.error import URLError
 except ImportError:  # Python 2
     from urllib2 import urlopen, URLError
     from urlparse import urlparse
+    from urllib import urlencode
 import socket
 import json
 import getpass
@@ -307,8 +308,15 @@ class ValidationTestLibrary(BaseClient):
                     system_name=platform.system(),
                     version=platform.version())
 
-    #def list_validation_tests(self, **filters):
-    #
+    def list_validation_tests(self, **filters):
+        """
+        docstring needed
+        """
+        url = self.url + "/search?{}".format(urlencode(filters))
+        print(url)
+        response = requests.get(url)
+        return response.json()
+
     #def list_validation_results(self, **filters):
     #
 
