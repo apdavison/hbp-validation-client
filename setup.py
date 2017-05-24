@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
         name='hbp_validation_framework',
-        version='0.1',
+        version='0.2',
         packages=['hbp_validation_framework'],
         url='',
         license='BSD',
