@@ -250,6 +250,12 @@ class ValidationTestLibrary(BaseClient):
         # upload data file to Collab storage,
         # or just store path if it is on HPAC machine
         if data_store:
+            if not data_store.authorized:
+                data_store.authorize(self.auth)  # relies on data store using HBP authorization
+                                                 # if this is not the case, need to authenticate/authorize
+                                                 # the data store before passing to `register()`
+            if data_store.collab_id is None:
+                data_store.collab_id = project
             results_storage = data_store.upload_data(test_result.related_data["figures"])
         else:
             results_storage = ""

@@ -29,6 +29,8 @@ from bbp_client.oidc.client import BBPOIDCClient
 from bbp_client.document_service.client import Client as DocClient
 import bbp_services.client as bsc
 
+# todo: replace bbp_client and bbp_services with hbp_service_client
+
 
 class FileSystemDataStore(object):
     """
@@ -51,20 +53,31 @@ class CollabDataStore(object):
     def __init__(self, username=None, collab_id=None, base_folder=None, auth=None):
         self.collab_id = collab_id
         self.base_folder = base_folder
+        self.username = username
+        self._auth = auth  # we defer authorization until needed
+        self._authorized = False
 
+    @property
+    def authorized(self):
+        return self._authorized
+
+    def authorize(self, auth=None):
         services = bsc.get_services()
         if auth is None:
-            if username is None:
-                username = os.environ.get('HBP_USERNAME', None)
-                if username is None:
-                    username = input("Please enter your HBP username: ")
-            oidc_client = BBPOIDCClient.implicit_auth(username)
+            if self.username is None:
+                self.username = os.environ.get('HBP_USERNAME', None)
+                if self.username is None:
+                    self.username = input("Please enter your HBP username: ")
+            oidc_client = BBPOIDCClient.implicit_auth(self.username)
         else:
             oidc_client = BBPOIDCClient.bearer_auth(services['oidc_service']['prod']['url'], auth.token)
         self.doc_client = DocClient(services['document_service']['prod']['url'], oidc_client)
-        #'https://services.humanbrainproject.eu/document/v0/api'
+        # 'https://services.humanbrainproject.eu/document/v0/api'
+        self._authorized = True
 
     def upload_data(self, file_paths):
+        if not self.authorized:
+            self.authorize(self._auth)
         project = self.doc_client.get_project_by_collab_id(self.collab_id)
         root = self.doc_client.get_path_by_id(project["_uuid"])
         collab_folder = root + "/" + self.base_folder
@@ -90,6 +103,8 @@ class CollabDataStore(object):
         return "collab://{}".format(collab_folder)
 
     def download_data(self, remote_paths, local_directory="."):
+        if not self.authorized:
+            self.authorize(self._auth)
         if isinstance(remote_paths, str):
             remote_paths = [remote_paths]
         local_paths = []
@@ -100,6 +115,8 @@ class CollabDataStore(object):
         return local_paths
 
     def load_data(self, remote_path):
+        if not self.authorized:
+            self.authorize(self._auth)
         # need to support other formats besides JSON
         if remote_path.startswith("collab:/"):
             remote_path = remote_path[len("collab:/"):]
