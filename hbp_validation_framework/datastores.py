@@ -15,7 +15,6 @@ Other possibilities:
 """
 
 import os
-import mimetypes
 import json
 try:
     input = raw_input  # Py2
@@ -27,6 +26,8 @@ except (NameError, ImportError):
 import mimetypes
 import requests
 from hbp_service_client.document_service.client import Client as DocClient
+
+mimetypes.init()
 
 
 class FileSystemDataStore(object):
@@ -113,25 +114,38 @@ class CollabDataStore(object):
             parent = child
         return child
 
-    def download_data(self, remote_paths, local_directory="."):
-        if not self.authorized:
-            self.authorize(self._auth)
-        if isinstance(remote_paths, str):
-            remote_paths = [remote_paths]
-        local_paths = []
-        for remote_path in remote_paths:
-            local_path = os.path.join(local_directory, os.path.basename(remote_path))
-            self.doc_client.download_file(remote_path, local_path)
-            local_paths.append(local_path)
-        return local_paths
-
-    def load_data(self, remote_path):
+    def _download_data_content(self, remote_path):
         if not self.authorized:
             self.authorize(self._auth)
         # need to support other formats besides JSON
         if remote_path.startswith("collab:/"):
             remote_path = remote_path[len("collab:/"):]
-        return json.loads(self.doc_client.download_file(remote_path))
+
+        entity = self.doc_client.get_entity_by_query(path=remote_path)
+        if entity["entity_type"] == 'file':
+            etag, content = self.doc_client.download_file_content(entity["uuid"])
+        else:
+            raise IOError("Can only load data from individual files, not from {}".format(entity["entity_type"]))
+        return content
+
+    def download_data(self, remote_paths, local_directory="."):
+        if isinstance(remote_paths, str):
+            remote_paths = [remote_paths]
+        local_paths = []
+        for remote_path in remote_paths:
+            local_path = os.path.join(local_directory, os.path.basename(remote_path))
+            with open(local_path, "wb") as fp:
+                fp.write(self._download_data_content(remote_path))
+            local_paths.append(local_path)
+        return local_paths
+
+    def load_data(self, remote_path):
+        content = self._download_data_content(remote_path)
+        content_type = mimetypes.guess_type(remote_path)[0]
+        if content_type == "application/json":
+            return json.loads(content)
+        else:
+            return content
 
 
 class HTTPDataStore(object):
