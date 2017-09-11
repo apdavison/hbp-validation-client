@@ -1,7 +1,7 @@
 """
 A Python package for working with the Human Brain Project Model Validation Framework.
 
-Andrew Davison, CNRS, February 2016
+Andrew Davison and Shailesh Appukuttan, CNRS, February 2016
 
 Licence: BSD 3-clause, see LICENSE.txt
 
@@ -27,7 +27,7 @@ from requests.auth import AuthBase
 from .datastores import URI_SCHEME_MAP
 
 
-VALIDATION_FRAMEWORK_URL = "https://validation.brainsimulation.eu"
+VALIDATION_FRAMEWORK_URL = "https://validation-dev.brainsimulation.eu"
 #VALIDATION_FRAMEWORK_URL = "http://127.0.0.1:8001"
 
 
@@ -47,7 +47,7 @@ class HBPAuth(AuthBase):
 
 class BaseClient(object):
     """
-    
+
     """
 
     def __init__(self, username,
@@ -58,7 +58,8 @@ class BaseClient(object):
         self.verify = True
         if password is None:
             # prompt for password
-            password = getpass.getpass()
+            #password = getpass.getpass()
+            password = os.environ.get('HBP_PASS')
         self._hbp_auth(username, password)
         self.auth = HBPAuth(self.token)
 
@@ -79,7 +80,8 @@ class BaseClient(object):
             else:
                 res = rNMPI1.content
                 state = res[res.find("state")+6:res.find("&redirect_uri")]
-                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id=8a6b7458-1044-4ebd-9b7e-f8fd3469069c".format(state, self.url)
+                # OLD ID = 8a6b7458-1044-4ebd-9b7e-f8fd3469069c
+                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id=90c719e0-29ce-43a2-9c53-15cb314c2d0b".format(state, self.url)
             # get the exchange cookie
             cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
             self.session.headers.update({'cookie': cookie})
@@ -161,7 +163,7 @@ class ValidationTestLibrary(BaseClient):
         Download a test definition from the given URL, or load from a local JSON file.
 
         Returns a dict containing information about the test.
-         
+
         Also see: `get_validation_test()`.
         """
         if os.path.isfile(test_uri):
@@ -343,18 +345,52 @@ class ModelRepository(BaseClient):
         return model
 
     def list_models(self, **filters):
-        model_list_uri = self.url + "/models/"  # todo: support filters
+        model_list_uri = self.url + "/scientificmodel/?app_id=36715&format=json"
         models = requests.get(model_list_uri, auth=self.auth).json()
-        return models
+        return models["models"]
 
-    def register(self, name, description="",  species="", brain_region="",
-                 cell_type="", author="", source=""):
-        data = locals()
-        data.pop("self")
-        model_list_uri = self.url + "/models/"
-        response = requests.post(model_list_uri, data=json.dumps(data),
-                                 auth=self.auth)
-        return response.json()
+    def register_model(self, app_id="", name="", alias="", author="", private="False",
+                       cell_type="", model_type="", brain_region="", species="", description=""):
+        alias = name # remove once database updated to make alias optional
+        access_control_id = app_id
+        if private not in ["True", "False"]:
+            raise Exception("Model's 'private' attribute should be specified as True / False")
+
+        model_data = locals()
+        model_data.pop("self")
+        model_data.pop("app_id")
+        model_list_uri = self.url + "/scientificmodel/?app_id=36715&format=json"
+        model_json = {
+                        "model": model_data,
+                        "model_instance":[],
+                        "model_image":[]
+                     }
+        headers = {'Content-type': 'application/json'}
+        """
+        model_json = {
+                        'model':{
+                                    'access_control_id': '39968',
+                                    'name': 'Test Model - 2_2',
+                                    'alias': '1002',
+                                    'cell_type': 'Granule Cell',
+                                    'description': 'Testing New Model Catalog - 1',
+                                    'author': 'Shailesh',
+                                    'private': False,
+                                    'brain_region': 'Basal Ganglia',
+                                    'model_type': 'Single Cell',
+                                    'species': 'Mouse (Mus musculus)'
+                        },
+                        'model_instance':[],
+                        'model_image':[]
+                    }
+        """
+        print " >> ", json.dumps(model_json)
+        response = requests.post(model_list_uri, data=json.dumps(model_json),
+                                 auth=self.auth, headers=headers)
+        return response
+
+    def register_model_instance():
+        pass
 
 
 def _have_internet_connection():
