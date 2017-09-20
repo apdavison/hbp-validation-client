@@ -20,6 +20,7 @@ except ImportError:  # Python 2
     from urllib import urlencode
 import socket
 import json
+import ast
 import getpass
 import quantities
 import requests
@@ -325,72 +326,217 @@ class ValidationTestLibrary(BaseClient):
 
 class ModelRepository(BaseClient):
     """
-    Client for the HBP Model Repository.
+    Client for the HBP Model Repository. Can do the following:
+    > Retrieve a specific model description from the repository
+    > Retrieve a list of model descriptions from the repository
+    > Return list of valid values (where applicable) for model catalog fields
+    > Add a new model description to the repository
+    > Add a new model instance for an existing model in the repository
+    > Add a new image for an existing model in the repository
 
     Usage
     -----
-
     model_library = ModelRepository()
-
-    # List models
-    models = model_library.list_models(brain_region="hippocampus")
-
-    # Download a model description
-    model_description = model_library.get_model(model_uri)
-
     """
 
-    def get_model(self, model_uri):
-        model = requests.get(self.url + model_uri, auth=self.auth).json()
-        return model
+    def get_model(self, model_id="", alias="", instances=False, images=False):
+        """
+        Retrieve a model description by its model_id or alias.
+        Either model_id or alias needs to be provided, with model_id taking precedence over alias.
+
+        (Optional) Set 'instances' to False if you wish to omit the details of the model instances.
+        (Optional) Set 'images' to False if you wish to omit the details of the model images.
+
+        Example usage:
+        model = model_library.get_model(model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5")
+        or
+        model = model_library.get_model(alias="B1")
+        """
+        if model_id == "" and alias == "":
+            raise Exception("Model ID or alias needs to be provided for finding a model.")
+        elif model_id != "":
+            model_uri = self.url + "/scientificmodel/?id=" + model_id + "&format=json"
+        else:
+            model_uri = self.url + "/scientificmodel/?alias=" + alias + "&format=json"
+        model = requests.get(model_uri, auth=self.auth).json()
+
+        if instances == False:
+            model["models"][0].pop("instances")
+        if images == False:
+            model["models"][0].pop("images")
+        return model["models"][0]
 
     def list_models(self, **filters):
-        model_list_uri = self.url + "/scientificmodel/?app_id=36715&format=json"
+        """
+        List models satisfying all specified filters
+
+        Example usage:
+        models = model_library.list_models()
+        models = model_library.list_models(app_id="39968")
+        models = model_library.list_models(cell_type="Pyramidal Cell",
+                                           brain_region="Hippocampus")
+        """
+        params = locals()["filters"]
+        model_list_uri = self.url + "/scientificmodel/?"+urlencode(params)+"&format=json"
         models = requests.get(model_list_uri, auth=self.auth).json()
         return models["models"]
 
-    def register_model(self, app_id="", name="", alias="", author="", private="False",
-                       cell_type="", model_type="", brain_region="", species="", description=""):
-        alias = name # remove once database updated to make alias optional
-        access_control_id = app_id
+    def get_options(self, param=""):
+        """
+        Will return the list of valid values (where applicable) for model catalog fields.
+        If a parameter is specified then, only values that correspond to it will be returned,
+        else values for all fields are returned.
+        Note: When specified, only the first parameter is considered; the rest are ignored.
+              So the function either returns for all parameters or a single parameter.
+
+        Example Usage:
+        data = model_library.get_options()
+        or
+        data = model_library.get_options("cell_type")
+        """
+        if param == "":
+            param = "all"
+
+        if param in ["cell_type", "test_type", "score_type", "brain_region", "model_type", "data_modalities", "species", "all"]:
+            url = self.url + "/authorizedcollabparameterrest/?python_client=true&parameters="+param+"&format=json"
+        else:
+            raise Exception("Parameter, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_type, data_modalities, species, all]")
+        data = requests.get(url, auth=self.auth).json()
+        return ast.literal_eval(json.dumps(data))
+
+    def register_model(self, app_id="", name="", alias=None, author="", private="False",
+                       cell_type="", model_type="", brain_region="", species="", description="",
+                       instances=[], images=[]):
+        """
+        To register a new model on the model catalog
+
+        Example usage:
+        (without specification of instances and images)
+        model = model_library.register_model(app_id="39968", name="Test Model - B2",
+                        alias="Model-B2", author="Shailesh Appukuttan",
+                        private="False", cell_type="Granule Cell", model_type="Single Cell",
+                        brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
+                        description="This is a test entry")
+        or
+        (with specification of instances and images)
+        model = model_library.register_model(app_id="39968", name="Client Test - C2",
+                        alias="C2", author="Shailesh Appukuttan",
+                        private="False", cell_type="Granule Cell", model_type="Single Cell",
+                        brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
+                        description="This is a test entry! Please ignore.",
+                        instances=[{"source":"https://www.abcde.com",
+                                    "version":"1.0", "parameters":""},
+                                   {"source":"https://www.12345.com",
+                                    "version":"2.0", "parameters":""}],
+                        images=[{"url":"http://www.neuron.yale.edu/neuron/sites/default/themes/xchameleon/logo.png",
+                                 "caption":"NEURON Logo"},
+                                {"url":"https://collab.humanbrainproject.eu/assets/hbp_diamond_120.png",
+                                 "caption":"HBP Logo"}])
+        """
+        values = self.get_options()
+
+        if cell_type not in values["cell_type"]:
+            raise Exception("cell_type = '" +cell_type+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
+        if model_type not in values["model_type"]:
+            raise Exception("model_type = '" +model_type+"' is invalid.\nValue has to be one of these: " + str(values["model_type"]))
+        if brain_region not in values["brain_region"]:
+            raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
+        if species not in values["species"]:
+            raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
+
         if private not in ["True", "False"]:
-            raise Exception("Model's 'private' attribute should be specified as True / False")
+            raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
+        if alias == "":
+            alias = None
 
         model_data = locals()
         model_data.pop("self")
         model_data.pop("app_id")
-        model_list_uri = self.url + "/scientificmodel/?app_id=36715&format=json"
+        model_data.pop("instances")
+        model_data.pop("images")
+
+        model_list_uri = self.url + "/scientificmodel/?app_id="+app_id+"&format=json"
         model_json = {
                         "model": model_data,
-                        "model_instance":[],
-                        "model_image":[]
+                        "model_instance":instances,
+                        "model_image":images
                      }
         headers = {'Content-type': 'application/json'}
-        """
-        model_json = {
-                        'model':{
-                                    'access_control_id': '39968',
-                                    'name': 'Test Model - 2_2',
-                                    'alias': '1002',
-                                    'cell_type': 'Granule Cell',
-                                    'description': 'Testing New Model Catalog - 1',
-                                    'author': 'Shailesh',
-                                    'private': False,
-                                    'brain_region': 'Basal Ganglia',
-                                    'model_type': 'Single Cell',
-                                    'species': 'Mouse (Mus musculus)'
-                        },
-                        'model_instance':[],
-                        'model_image':[]
-                    }
-        """
-        print " >> ", json.dumps(model_json)
         response = requests.post(model_list_uri, data=json.dumps(model_json),
                                  auth=self.auth, headers=headers)
         return response
 
-    def register_model_instance():
-        pass
+    def add_model_instance(self, model_id="", alias="", source="", version="", parameters=""):
+        """
+        To add a single new instance of an existing model in the model catalog.
+        'model_id' needs to be specified as input parameter.
+        Returns True if instance is successfully added to the model catalog, else False.
+        The second return parameter provides the original server response.
+
+        Example usage:
+        status = model_library.add_model_instance(model_id="196b89a3-e672-4b96-8739-748ba3850254",
+                                                  source="https://www.abcde.com",
+                                                  version="1.0",
+                                                  parameters="")
+
+        Note: 'alias' is not currently implemented in the API, and the same is kept for future use here.
+        TO DO: Either model_id or alias needs to be provided, with uri taking precedence over alias.
+        """
+        instance_data = locals()
+        instance_data.pop("self")
+
+        if model_id == "" and alias == "":
+            raise Exception("Model ID needs to be provided for finding the model.")
+            #raise Exception("Model ID or alias needs to be provided for finding the model.")
+        elif model_id != "":
+            url = self.url + "/scientificmodelinstance/?format=json"
+        else:
+            raise Exception("alias is not currently implemented for this feature.")
+            #url = self.url + "/scientificmodelinstance/?alias=" + alias + "&format=json"
+        headers = {'Content-type': 'application/json'}
+        response = requests.post(url, data=json.dumps([instance_data]),
+                                 auth=self.auth, headers=headers)
+        if str(response) == "<Response [201]>":
+            return True, response
+        else:
+            return False, response
+
+    def add_model_image(self, model_id="", alias="", url="", caption=""):
+        """
+        To add a new image to an existing model in the model catalog.
+        'model_id' needs to be specified as input parameter.
+        Returns True if instance is successfully added to the model catalog, else False.
+        The second return parameter provides the original server response.
+
+        Example usage:
+        status = model_library.add_model_image(model_id="196b89a3-e672-4b96-8739-748ba3850254",
+                                               url="http://www.neuron.yale.edu/neuron/sites/default/themes/xchameleon/logo.png",
+                                               caption="NEURON Logo")
+
+        Note: 'alias' is not currently implemented in the API, and the same is kept for future use here.
+        TO DO: Either model_id or alias needs to be provided, with uri taking precedence over alias.
+        """
+        image_data = locals()
+        image_data.pop("self")
+        image_data.pop("alias")
+
+        if model_id == "" and alias == "":
+            raise Exception("Model ID needs to be provided for finding the model.")
+            #raise Exception("Model ID or alias needs to be provided for finding the model.")
+        elif model_id != "":
+            url = self.url + "/scientificmodelimage/?format=json"
+        else:
+            raise Exception("alias is not currently implemented for this feature.")
+            #url = self.url + "/scientificmodelimage/?alias=" + alias + "&format=json"
+        headers = {'Content-type': 'application/json'}
+        print "url = ", url
+        print "[image_data] = ", [image_data]
+        response = requests.post(url, data=json.dumps([image_data]),
+                                 auth=self.auth, headers=headers)
+        if str(response) == "<Response [201]>":
+            return True, response
+        else:
+            return False, response
 
 
 def _have_internet_connection():
