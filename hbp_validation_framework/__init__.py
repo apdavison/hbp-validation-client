@@ -59,8 +59,8 @@ class BaseClient(object):
         self.verify = True
         if password is None:
             # prompt for password
-            #password = getpass.getpass()
-            password = os.environ.get('HBP_PASS')
+            password = getpass.getpass()
+            #password = os.environ.get('HBP_PASS')
         self._hbp_auth(username, password)
         self.auth = HBPAuth(self.token)
 
