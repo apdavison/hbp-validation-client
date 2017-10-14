@@ -135,7 +135,7 @@
                 <span class="c1"># Dev ID = 90c719e0-29ce-43a2-9c53-15cb314c2d0b</span>
                 <span class="c1"># Prototype ID = 8a6b7458-1044-4ebd-9b7e-f8fd3469069c</span>
                 <span class="c1"># Prod ID = 3ae21f28-0302-4d28-8581-15853ad6107d</span>
-                <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://services.humanbrainproject.eu/oidc/authorize?state=</span><span class="si">{}</span><span class="s2">&amp;redirect_uri=</span><span class="si">{}</span><span class="s2">/complete/hbp/&amp;response_type=code&amp;client_id=90c719e0-29ce-43a2-9c53-15cb314c2d0b&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+                <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://services.humanbrainproject.eu/oidc/authorize?state=</span><span class="si">{}</span><span class="s2">&amp;redirect_uri=</span><span class="si">{}</span><span class="s2">/complete/hbp/&amp;response_type=code&amp;client_id=3ae21f28-0302-4d28-8581-15853ad6107d&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
             <span class="c1"># get the exchange cookie</span>
             <span class="n">cookie</span> <span class="o">=</span> <span class="n">rNMPI1</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;set-cookie&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;cookie&#39;</span><span class="p">:</span> <span class="n">cookie</span><span class="p">})</span>
@@ -165,6 +165,8 @@
                                                <span class="n">verify</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verify</span><span class="p">,</span>
                                                <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
                     <span class="c1"># check good communication</span>
+                    <span class="c1">#print &quot;rNMPI2.status_code = &quot;, rNMPI2.status_code</span>
+                    <span class="c1">#print &quot;content = &quot;, rNMPI2.content</span>
                     <span class="k">if</span> <span class="n">rNMPI2</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
                         <span class="c1">#import pdb; pdb.set_trace()</span>
                         <span class="c1"># check success address</span>
