@@ -1,0 +1,1044 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>hbp_validation_framework &#8212; HBP Validation Framework - Python Client 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="HBP Validation Framework - Python Client 0.1 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">HBP Validation Framework - Python Client 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for hbp_validation_framework</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">A Python package for working with the Human Brain Project Model Validation Framework.</span>
+
+<span class="sd">Andrew Davison and Shailesh Appukuttan, CNRS, February 2016</span>
+
+<span class="sd">Licence: BSD 3-clause, see LICENSE.txt</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">importlib</span> <span class="k">import</span> <span class="n">import_module</span>
+<span class="kn">import</span> <span class="nn">platform</span>
+<span class="k">try</span><span class="p">:</span>  <span class="c1"># Python 3</span>
+    <span class="kn">from</span> <span class="nn">urllib.request</span> <span class="k">import</span> <span class="n">urlopen</span>
+    <span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">urlparse</span><span class="p">,</span> <span class="n">urlencode</span>
+    <span class="kn">from</span> <span class="nn">urllib.error</span> <span class="k">import</span> <span class="n">URLError</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># Python 2</span>
+    <span class="kn">from</span> <span class="nn">urllib2</span> <span class="k">import</span> <span class="n">urlopen</span><span class="p">,</span> <span class="n">URLError</span>
+    <span class="kn">from</span> <span class="nn">urlparse</span> <span class="k">import</span> <span class="n">urlparse</span>
+    <span class="kn">from</span> <span class="nn">urllib</span> <span class="k">import</span> <span class="n">urlencode</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">getpass</span>
+<span class="kn">import</span> <span class="nn">quantities</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">requests.auth</span> <span class="k">import</span> <span class="n">AuthBase</span>
+<span class="kn">from</span> <span class="nn">.datastores</span> <span class="k">import</span> <span class="n">URI_SCHEME_MAP</span>
+
+
+<span class="c1">#VALIDATION_FRAMEWORK_URL = &quot;https://validation.brainsimulation.eu&quot;</span>
+<span class="n">VALIDATION_FRAMEWORK_URL</span> <span class="o">=</span> <span class="s2">&quot;https://validation-dev.brainsimulation.eu&quot;</span>
+<span class="c1">#VALIDATION_FRAMEWORK_URL = &quot;https://validation-v1.brainsimulation.eu&quot;</span>
+<span class="c1">#VALIDATION_FRAMEWORK_URL = &quot;http://127.0.0.1:8001&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">HBPAuth</span><span class="p">(</span><span class="n">AuthBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Attaches OIDC Bearer Authentication to the given Request object.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">):</span>
+        <span class="c1"># setup any auth-related data here</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">token</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+        <span class="c1"># modify and return the request</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Authorization&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Bearer &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span>
+        <span class="k">return</span> <span class="n">r</span>
+
+
+
+<span class="k">class</span> <span class="nc">BaseClient</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span>
+                 <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">url</span><span class="o">=</span><span class="n">VALIDATION_FRAMEWORK_URL</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">username</span> <span class="o">=</span> <span class="n">username</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verify</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">password</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># prompt for password</span>
+            <span class="c1">#password = getpass.getpass()</span>
+            <span class="n">password</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HBP_PASS&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hbp_auth</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auth</span> <span class="o">=</span> <span class="n">HBPAuth</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_hbp_auth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">redirect_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s1">&#39;/complete/hbp/&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
+        <span class="c1"># 1. login button on NMPI</span>
+        <span class="n">rNMPI1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/login/hbp/?next=/config.json&quot;</span><span class="p">,</span>
+                                  <span class="n">allow_redirects</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verify</span><span class="p">)</span>
+        <span class="c1"># 2. receives a redirect or some Javascript for doing an XMLHttpRequest</span>
+        <span class="k">if</span> <span class="n">rNMPI1</span><span class="o">.</span><span class="n">status_code</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">302</span><span class="p">,</span> <span class="mi">200</span><span class="p">):</span>
+            <span class="c1"># Get its new destination (location)</span>
+            <span class="k">if</span> <span class="n">rNMPI1</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">302</span><span class="p">:</span>
+                <span class="n">url</span> <span class="o">=</span> <span class="n">rNMPI1</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;location&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">rNMPI1</span><span class="o">.</span><span class="n">content</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="n">res</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;state&quot;</span><span class="p">)</span><span class="o">+</span><span class="mi">6</span><span class="p">:</span><span class="n">res</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;&amp;redirect_uri&quot;</span><span class="p">)]</span>
+                <span class="c1"># Dev ID = 90c719e0-29ce-43a2-9c53-15cb314c2d0b</span>
+                <span class="c1"># Prototype ID = 8a6b7458-1044-4ebd-9b7e-f8fd3469069c</span>
+                <span class="c1"># Prod ID = 3ae21f28-0302-4d28-8581-15853ad6107d</span>
+                <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://services.humanbrainproject.eu/oidc/authorize?state=</span><span class="si">{}</span><span class="s2">&amp;redirect_uri=</span><span class="si">{}</span><span class="s2">/complete/hbp/&amp;response_type=code&amp;client_id=90c719e0-29ce-43a2-9c53-15cb314c2d0b&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+            <span class="c1"># get the exchange cookie</span>
+            <span class="n">cookie</span> <span class="o">=</span> <span class="n">rNMPI1</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;set-cookie&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;cookie&#39;</span><span class="p">:</span> <span class="n">cookie</span><span class="p">})</span>
+            <span class="c1"># 3. request to the provided url at HBP</span>
+            <span class="n">rHBP1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">allow_redirects</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verify</span><span class="p">)</span>
+            <span class="c1"># 4. receives a redirect to HBP login page</span>
+            <span class="k">if</span> <span class="n">rHBP1</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">302</span><span class="p">:</span>
+                <span class="c1"># Get its new destination (location)</span>
+                <span class="n">url</span> <span class="o">=</span> <span class="n">rHBP1</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;location&#39;</span><span class="p">)</span>
+                <span class="n">cookie</span> <span class="o">=</span> <span class="n">rHBP1</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;set-cookie&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;cookie&#39;</span><span class="p">:</span> <span class="n">cookie</span><span class="p">})</span>
+                <span class="c1"># 5. request to the provided url at HBP</span>
+                <span class="n">rHBP2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">allow_redirects</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verify</span><span class="p">)</span>
+                <span class="c1"># 6. HBP responds with the auth form</span>
+                <span class="k">if</span> <span class="n">rHBP2</span><span class="o">.</span><span class="n">text</span><span class="p">:</span>
+                    <span class="c1"># 7. Request to the auth service url</span>
+                    <span class="n">formdata</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;j_username&#39;</span><span class="p">:</span> <span class="n">username</span><span class="p">,</span>
+                        <span class="s1">&#39;j_password&#39;</span><span class="p">:</span> <span class="n">password</span><span class="p">,</span>
+                        <span class="s1">&#39;submit&#39;</span><span class="p">:</span> <span class="s1">&#39;Login&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;redirect_uri&#39;</span><span class="p">:</span> <span class="n">redirect_uri</span> <span class="o">+</span> <span class="s1">&#39;&amp;response_type=code&amp;client_id=nmpi&#39;</span>
+                    <span class="p">}</span>
+                    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;accept&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+                    <span class="n">rNMPI2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;https://services.humanbrainproject.eu/oidc/j_spring_security_check&quot;</span><span class="p">,</span>
+                                               <span class="n">data</span><span class="o">=</span><span class="n">formdata</span><span class="p">,</span>
+                                               <span class="n">allow_redirects</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                               <span class="n">verify</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verify</span><span class="p">,</span>
+                                               <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+                    <span class="c1"># check good communication</span>
+                    <span class="k">if</span> <span class="n">rNMPI2</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+                        <span class="c1">#import pdb; pdb.set_trace()</span>
+                        <span class="c1"># check success address</span>
+                        <span class="k">if</span> <span class="n">rNMPI2</span><span class="o">.</span><span class="n">url</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s1">&#39;/config.json&#39;</span><span class="p">:</span>
+                            <span class="c1"># print rNMPI2.text</span>
+                            <span class="n">res</span> <span class="o">=</span> <span class="n">rNMPI2</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;auth&#39;</span><span class="p">][</span><span class="s1">&#39;token&#39;</span><span class="p">][</span><span class="s1">&#39;access_token&#39;</span><span class="p">]</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">res</span>
+                        <span class="c1"># unauthorized</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="s1">&#39;error&#39;</span> <span class="ow">in</span> <span class="n">rNMPI2</span><span class="o">.</span><span class="n">url</span><span class="p">:</span>
+                                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Authentication Failure: No token retrieved.&quot;</span> <span class="o">+</span> <span class="n">rNMPI2</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unhandled error in Authentication.&quot;</span> <span class="o">+</span> <span class="n">rNMPI2</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Communication error&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Something went wrong. No text.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Something went wrong. Status code </span><span class="si">{}</span><span class="s2"> from HBP, expected 302&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rHBP1</span><span class="o">.</span><span class="n">status_code</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Something went wrong. Status code </span><span class="si">{}</span><span class="s2"> from NMPI, expected 302&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rNMPI1</span><span class="o">.</span><span class="n">status_code</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="TestLibrary"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary">[docs]</a><span class="k">class</span> <span class="nc">TestLibrary</span><span class="p">(</span><span class="n">BaseClient</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Client for the HBP Validation Test library.</span>
+
+<span class="sd">    Usage</span>
+<span class="sd">    -----</span>
+<span class="sd">    # TODO</span>
+<span class="sd">    test_library = TestLibrary()</span>
+
+<span class="sd">    # List test definitions</span>
+<span class="sd">    tests = test_library.list_validation_tests(brain_region=&quot;hippocampus&quot;,</span>
+<span class="sd">                                               cell_type=&quot;pyramidal cell&quot;)</span>
+
+<span class="sd">    # Download the test definition</span>
+<span class="sd">    test = test_library.get_validation_test(test_uri)</span>
+
+<span class="sd">    # Run the test</span>
+<span class="sd">    score = test.judge(model)  # tests use the SciUnit framework</span>
+
+<span class="sd">    # Register the result</span>
+<span class="sd">    test_library.register(score)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestLibrary.get_test_definition"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary.get_test_definition">[docs]</a>    <span class="k">def</span> <span class="nf">get_test_definition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_path</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">test_id</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Summary Line</span>
+<span class="sd">        Download a specific test definition from the test library</span>
+<span class="sd">        in the following ways (in order of priority):</span>
+<span class="sd">        1) load from a local JSON file specified via &#39;test_path&#39;</span>
+<span class="sd">        2) specify the &#39;test_id&#39;</span>
+<span class="sd">        3) specify the &#39;alias&#39; (of the test)</span>
+<span class="sd">        Returns a dict containing information about the test.</span>
+<span class="sd">        Also see: `get__test()`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">test_path</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">test_id</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;test_path or test_id or alias needs to be provided for finding a test.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">test_path</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">test_path</span><span class="p">):</span>
+            <span class="c1"># test_path is a local path</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">test_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="n">test_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">test_id</span><span class="p">:</span>
+                <span class="n">test_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/validationtestdef/?id=&quot;</span> <span class="o">+</span> <span class="n">test_id</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">test_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/validationtestdef/?alias=&quot;</span> <span class="o">+</span> <span class="n">alias</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+            <span class="n">test_json</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">test_uri</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">test_json</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;&lt;Response [200]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in retrieving test. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">test_json</span><span class="o">.</span><span class="n">content</span><span class="p">))</span>
+        <span class="n">test_json</span> <span class="o">=</span> <span class="n">test_json</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">test_json</span><span class="p">[</span><span class="s2">&quot;tests&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TestLibrary.get_test_instance"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary.get_test_instance">[docs]</a>    <span class="k">def</span> <span class="nf">get_test_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance_path</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">test_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">instance_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download a specific test instance definition from the test library</span>
+<span class="sd">        in the following ways (in order of priority):</span>
+<span class="sd">        1) load from a local JSON file specified via &#39;instance_path&#39;</span>
+<span class="sd">        2) specify &#39;instance_id&#39; correspoding to test instance in test library</span>
+<span class="sd">        3) specify &quot;test_id&quot; and &quot;version&quot;</span>
+<span class="sd">        4) specify &quot;alias&quot; (of the test) and &quot;version&quot;</span>
+<span class="sd">        Returns a dict containing information about the test instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">instance_path</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">instance_id</span><span class="o">==</span><span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="p">(</span><span class="n">test_id</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;instance_path or instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">instance_path</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">instance_path</span><span class="p">):</span>
+            <span class="c1"># instance_path is a local path</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">instance_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="n">test_instance_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">instance_id</span><span class="p">:</span>
+                <span class="n">instance_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/validationtestscode/?id=&quot;</span> <span class="o">+</span> <span class="n">instance_id</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+            <span class="k">elif</span> <span class="n">test_id</span> <span class="ow">and</span> <span class="n">version</span><span class="p">:</span>
+                <span class="n">instance_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/validationtestscode/?test_definition_id=&quot;</span> <span class="o">+</span> <span class="n">test_id</span> <span class="o">+</span> <span class="s2">&quot;&amp;version=&quot;</span> <span class="o">+</span> <span class="n">version</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">instance_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/validationtestscode/?test_alias=&quot;</span> <span class="o">+</span> <span class="n">alias</span> <span class="o">+</span> <span class="s2">&quot;&amp;version=&quot;</span> <span class="o">+</span> <span class="n">version</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+            <span class="n">test_instance_json</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">instance_uri</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">test_instance_json</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;&lt;Response [200]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in retrieving test instance. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">test_instance_json</span><span class="o">.</span><span class="n">content</span><span class="p">))</span>
+        <span class="n">test_instance_json</span> <span class="o">=</span> <span class="n">test_instance_json</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">test_instance_json</span><span class="p">[</span><span class="s2">&quot;tests&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TestLibrary.list_test_instances"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary.list_test_instances">[docs]</a>    <span class="k">def</span> <span class="nf">list_test_instances</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance_path</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">test_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download a list of test instance definitions belonging to a specified</span>
+<span class="sd">        test from the test library in the following ways (in order of priority):</span>
+<span class="sd">        1) load from a local JSON file specified via &#39;instance_path&#39;</span>
+<span class="sd">        2) specify &quot;test_id&quot;</span>
+<span class="sd">        3) specify &quot;alias&quot; (of the test)</span>
+<span class="sd">        Returns a list of dicts containing information about the test instances.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">instance_path</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">test_id</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;instance_path or test_id or alias needs to be provided for finding test instances.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">instance_path</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">instance_path</span><span class="p">):</span>
+            <span class="c1"># instance_path is a local path</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">instance_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="n">test_instances_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">test_id</span><span class="p">:</span>
+                <span class="n">instance_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/validationtestscode/?test_definition_id=&quot;</span> <span class="o">+</span> <span class="n">test_id</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">instance_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/validationtestscode/?test_alias=&quot;</span> <span class="o">+</span> <span class="n">alias</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+            <span class="n">test_instances_json</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">instance_uri</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">test_instances_json</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;&lt;Response [200]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in retrieving test instances. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">test_instances_json</span><span class="p">))</span>
+        <span class="n">test_instances_json</span> <span class="o">=</span> <span class="n">test_instances_json</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">test_instances_json</span><span class="p">[</span><span class="s2">&quot;tests&quot;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TestLibrary.add_test_instance"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary.add_test_instance">[docs]</a>    <span class="k">def</span> <span class="nf">add_test_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">repository</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register a new test instance definition for a test registered in the test library.</span>
+<span class="sd">        Returns the UUID of the test instance that has been created.</span>
+
+<span class="sd">        Note: &#39;alias&#39; is not currently implemented in the API, and the same is kept for future use here.</span>
+<span class="sd">        TO DO: Either test_id or alias needs to be provided, with test_id taking precedence over alias.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">test_definition_id</span> <span class="o">=</span> <span class="n">test_id</span>    <span class="c1"># as needed by API</span>
+        <span class="n">instance_data</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;self&quot;</span><span class="p">,</span> <span class="s2">&quot;test_id&quot;</span><span class="p">]:</span>
+            <span class="n">instance_data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">test_definition_id</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;test_id needs to be provided for finding the model.&quot;</span><span class="p">)</span>
+            <span class="c1">#raise Exception(&quot;test_id or alias needs to be provided for finding the model.&quot;)</span>
+        <span class="k">elif</span> <span class="n">test_definition_id</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/validationtestscode/?format=json&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;alias is not currently implemented for this feature.&quot;</span><span class="p">)</span>
+            <span class="c1">#url = self.url + &quot;/validationtestscode/?alias=&quot; + alias + &quot;&amp;format=json&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span><span class="n">instance_data</span><span class="p">]),</span>
+                                 <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;&lt;Response [201]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">content</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in adding test instance. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="TestLibrary.edit_test_instance"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary.edit_test_instance">[docs]</a>    <span class="k">def</span> <span class="nf">edit_test_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">repository</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Edit an existing test instance definition in the test library.</span>
+
+<span class="sd">        Note: &#39;alias&#39; is not currently implemented in the API, and the same is kept for future use here.</span>
+<span class="sd">        TO DO: Either test_id or alias needs to be provided, with test_id taking precedence over alias.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">test_definition_id</span> <span class="o">=</span> <span class="n">test_id</span>    <span class="c1"># as needed by API</span>
+        <span class="n">instance_data</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;self&quot;</span><span class="p">,</span> <span class="s2">&quot;test_id&quot;</span><span class="p">]:</span>
+            <span class="n">instance_data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">test_id</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;test_id needs to be provided for finding the model.&quot;</span><span class="p">)</span>
+            <span class="c1">#raise Exception(&quot;test_id or alias needs to be provided for finding the model.&quot;)</span>
+        <span class="k">elif</span> <span class="n">test_id</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/validationtestscode/?format=json&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;alias is not currently implemented for this feature.&quot;</span><span class="p">)</span>
+            <span class="c1">#url = self.url + &quot;/validationtestscode/?alias=&quot; + alias + &quot;&amp;format=json&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span><span class="n">instance_data</span><span class="p">]),</span>
+                                 <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;&lt;Response [202]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">content</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in editing test instance. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">))</span></div>
+
+    <span class="c1"># TODO</span>
+<div class="viewcode-block" id="TestLibrary.get_test"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary.get_test">[docs]</a>    <span class="k">def</span> <span class="nf">get_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_path</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">test_id</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">instance_id</span> <span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download a specific test definition from the test library using the &#39;test_id&#39; or alias,</span>
+<span class="sd">        or load from a local JSON file specified via &#39;test_path&#39;. &#39;test_path&#39; takes priority if mutliple specified.</span>
+<span class="sd">        &#39;test_id&#39; takes priority over &#39;alias&#39; when both provided.</span>
+<span class="sd">        `params` are additional keyword arguments to be passed to the :class:`Test` constructor.</span>
+<span class="sd">        Returns a :class:`sciunit.Test` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">test_json</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_test_definition</span><span class="p">(</span><span class="n">test_path</span><span class="o">=</span><span class="n">test_path</span><span class="p">,</span> <span class="n">test_id</span><span class="o">=</span><span class="n">test_id</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="n">alias</span><span class="p">)</span>
+        <span class="n">test_instances_json</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_test_instance</span><span class="p">(</span><span class="n">instance_id</span><span class="o">=</span><span class="n">instance_id</span><span class="p">)</span>
+
+        <span class="c1"># Import the Test class specified in the definition.</span>
+        <span class="c1"># This assumes that the module containing the class is installed.</span>
+        <span class="c1"># In future we could add the ability to (optionally) install</span>
+        <span class="c1"># Python packages automatically.</span>
+        <span class="n">path_parts</span> <span class="o">=</span> <span class="n">test_instances_json</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+        <span class="n">cls_name</span> <span class="o">=</span> <span class="n">path_parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">module_name</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_parts</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">test_module</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">)</span>
+        <span class="n">test_cls</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">test_module</span><span class="p">,</span> <span class="n">cls_name</span><span class="p">)</span>
+
+        <span class="c1"># Load the reference data (&quot;observations&quot;)</span>
+        <span class="n">observation_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_reference_data</span><span class="p">(</span><span class="n">test_json</span><span class="p">[</span><span class="s2">&quot;data_location&quot;</span><span class="p">])</span>
+
+        <span class="c1"># Transform string representations of quantities, e.g. &quot;-65 mV&quot;,</span>
+        <span class="c1"># into :class:`quantities.Quantity` objects.</span>
+        <span class="n">observations</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">observation_data</span><span class="o">.</span><span class="n">values</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observation_data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">observation_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">observations</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">observations</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                        <span class="n">quantity_parts</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+                        <span class="n">number</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">quantity_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                        <span class="n">units</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">quantity_parts</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+                        <span class="n">observations</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">quantities</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">number</span><span class="p">,</span> <span class="n">units</span><span class="p">)</span>
+
+        <span class="c1"># Create the :class:`sciunit.Test` instance</span>
+        <span class="n">test_instance</span> <span class="o">=</span> <span class="n">test_cls</span><span class="p">(</span><span class="n">observations</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+        <span class="n">test_instance</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">test_instances_json</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>  <span class="c1"># this is just the path part. Should be a full url</span>
+        <span class="k">return</span> <span class="n">test_instance</span></div>
+
+    <span class="k">def</span> <span class="nf">_load_reference_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uri</span><span class="p">):</span>
+        <span class="c1"># Load the reference data (&quot;observations&quot;). For now this is assumed</span>
+        <span class="c1"># to be in JSON format, but we should support other data formats.</span>
+        <span class="n">parse_result</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span>
+        <span class="n">datastore</span> <span class="o">=</span> <span class="n">URI_SCHEME_MAP</span><span class="p">[</span><span class="n">parse_result</span><span class="o">.</span><span class="n">scheme</span><span class="p">](</span><span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span>
+        <span class="n">observation_data</span> <span class="o">=</span> <span class="n">datastore</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observation_data</span>
+
+<div class="viewcode-block" id="TestLibrary.get_options"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary.get_options">[docs]</a>    <span class="k">def</span> <span class="nf">get_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Will return the list of valid values (where applicable) for various fields.</span>
+<span class="sd">        If a parameter is specified then, only values that correspond to it will be returned,</span>
+<span class="sd">        else values for all fields are returned.</span>
+<span class="sd">        Note: When specified, only the first parameter is considered; the rest are ignored.</span>
+<span class="sd">              So the function either returns for all parameters or a single parameter.</span>
+
+<span class="sd">        Example Usage:</span>
+<span class="sd">        data = test_library.get_options()</span>
+<span class="sd">        or</span>
+<span class="sd">        data = test_library.get_options(&quot;cell_type&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">param</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">param</span> <span class="o">=</span> <span class="s2">&quot;all&quot;</span>
+
+        <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">,</span> <span class="s2">&quot;test_type&quot;</span><span class="p">,</span> <span class="s2">&quot;score_type&quot;</span><span class="p">,</span> <span class="s2">&quot;brain_region&quot;</span><span class="p">,</span> <span class="s2">&quot;model_type&quot;</span><span class="p">,</span> <span class="s2">&quot;data_modalities&quot;</span><span class="p">,</span> <span class="s2">&quot;species&quot;</span><span class="p">,</span> <span class="s2">&quot;all&quot;</span><span class="p">]:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/authorizedcollabparameterrest/?python_client=true&amp;parameters=&quot;</span><span class="o">+</span><span class="n">param</span><span class="o">+</span><span class="s2">&quot;&amp;format=json&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Parameter, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_type, data_modalities, species, all]&quot;</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestLibrary.register_test"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary.register_test">[docs]</a>    <span class="k">def</span> <span class="nf">register_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">author</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">publication</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                      <span class="n">species</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">brain_region</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">cell_type</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">data_modality</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                      <span class="n">test_type</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">score_type</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">data_location</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                      <span class="n">version</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">repository</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        To register a new test on the test catalog.</span>
+<span class="sd">        You need to specify an instance (version) of this test when creating it.</span>
+
+<span class="sd">        Example usage:</span>
+<span class="sd">        test = test_library.register_test(name=&quot;Cell Density Test&quot;, alias=&quot;CDT-4&quot;, author=&quot;Shailesh Appukuttan&quot;, publication=&quot;Halasy et al., 1996&quot;,</span>
+<span class="sd">                            species=&quot;Mouse (Mus musculus)&quot;, brain_region=&quot;Hippocampus&quot;, cell_type=&quot;Other&quot;, age=&quot;TBD&quot;, data_modality=&quot;electron microscopy&quot;,</span>
+<span class="sd">              test_type=&quot;network structure&quot;, score_type=&quot;Other&quot;, protocol=&quot;To be filled later&quot;, data_location=&quot;collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json&quot;, data_type=&quot;Mean, SD&quot;,</span>
+<span class="sd">              repository=&quot;https://github.com/appukuttan-shailesh/morphounit.git&quot;, path=&quot;morphounit.tests.CellDensityTest&quot;, version=&quot;1.0&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_options</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">species</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;species&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;species = &#39;&quot;</span> <span class="o">+</span><span class="n">species</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;species&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">brain_region</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;brain_region&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;brain_region = &#39;&quot;</span> <span class="o">+</span><span class="n">brain_region</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;brain_region&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">cell_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;cell_type = &#39;&quot;</span> <span class="o">+</span><span class="n">cell_type</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">data_modality</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;data_modalities&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;data_modality = &#39;&quot;</span> <span class="o">+</span><span class="n">data_modality</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;data_modality&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">test_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;test_type&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;test_type = &#39;&quot;</span> <span class="o">+</span><span class="n">test_type</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;test_type&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">score_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;score_type&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;score_type = &#39;&quot;</span> <span class="o">+</span><span class="n">score_type</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;score_type&quot;</span><span class="p">]))</span>
+
+        <span class="k">if</span> <span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">alias</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">test_data</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
+        <span class="n">test_data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;self&quot;</span><span class="p">)</span>
+        <span class="n">code_data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="s2">&quot;repository&quot;</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">]:</span>
+            <span class="n">code_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="n">test_list_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/validationtestdef/?format=json&quot;</span>
+        <span class="n">test_json</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s2">&quot;test_data&quot;</span><span class="p">:</span> <span class="n">test_data</span><span class="p">,</span>
+                        <span class="s2">&quot;code_data&quot;</span><span class="p">:</span> <span class="n">code_data</span>
+                    <span class="p">}</span>
+
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">test_list_uri</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">test_json</span><span class="p">),</span>
+                                 <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;&lt;Response [201]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in adding test. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()))</span></div>
+
+<div class="viewcode-block" id="TestLibrary.edit_test"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary.edit_test">[docs]</a>    <span class="k">def</span> <span class="nf">edit_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">test_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">author</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">publication</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                      <span class="n">species</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">brain_region</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">cell_type</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">data_modality</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                      <span class="n">test_type</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">score_type</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">data_location</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        To edit an existing test in the test library.</span>
+<span class="sd">        test_id must be provided. Any of the other parameters maybe updated.</span>
+<span class="sd">        Note: this does not allow editing details of instances. Will be implemented later, if required.</span>
+
+<span class="sd">        Example usage:</span>
+<span class="sd">        test = test_library.register_test(name=&quot;Cell Density Test&quot;, alias=&quot;CDT-4&quot;, author=&quot;Shailesh Appukuttan&quot;, publication=&quot;Halasy et al., 1996&quot;,</span>
+<span class="sd">                            species=&quot;Mouse (Mus musculus)&quot;, brain_region=&quot;Hippocampus&quot;, cell_type=&quot;Other&quot;, age=&quot;TBD&quot;, data_modality=&quot;electron microscopy&quot;,</span>
+<span class="sd">              test_type=&quot;network structure&quot;, score_type=&quot;Other&quot;, protocol=&quot;To be filled later&quot;, data_location=&quot;collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json&quot;, data_type=&quot;Mean, SD&quot;,</span>
+<span class="sd">              repository=&quot;https://github.com/appukuttan-shailesh/morphounit.git&quot;, path=&quot;morphounit.tests.CellDensityTest&quot;, version=&quot;1.0&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_options</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">species</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;species&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;species = &#39;&quot;</span> <span class="o">+</span><span class="n">species</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;species&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">brain_region</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;brain_region&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;brain_region = &#39;&quot;</span> <span class="o">+</span><span class="n">brain_region</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;brain_region&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">cell_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;cell_type = &#39;&quot;</span> <span class="o">+</span><span class="n">cell_type</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">data_modality</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;data_modalities&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;data_modality = &#39;&quot;</span> <span class="o">+</span><span class="n">data_modality</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;data_modality&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">test_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;test_type&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;test_type = &#39;&quot;</span> <span class="o">+</span><span class="n">test_type</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;test_type&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">score_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;score_type&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;score_type = &#39;&quot;</span> <span class="o">+</span><span class="n">score_type</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;score_type&quot;</span><span class="p">]))</span>
+
+        <span class="k">if</span> <span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">alias</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="nb">id</span> <span class="o">=</span> <span class="n">test_id</span>   <span class="c1"># as needed by API</span>
+        <span class="n">test_data</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;self&quot;</span><span class="p">,</span> <span class="s2">&quot;test_id&quot;</span><span class="p">]:</span>
+            <span class="n">test_data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="n">test_list_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/validationtestdef/?format=json&quot;</span>
+        <span class="n">test_json</span> <span class="o">=</span> <span class="n">test_data</span>   <span class="c1"># retaining similar structure as other methods</span>
+
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">test_list_uri</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">test_json</span><span class="p">),</span>
+                                <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;&lt;Response [202]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in editing test. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()))</span></div>
+
+    <span class="c1"># TODO</span>
+<div class="viewcode-block" id="TestLibrary.list_validation_tests"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary.list_validation_tests">[docs]</a>    <span class="k">def</span> <span class="nf">list_validation_tests</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">filters</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        docstring needed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/search?</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">urlencode</span><span class="p">(</span><span class="n">filters</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TestLibrary.register_result"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary.register_result">[docs]</a>    <span class="k">def</span> <span class="nf">register_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_result</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">data_store</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register the test result with the HBP Validation Results Service.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            test_result - a :class:`sciunit.Score` instance returned by `test.judge(model)`</span>
+<span class="sd">            data_store - a :class:`DataStore` instance, for uploading related data</span>
+<span class="sd">                         generated by the test run, e.g. figures.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;TEST RESULT: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">test_result</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">test_result</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">test_result</span><span class="o">.</span><span class="n">prediction</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">test_result</span><span class="o">.</span><span class="n">observation</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">test_result</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">test_result</span><span class="o">.</span><span class="n">related_data</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="c1"># depending on value of data_store,</span>
+        <span class="c1"># upload data file to Collab storage,</span>
+        <span class="c1"># or just store path if it is on HPAC machine</span>
+        <span class="k">if</span> <span class="n">data_store</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">data_store</span><span class="o">.</span><span class="n">authorized</span><span class="p">:</span>
+                <span class="n">data_store</span><span class="o">.</span><span class="n">authorize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span>  <span class="c1"># relies on data store using HBP authorization</span>
+                                                 <span class="c1"># if this is not the case, need to authenticate/authorize</span>
+                                                 <span class="c1"># the data store before passing to `register()`</span>
+            <span class="k">if</span> <span class="n">data_store</span><span class="o">.</span><span class="n">collab_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">data_store</span><span class="o">.</span><span class="n">collab_id</span> <span class="o">=</span> <span class="n">project</span>
+            <span class="n">results_storage</span> <span class="o">=</span> <span class="n">data_store</span><span class="o">.</span><span class="n">upload_data</span><span class="p">(</span><span class="n">test_result</span><span class="o">.</span><span class="n">related_data</span><span class="p">[</span><span class="s2">&quot;figures&quot;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">results_storage</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="c1"># check that the model is registered with the model registry.</span>
+        <span class="c1"># If not, offer to register it?</span>
+        <span class="n">result_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/validationmodelresultrest2/?format=json&quot;</span>
+        <span class="n">result_json</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s2">&quot;model_version_id&quot;</span><span class="p">:</span> <span class="n">test_result</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                        <span class="s2">&quot;test_code_id&quot;</span><span class="p">:</span> <span class="n">test_result</span><span class="o">.</span><span class="n">related_data</span><span class="p">[</span><span class="s2">&quot;test_instance_id&quot;</span><span class="p">],</span>
+                        <span class="s2">&quot;results_storage&quot;</span><span class="p">:</span> <span class="s2">&quot;Dummy&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;score&quot;</span><span class="p">:</span> <span class="n">test_result</span><span class="o">.</span><span class="n">score</span><span class="p">,</span>
+                        <span class="s2">&quot;passed&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="s2">&quot;timestamp&quot;</span><span class="p">:</span> <span class="s2">&quot;2049-05-18T18:47:14Z&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;platform&quot;</span><span class="p">:</span> <span class="s2">&quot;abcde&quot;</span><span class="p">,</span>    <span class="c1">#self.get_platform(),</span>
+                        <span class="s2">&quot;project&quot;</span><span class="p">:</span> <span class="s2">&quot;azerty&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;normalized_score&quot;</span><span class="p">:</span> <span class="n">test_result</span><span class="o">.</span><span class="n">score</span>
+                      <span class="p">}</span>
+
+                <span class="c1">#&quot;model_id&quot;: test_result.model.id,  # uri? overload &#39;model.name&#39; attribute?</span>
+                <span class="c1">#&quot;version&quot;: test_result.model.version,</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="n">result_json</span><span class="p">)</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">result_uri</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span><span class="n">result_json</span><span class="p">]),</span>
+                                 <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestLibrary.get_platform"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary.get_platform">[docs]</a>    <span class="k">def</span> <span class="nf">get_platform</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a dict containing information about the platform the test was run on.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This needs to be extended to support remote execution, e.g. job queues on clusters.</span>
+        <span class="c1"># Use Sumatra?</span>
+        <span class="n">network_name</span> <span class="o">=</span> <span class="n">platform</span><span class="o">.</span><span class="n">node</span><span class="p">()</span>
+        <span class="n">bits</span><span class="p">,</span> <span class="n">linkage</span> <span class="o">=</span> <span class="n">platform</span><span class="o">.</span><span class="n">architecture</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">_have_internet_connection</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ip_addr</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">gethostbyname</span><span class="p">(</span><span class="n">network_name</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">gaierror</span><span class="p">:</span>
+                <span class="n">ip_addr</span> <span class="o">=</span> <span class="s2">&quot;127.0.0.1&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ip_addr</span> <span class="o">=</span> <span class="s2">&quot;127.0.0.1&quot;</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">architecture_bits</span><span class="o">=</span><span class="n">bits</span><span class="p">,</span>
+                    <span class="n">architecture_linkage</span><span class="o">=</span><span class="n">linkage</span><span class="p">,</span>
+                    <span class="n">machine</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">machine</span><span class="p">(),</span>
+                    <span class="n">network_name</span><span class="o">=</span><span class="n">network_name</span><span class="p">,</span>
+                    <span class="n">ip_addr</span><span class="o">=</span><span class="n">ip_addr</span><span class="p">,</span>
+                    <span class="n">processor</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">processor</span><span class="p">(),</span>
+                    <span class="n">release</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">release</span><span class="p">(),</span>
+                    <span class="n">system_name</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">(),</span>
+                    <span class="n">version</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">version</span><span class="p">())</span></div>
+
+    <span class="c1"># TODO</span>
+<div class="viewcode-block" id="TestLibrary.list_validation_results"><a class="viewcode-back" href="../index.html#hbp_validation_framework.TestLibrary.list_validation_results">[docs]</a>    <span class="k">def</span> <span class="nf">list_validation_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">filters</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        docstring needed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">0</span></div></div>
+
+
+<div class="viewcode-block" id="ModelCatalog"><a class="viewcode-back" href="../index.html#hbp_validation_framework.ModelCatalog">[docs]</a><span class="k">class</span> <span class="nc">ModelCatalog</span><span class="p">(</span><span class="n">BaseClient</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Client for the HBP Model Repository. Can do the following:</span>
+<span class="sd">    &gt; Retrieve a specific model description from the repository</span>
+<span class="sd">    &gt; Retrieve a list of model descriptions from the repository</span>
+<span class="sd">    &gt; Return list of valid values (where applicable) for model catalog fields</span>
+<span class="sd">    &gt; Add a new model description to the repository</span>
+<span class="sd">    &gt; Add a new model instance for an existing model in the repository</span>
+<span class="sd">    &gt; Add a new image for an existing model in the repository</span>
+
+<span class="sd">    Usage</span>
+<span class="sd">    -----</span>
+<span class="sd">    model_catalog = ModelCatalog()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ModelCatalog.get_model"><a class="viewcode-back" href="../index.html#hbp_validation_framework.ModelCatalog.get_model">[docs]</a>    <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">instances</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">images</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve a specific model description by its model_id or alias.</span>
+<span class="sd">        Either model_id or alias needs to be provided, with model_id taking precedence over alias.</span>
+<span class="sd">        Will return the entire model description as a JSON object.</span>
+
+<span class="sd">        (Optional) Set &#39;instances&#39; to False if you wish to omit the details of the model instances.</span>
+<span class="sd">        (Optional) Set &#39;images&#39; to False if you wish to omit the details of the model images.</span>
+
+<span class="sd">        Example usage:</span>
+<span class="sd">        model = model_catalog.get_model(model_id=&quot;8c7cb9f6-e380-452c-9e98-e77254b088c5&quot;)</span>
+<span class="sd">        or</span>
+<span class="sd">        model = model_catalog.get_model(alias=&quot;B1&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model_id</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Model ID or alias needs to be provided for finding a model.&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">model_id</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">model_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodel/?id=&quot;</span> <span class="o">+</span> <span class="n">model_id</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodel/?alias=&quot;</span> <span class="o">+</span> <span class="n">alias</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+
+        <span class="n">model</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">model_uri</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">model</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;&lt;Response [200]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in retrieving model. Possibly invalid model_id or alias. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">instances</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">model</span><span class="p">[</span><span class="s2">&quot;models&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;instances&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">images</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">model</span><span class="p">[</span><span class="s2">&quot;models&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;images&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model</span><span class="p">[</span><span class="s2">&quot;models&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ModelCatalog.list_models"><a class="viewcode-back" href="../index.html#hbp_validation_framework.ModelCatalog.list_models">[docs]</a>    <span class="k">def</span> <span class="nf">list_models</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">filters</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        List models satisfying all specified filters</span>
+
+<span class="sd">        Example usage:</span>
+<span class="sd">        models = model_catalog.list_models()</span>
+<span class="sd">        models = model_catalog.list_models(app_id=&quot;39968&quot;)</span>
+<span class="sd">        models = model_catalog.list_models(cell_type=&quot;Pyramidal Cell&quot;,</span>
+<span class="sd">                                           brain_region=&quot;Hippocampus&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span>
+        <span class="n">model_list_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodel/?&quot;</span><span class="o">+</span><span class="n">urlencode</span><span class="p">(</span><span class="n">params</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;&amp;format=json&quot;</span>
+        <span class="n">models</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">model_list_uri</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">models</span><span class="p">[</span><span class="s2">&quot;models&quot;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ModelCatalog.get_options"><a class="viewcode-back" href="../index.html#hbp_validation_framework.ModelCatalog.get_options">[docs]</a>    <span class="k">def</span> <span class="nf">get_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Will return the list of valid values (where applicable) for various fields.</span>
+<span class="sd">        If a parameter is specified then, only values that correspond to it will be returned,</span>
+<span class="sd">        else values for all fields are returned.</span>
+<span class="sd">        Note: When specified, only the first parameter is considered; the rest are ignored.</span>
+<span class="sd">              So the function either returns for all parameters or a single parameter.</span>
+
+<span class="sd">        Example Usage:</span>
+<span class="sd">        data = model_catalog.get_options()</span>
+<span class="sd">        or</span>
+<span class="sd">        data = model_catalog.get_options(&quot;cell_type&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">param</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">param</span> <span class="o">=</span> <span class="s2">&quot;all&quot;</span>
+
+        <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">,</span> <span class="s2">&quot;test_type&quot;</span><span class="p">,</span> <span class="s2">&quot;score_type&quot;</span><span class="p">,</span> <span class="s2">&quot;brain_region&quot;</span><span class="p">,</span> <span class="s2">&quot;model_type&quot;</span><span class="p">,</span> <span class="s2">&quot;data_modalities&quot;</span><span class="p">,</span> <span class="s2">&quot;species&quot;</span><span class="p">,</span> <span class="s2">&quot;all&quot;</span><span class="p">]:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/authorizedcollabparameterrest/?python_client=true&amp;parameters=&quot;</span><span class="o">+</span><span class="n">param</span><span class="o">+</span><span class="s2">&quot;&amp;format=json&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Parameter, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_type, data_modalities, species, all]&quot;</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ModelCatalog.register_model"><a class="viewcode-back" href="../index.html#hbp_validation_framework.ModelCatalog.register_model">[docs]</a>    <span class="k">def</span> <span class="nf">register_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">author</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">private</span><span class="o">=</span><span class="s2">&quot;False&quot;</span><span class="p">,</span>
+                       <span class="n">cell_type</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">brain_region</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">species</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                       <span class="n">instances</span><span class="o">=</span><span class="p">[],</span> <span class="n">images</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        To register a new model on the model catalog</span>
+
+<span class="sd">        Example usage:</span>
+<span class="sd">        (without specification of instances and images)</span>
+<span class="sd">        model = model_catalog.register_model(app_id=&quot;39968&quot;, name=&quot;Test Model - B2&quot;,</span>
+<span class="sd">                        alias=&quot;Model-B2&quot;, author=&quot;Shailesh Appukuttan&quot;,</span>
+<span class="sd">                        private=&quot;False&quot;, cell_type=&quot;Granule Cell&quot;, model_type=&quot;Single Cell&quot;,</span>
+<span class="sd">                        brain_region=&quot;Basal Ganglia&quot;, species=&quot;Mouse (Mus musculus)&quot;,</span>
+<span class="sd">                        description=&quot;This is a test entry&quot;)</span>
+<span class="sd">        or</span>
+<span class="sd">        (with specification of instances and images)</span>
+<span class="sd">        model = model_catalog.register_model(app_id=&quot;39968&quot;, name=&quot;Client Test - C2&quot;,</span>
+<span class="sd">                        alias=&quot;C2&quot;, author=&quot;Shailesh Appukuttan&quot;,</span>
+<span class="sd">                        private=&quot;False&quot;, cell_type=&quot;Granule Cell&quot;, model_type=&quot;Single Cell&quot;,</span>
+<span class="sd">                        brain_region=&quot;Basal Ganglia&quot;, species=&quot;Mouse (Mus musculus)&quot;,</span>
+<span class="sd">                        description=&quot;This is a test entry! Please ignore.&quot;,</span>
+<span class="sd">                        instances=[{&quot;source&quot;:&quot;https://www.abcde.com&quot;,</span>
+<span class="sd">                                    &quot;version&quot;:&quot;1.0&quot;, &quot;parameters&quot;:&quot;&quot;},</span>
+<span class="sd">                                   {&quot;source&quot;:&quot;https://www.12345.com&quot;,</span>
+<span class="sd">                                    &quot;version&quot;:&quot;2.0&quot;, &quot;parameters&quot;:&quot;&quot;}],</span>
+<span class="sd">                        images=[{&quot;url&quot;:&quot;http://www.neuron.yale.edu/neuron/sites/default/themes/xchameleon/logo.png&quot;,</span>
+<span class="sd">                                 &quot;caption&quot;:&quot;NEURON Logo&quot;},</span>
+<span class="sd">                                {&quot;url&quot;:&quot;https://collab.humanbrainproject.eu/assets/hbp_diamond_120.png&quot;,</span>
+<span class="sd">                                 &quot;caption&quot;:&quot;HBP Logo&quot;}])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_options</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">cell_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;cell_type = &#39;&quot;</span> <span class="o">+</span><span class="n">cell_type</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">model_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;model_type&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;model_type = &#39;&quot;</span> <span class="o">+</span><span class="n">model_type</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;model_type&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">brain_region</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;brain_region&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;brain_region = &#39;&quot;</span> <span class="o">+</span><span class="n">brain_region</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;brain_region&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">species</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;species&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;species = &#39;&quot;</span> <span class="o">+</span><span class="n">species</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;species&quot;</span><span class="p">]))</span>
+
+        <span class="k">if</span> <span class="n">private</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;True&quot;</span><span class="p">,</span> <span class="s2">&quot;False&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Model&#39;s &#39;private&#39; attribute should be specified as True / False. Default value is False.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">alias</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">model_data</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;self&quot;</span><span class="p">,</span> <span class="s2">&quot;app_id&quot;</span><span class="p">,</span> <span class="s2">&quot;instances&quot;</span><span class="p">,</span> <span class="s2">&quot;images&quot;</span><span class="p">]:</span>
+            <span class="n">model_data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="n">model_list_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodel/?app_id=&quot;</span><span class="o">+</span><span class="n">app_id</span><span class="o">+</span><span class="s2">&quot;&amp;format=json&quot;</span>
+        <span class="n">model_json</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="n">model_data</span><span class="p">,</span>
+                        <span class="s2">&quot;model_instance&quot;</span><span class="p">:</span><span class="n">instances</span><span class="p">,</span>
+                        <span class="s2">&quot;model_image&quot;</span><span class="p">:</span><span class="n">images</span>
+                     <span class="p">}</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">model_list_uri</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">model_json</span><span class="p">),</span>
+                                 <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;&lt;Response [201]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in adding model. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()))</span></div>
+
+<div class="viewcode-block" id="ModelCatalog.edit_model"><a class="viewcode-back" href="../index.html#hbp_validation_framework.ModelCatalog.edit_model">[docs]</a>    <span class="k">def</span> <span class="nf">edit_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">author</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">private</span><span class="o">=</span><span class="s2">&quot;False&quot;</span><span class="p">,</span>
+                       <span class="n">cell_type</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">brain_region</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">species</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        To edit an existing model description on the model catalog.</span>
+<span class="sd">        model_id must be provided. Any of the other parameters maybe updated.</span>
+<span class="sd">        Note: this does not allow editing details of instances and images. Will be implemented later, if required.</span>
+
+<span class="sd">        Example usage:</span>
+<span class="sd">        model = model_catalog.edit_model(app_id=&quot;39968&quot;, name=&quot;Test Model - B2&quot;,</span>
+<span class="sd">                        model_id=&quot;8c7cb9f6-e380-452c-9e98-e77254b088c5&quot;,</span>
+<span class="sd">                        alias=&quot;Model-B2&quot;, author=&quot;Shailesh Appukuttan&quot;,</span>
+<span class="sd">                        private=&quot;False&quot;, cell_type=&quot;Granule Cell&quot;, model_type=&quot;Single Cell&quot;,</span>
+<span class="sd">                        brain_region=&quot;Basal Ganglia&quot;, species=&quot;Mouse (Mus musculus)&quot;,</span>
+<span class="sd">                        description=&quot;This is a test entry&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_options</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">cell_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;cell_type = &#39;&quot;</span> <span class="o">+</span><span class="n">cell_type</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">model_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;model_type&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;model_type = &#39;&quot;</span> <span class="o">+</span><span class="n">model_type</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;model_type&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">brain_region</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;brain_region&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;brain_region = &#39;&quot;</span> <span class="o">+</span><span class="n">brain_region</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;brain_region&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">species</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;species&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;species = &#39;&quot;</span> <span class="o">+</span><span class="n">species</span><span class="o">+</span><span class="s2">&quot;&#39; is invalid.</span><span class="se">\n</span><span class="s2">Value has to be one of these: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;species&quot;</span><span class="p">]))</span>
+
+        <span class="k">if</span> <span class="n">private</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;True&quot;</span><span class="p">,</span> <span class="s2">&quot;False&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Model&#39;s &#39;private&#39; attribute should be specified as True / False. Default value is False.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">alias</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="nb">id</span> <span class="o">=</span> <span class="n">model_id</span>   <span class="c1"># as needed by API</span>
+        <span class="n">model_data</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;self&quot;</span><span class="p">,</span> <span class="s2">&quot;app_id&quot;</span><span class="p">,</span> <span class="s2">&quot;model_id&quot;</span><span class="p">]:</span>
+            <span class="n">model_data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="n">model_list_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodel/?app_id=&quot;</span><span class="o">+</span><span class="n">app_id</span><span class="o">+</span><span class="s2">&quot;&amp;format=json&quot;</span>
+        <span class="n">model_json</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s2">&quot;models&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">model_data</span><span class="p">]</span>
+                     <span class="p">}</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">model_list_uri</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">model_json</span><span class="p">),</span>
+                                 <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;&lt;Response [202]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in updating model. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()))</span></div>
+
+<div class="viewcode-block" id="ModelCatalog.add_model_instance"><a class="viewcode-back" href="../index.html#hbp_validation_framework.ModelCatalog.add_model_instance">[docs]</a>    <span class="k">def</span> <span class="nf">add_model_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        To add a single new instance of an existing model in the model catalog.</span>
+<span class="sd">        &#39;model_id&#39; needs to be specified as input parameter.</span>
+<span class="sd">        Returns the UUID of the instance added to the model catalog.</span>
+
+<span class="sd">        Example usage:</span>
+<span class="sd">        instance_id = model_catalog.add_model_instance(model_id=&quot;196b89a3-e672-4b96-8739-748ba3850254&quot;,</span>
+<span class="sd">                                                  source=&quot;https://www.abcde.com&quot;,</span>
+<span class="sd">                                                  version=&quot;1.0&quot;,</span>
+<span class="sd">                                                  parameters=&quot;&quot;)</span>
+
+<span class="sd">        Note: &#39;alias&#39; is not currently implemented in the API, and the same is kept for future use here.</span>
+<span class="sd">        TO DO: Either model_id or alias needs to be provided, with model_id taking precedence over alias.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">instance_data</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
+        <span class="n">instance_data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;self&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">model_id</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Model ID needs to be provided for finding the model.&quot;</span><span class="p">)</span>
+            <span class="c1">#raise Exception(&quot;Model ID or alias needs to be provided for finding the model.&quot;)</span>
+        <span class="k">elif</span> <span class="n">model_id</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodelinstance/?format=json&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;alias is not currently implemented for this feature.&quot;</span><span class="p">)</span>
+            <span class="c1">#url = self.url + &quot;/scientificmodelinstance/?alias=&quot; + alias + &quot;&amp;format=json&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span><span class="n">instance_data</span><span class="p">]),</span>
+                                 <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;&lt;Response [201]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in adding model instance. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()))</span></div>
+
+<div class="viewcode-block" id="ModelCatalog.get_model_instance"><a class="viewcode-back" href="../index.html#hbp_validation_framework.ModelCatalog.get_model_instance">[docs]</a>    <span class="k">def</span> <span class="nf">get_model_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance_path</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">instance_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download a specific model instance definition from the model catalog</span>
+<span class="sd">        in the following ways (in order of priority):</span>
+<span class="sd">        1) load from a local JSON file specified via &#39;instance_path&#39;</span>
+<span class="sd">        2) specify &#39;instance_id&#39; correspoding to test instance in test library</span>
+<span class="sd">        3) specify &quot;model_id&quot; and &quot;version&quot;</span>
+<span class="sd">        4) specify &quot;alias&quot; (of the model) and &quot;version&quot;</span>
+<span class="sd">        Returns a dict containing information about the model instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">instance_path</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">instance_id</span><span class="o">==</span><span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="p">(</span><span class="n">model_id</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;instance_path or instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">instance_path</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">instance_path</span><span class="p">):</span>
+            <span class="c1"># instance_path is a local path</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">instance_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="n">model_instance_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">instance_id</span><span class="p">:</span>
+                <span class="n">instance_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodelinstance/?id=&quot;</span> <span class="o">+</span> <span class="n">instance_id</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+            <span class="k">elif</span> <span class="n">model_id</span> <span class="ow">and</span> <span class="n">version</span><span class="p">:</span>
+                <span class="n">instance_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodelinstance/?model_id=&quot;</span> <span class="o">+</span> <span class="n">model_id</span> <span class="o">+</span> <span class="s2">&quot;&amp;version=&quot;</span> <span class="o">+</span> <span class="n">version</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">instance_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodelinstance/?model_alias=&quot;</span> <span class="o">+</span> <span class="n">alias</span> <span class="o">+</span> <span class="s2">&quot;&amp;version=&quot;</span> <span class="o">+</span> <span class="n">version</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+            <span class="n">model_instance_json</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">instance_uri</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">model_instance_json</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;&lt;Response [200]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in retrieving model instance. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">model_instance_json</span><span class="p">))</span>
+        <span class="n">model_instance_json</span> <span class="o">=</span> <span class="n">model_instance_json</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_instance_json</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;There is no model instance with these specifications.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model_instance_json</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ModelCatalog.list_model_instances"><a class="viewcode-back" href="../index.html#hbp_validation_framework.ModelCatalog.list_model_instances">[docs]</a>    <span class="k">def</span> <span class="nf">list_model_instances</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance_path</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download a list of model instance definitions belonging to a specified</span>
+<span class="sd">        model from the model catalog in the following ways (in order of priority):</span>
+<span class="sd">        1) load from a local JSON file specified via &#39;instance_path&#39;</span>
+<span class="sd">        2) specify &quot;model_id&quot;</span>
+<span class="sd">        3) specify &quot;alias&quot; (of the model)</span>
+<span class="sd">        Returns a list of dicts containing information about the model instances.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">instance_path</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">model_id</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;instance_path or model_id or alias needs to be provided for finding model instances.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">instance_path</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">instance_path</span><span class="p">):</span>
+            <span class="c1"># instance_path is a local path</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">instance_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="n">model_instances_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">model_id</span><span class="p">:</span>
+                <span class="n">instance_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodelinstance/?model_id=&quot;</span> <span class="o">+</span> <span class="n">model_id</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">instance_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodelinstance/?model_alias=&quot;</span> <span class="o">+</span> <span class="n">alias</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+            <span class="nb">print</span> <span class="s2">&quot;instance_uri = &quot;</span><span class="p">,</span> <span class="n">instance_uri</span>
+            <span class="n">model_instances_json</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">instance_uri</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">model_instances_json</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;&lt;Response [200]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in retrieving model instances. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">model_instances_json</span><span class="p">))</span>
+        <span class="n">model_instances_json</span> <span class="o">=</span> <span class="n">model_instances_json</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">model_instances_json</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ModelCatalog.add_model_image"><a class="viewcode-back" href="../index.html#hbp_validation_framework.ModelCatalog.add_model_image">[docs]</a>    <span class="k">def</span> <span class="nf">add_model_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">caption</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        To add a new image to an existing model in the model catalog.</span>
+<span class="sd">        &#39;model_id&#39; needs to be specified as input parameter.</span>
+<span class="sd">        Returns the UUID of the image added in the model catalog.</span>
+
+<span class="sd">        Example usage:</span>
+<span class="sd">        image_id = model_catalog.add_model_image(model_id=&quot;196b89a3-e672-4b96-8739-748ba3850254&quot;,</span>
+<span class="sd">                                               url=&quot;http://www.neuron.yale.edu/neuron/sites/default/themes/xchameleon/logo.png&quot;,</span>
+<span class="sd">                                               caption=&quot;NEURON Logo&quot;)</span>
+
+<span class="sd">        Note: &#39;alias&#39; is not currently implemented in the API, and the same is kept for future use here.</span>
+<span class="sd">        TO DO: Either model_id or alias needs to be provided, with uri taking precedence over alias.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">image_data</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
+        <span class="n">image_data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;self&quot;</span><span class="p">)</span>
+        <span class="n">image_data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;alias&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">model_id</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Model ID needs to be provided for finding the model.&quot;</span><span class="p">)</span>
+            <span class="c1">#raise Exception(&quot;Model ID or alias needs to be provided for finding the model.&quot;)</span>
+        <span class="k">elif</span> <span class="n">model_id</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodelimage/?format=json&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;alias is not currently implemented for this feature.&quot;</span><span class="p">)</span>
+            <span class="c1">#url = self.url + &quot;/scientificmodelimage/?alias=&quot; + alias + &quot;&amp;format=json&quot;</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span><span class="n">image_data</span><span class="p">]),</span>
+                                 <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;&lt;Response [201]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in adding image. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()))</span></div>
+
+<div class="viewcode-block" id="ModelCatalog.get_model_image"><a class="viewcode-back" href="../index.html#hbp_validation_framework.ModelCatalog.get_model_image">[docs]</a>    <span class="k">def</span> <span class="nf">get_model_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download a specific image associated with a model from the</span>
+<span class="sd">        model catalog by specifying the image id.</span>
+<span class="sd">        Returns a single dict containing information about the model image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">image_id</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;image_id needs to be provided for finding a specific model image.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">instance_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodelimage/?id=&quot;</span> <span class="o">+</span> <span class="n">image_id</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+        <span class="n">model_image_json</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">instance_uri</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">model_image_json</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;&lt;Response [200]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in retrieving model instances. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">model_image_json</span><span class="p">))</span>
+        <span class="n">model_image_json</span> <span class="o">=</span> <span class="n">model_image_json</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">model_image_json</span><span class="p">[</span><span class="s2">&quot;images&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ModelCatalog.list_model_images"><a class="viewcode-back" href="../index.html#hbp_validation_framework.ModelCatalog.list_model_images">[docs]</a>    <span class="k">def</span> <span class="nf">list_model_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download a list of images associated with a model</span>
+<span class="sd">        from the model catalog in the following ways (in order of priority):</span>
+<span class="sd">        1) specify &quot;model_id&quot;</span>
+<span class="sd">        2) specify &quot;alias&quot; (of the model)</span>
+<span class="sd">        Returns a list of dicts containing information about the model images.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model_id</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">alias</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;model_id or alias needs to be provided for finding model images.&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">model_id</span><span class="p">:</span>
+            <span class="n">instance_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodelimage/?model_id=&quot;</span> <span class="o">+</span> <span class="n">model_id</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">instance_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;/scientificmodelimage/?model_alias=&quot;</span> <span class="o">+</span> <span class="n">alias</span> <span class="o">+</span> <span class="s2">&quot;&amp;format=json&quot;</span>
+        <span class="n">model_images_json</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">instance_uri</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">auth</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">model_images_json</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;&lt;Response [200]&gt;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error in retrieving model images. Response = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">model_images_json</span><span class="o">.</span><span class="n">content</span><span class="p">))</span>
+        <span class="n">model_images_json</span> <span class="o">=</span> <span class="n">model_images_json</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">model_images_json</span><span class="p">[</span><span class="s2">&quot;images&quot;</span><span class="p">]</span></div></div>
+
+<span class="k">def</span> <span class="nf">_have_internet_connection</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Not foolproof, but allows checking for an external connection with a short</span>
+<span class="sd">    timeout, before trying socket.gethostbyname(), which has a very long</span>
+<span class="sd">    timeout.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">test_address</span> <span class="o">=</span> <span class="s1">&#39;http://74.125.113.99&#39;</span>  <span class="c1"># google.com</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">urlopen</span><span class="p">(</span><span class="n">test_address</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">URLError</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">timeout</span><span class="p">):</span>
+        <span class="k">pass</span>
+    <span class="k">return</span> <span class="kc">False</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">HBP Validation Framework - Python Client 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Shailesh Appukuttan.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.6.
+    </div>
+  </body>
+</html>
