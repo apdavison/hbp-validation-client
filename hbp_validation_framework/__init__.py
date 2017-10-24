@@ -86,7 +86,7 @@ class BaseClient(object):
                 # Dev ID = 90c719e0-29ce-43a2-9c53-15cb314c2d0b
                 # Prototype ID = 8a6b7458-1044-4ebd-9b7e-f8fd3469069c
                 # Prod ID = 3ae21f28-0302-4d28-8581-15853ad6107d
-                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id=90c719e0-29ce-43a2-9c53-15cb314c2d0b".format(state, self.url)
+                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id=3ae21f28-0302-4d28-8581-15853ad6107d".format(state, self.url)
             # get the exchange cookie
             cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
             self.session.headers.update({'cookie': cookie})
@@ -116,6 +116,8 @@ class BaseClient(object):
                                                verify=self.verify,
                                                headers=headers)
                     # check good communication
+                    #print "rNMPI2.status_code = ", rNMPI2.status_code
+                    #print "content = ", rNMPI2.content
                     if rNMPI2.status_code == requests.codes.ok:
                         #import pdb; pdb.set_trace()
                         # check success address
@@ -141,38 +143,66 @@ class BaseClient(object):
 
 
 class TestLibrary(BaseClient):
-    """
-    Client for the HBP Validation Test library.
+    """Client for the HBP Validation Test library.
 
-    Usage
-    -----
-    # TODO
-    test_library = TestLibrary()
+    TestLibrary class manages all actions pertaining to tests and results.
+    The following actions can be performed:
 
-    # List test definitions
-    tests = test_library.list_validation_tests(brain_region="hippocampus",
-                                               cell_type="pyramidal cell")
+    ====================================   ====================================
+    Action                                 Method
+    ====================================   ====================================
+    Get a test definition                  :meth:`get_test_definition`
+    ====================================   ====================================
 
-    # Download the test definition
-    test = test_library.get_validation_test(test_uri)
+    Parameters
+    ----------
+    username : string
+        Your HBP collaboratory username
+    password : string, optional
+        Your HBP collaboratory password; advisable to not enter as plaintext.
+        If left empty, you would be prompted for password at run time (safer).
+    url : string, optional
+        The base URL to access the HBP Validation Web Services. Can be left
+        empty, as default values are appropriate for most use-cases.
 
-    # Run the test
-    score = test.judge(model)  # tests use the SciUnit framework
+    Examples
+    --------
+    Instantiate an instance of the TestLibrary class
 
-    # Register the result
-    test_library.register(score)
+    >>> test_library = TestLibrary(hbp_username)
     """
 
     def get_test_definition(self, test_path="", test_id = "", alias=""):
-        """
-        Download a test definition from the test library
+        """ Download a specific test definition from the test library.
+
+        A specific test definition can be downloaded
         in the following ways (in order of priority):
-        1) load from a local JSON file specified via 'test_path'
-        2) specify the 'test_id'
-        3) specify the 'alias' (of the test)
-        Returns a dict containing information about the test.
-        Also see: `get__test()`.
+
+        1. load from a local JSON file specified via 'test_path'
+        2. specify the 'test_id'
+        3. specify the 'alias' (of the test)
+
+        Parameters
+        ----------
+        test_path : string
+            Location of local JSON file.
+        test_id : UUID
+            System generated unique identifier associated with test definition.
+        alias : string
+            User-assigned unique identifier associated with test definition.
+
+        Returns
+        -------
+        dict
+            Information about the test.
+
+        Examples
+        --------
+        >>> test = test_library.get_test_definition("/home/shailesh/Work/dummy_test.json")
+        >>> test = test_library.get_test_definition(test_id="7b63f87b-d709-4194-bae1-15329daf3dec")
+        >>> test = test_library.get_test_definition(alias="CDT-6")
         """
+
         if test_path == "" and test_id == "" and alias == "":
             raise Exception("test_path or test_id or alias needs to be provided for finding a test.")
 
@@ -192,16 +222,40 @@ class TestLibrary(BaseClient):
         test_json = test_json.json()
         return test_json["tests"][0]
 
-    def get_test_instance(self, instance_path="", test_id="", alias="", version="", instance_id=""):
-        """
-        Download a test instance definition from the test library
+    def get_test_instance(self, instance_path="", instance_id="", test_id="", alias="", version=""):
+        """ Download a specific test instance definition from the test library.
+
+        A specific test definition can be downloaded
         in the following ways (in order of priority):
-        1) load from a local JSON file specified via 'instance_path'
-        2) specify 'instance_id' correspoding to test instance in test library
-        3) specify "test_id" and "version"
-        4) specify "alias" (of the test) and "version"
-        Returns a dict containing information about the test instance.
+
+        1. load from a local JSON file specified via 'instance_path'
+        2. specify 'instance_id' correspoding to test instance in test library
+        3. specify "test_id" and "version"
+        4. specify "alias" (of the test) and "version"
+
+        Parameters
+        ----------
+        instance_path : string
+            Location of local JSON file.
+        instance_id : UUID
+            System generated unique identifier associated with test instance.
+        test_id : UUID
+            System generated unique identifier associated with test definition.
+        alias : string
+            User-assigned unique identifier associated with test definition.
+        version : string
+            User-assigned identifier (unique for each test) associated with test instance.
+
+        Returns
+        -------
+        dict
+            Information about the test instance.
+
+        Examples
+        --------
+        >>> test_instance = test_library.get_test_instance(test_id="7b63f87b-d709-4194-bae1-15329daf3dec", version="1.0")
         """
+
         if instance_path == "" and instance_id=="" and (test_id == "" or version == "") and (alias == "" or version == ""):
             raise Exception("instance_path or instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance.")
         if instance_path and os.path.isfile(instance_path):
@@ -223,14 +277,33 @@ class TestLibrary(BaseClient):
         return test_instance_json["tests"][0]
 
     def list_test_instances(self, instance_path="", test_id="", alias=""):
+        """ Download list of test instances belonging to a specified test.
+
+        This can be retrieved in the following ways (in order of priority):
+
+        1. load from a local JSON file specified via 'instance_path'
+        2. specify "test_id"
+        3. specify "alias" (of the test)
+
+        Parameters
+        ----------
+        instance_path : string
+            Location of local JSON file.
+        test_id : UUID
+            System generated unique identifier associated with test definition.
+        alias : string
+            User-assigned unique identifier associated with test definition.
+
+        Returns
+        -------
+        dict[]
+            Information about the test instances.
+
+        Examples
+        --------
+        >>> test_instances = test_library.list_test_instances(test_id="8b63f87b-d709-4194-bae1-15329daf3dec")
         """
-        Download a list of test instance definitions belonging to a specified
-        test from the test library in the following ways (in order of priority):
-        1) load from a local JSON file specified via 'instance_path'
-        2) specify "test_id"
-        3) specify "alias" (of the test)
-        Returns a list of dicts containing information about the test instances.
-        """
+
         if instance_path == "" and test_id == "" and alias == "":
             raise Exception("instance_path or test_id or alias needs to be provided for finding test instances.")
         if instance_path and os.path.isfile(instance_path):
@@ -250,13 +323,41 @@ class TestLibrary(BaseClient):
         return test_instances_json["tests"]
 
     def add_test_instance(self, test_id="", alias="", repository="", path="", version=""):
-        """
-        Register a new test instance definition for a test registered in the test library.
-        Returns the UUID of the test instance that has been created.
+        """ Register a new test instance.
 
-        Note: 'alias' is not currently implemented in the API, and the same is kept for future use here.
-        TO DO: Either test_id or alias needs to be provided, with test_id taking precedence over alias.
+        This adds a new test instance to an existing test in the test library.
+
+        Parameters
+        ----------
+        test_id : UUID
+            System generated unique identifier associated with test definition.
+        alias : string
+            User-assigned unique identifier associated with test definition.
+        repository : string
+            URL of Python package repository (e.g. github).
+        path : string
+            Path to test source code within Python package.
+        version : string
+            User-assigned identifier (unique for each test) associated with test instance.
+
+        Returns
+        -------
+        UUID
+            UUID of the test instance that has been created.
+
+        Note
+        ----
+        * 'alias' is not currently implemented in the API; kept for future use.
+        * TODO: Either test_id or alias needs to be provided, with test_id taking precedence over alias.
+
+        Examples
+        --------
+        >>> response = test_library.add_test_instance(test_id="7b63f87b-d709-4194-bae1-15329daf3dec",
+                                        repository="https://github.com/appukuttan-shailesh/morphounit.git",
+                                        path="morphounit.tests.CellDensityTest",
+                                        version="3.0")
         """
+
         test_definition_id = test_id    # as needed by API
         instance_data = locals()
         for key in ["self", "test_id"]:
@@ -280,12 +381,41 @@ class TestLibrary(BaseClient):
 
 
     def edit_test_instance(self, test_id="", alias="", repository="", path="", version=""):
-        """
-        Edit an existing test instance definition in the test library.
+        """ Edit an existing test instance.
 
-        Note: 'alias' is not currently implemented in the API, and the same is kept for future use here.
-        TO DO: Either test_id or alias needs to be provided, with test_id taking precedence over alias.
+        This allows to edit existing test instances in the test library.
+
+        Parameters
+        ----------
+        test_id : UUID
+            System generated unique identifier associated with test definition.
+        alias : string
+            User-assigned unique identifier associated with test definition.
+        repository : string
+            URL of Python package repository (e.g. github).
+        path : string
+            Path to test source code within Python package.
+        version : string
+            User-assigned identifier (unique for each test) associated with test instance.
+
+        Returns
+        -------
+        UUID
+            UUID of the test instance that has was edited.
+
+        Note
+        ----
+        * 'alias' is not currently implemented in the API; kept for future use.
+        * TODO: Either test_id or alias needs to be provided, with test_id taking precedence over alias.
+
+        Examples
+        --------
+        >>> response = test_library.edit_test_instance(test_id="7b63f87b-d709-4194-bae1-15329daf3dec",
+                                        repository="https://github.com/appukuttan-shailesh/morphounit.git",
+                                        path="morphounit.tests.CellDensityTest",
+                                        version="4.0")
         """
+
         test_definition_id = test_id    # as needed by API
         instance_data = locals()
         for key in ["self", "test_id"]:
@@ -307,15 +437,43 @@ class TestLibrary(BaseClient):
         else:
             raise Exception("Error in editing test instance. Response = " + str(response.content))
 
-    # TODO
-    def get_test(self, test_path="", test_id = "", alias="", instance_id ="", **params):
+    #TODO
+    def get_test(self, test_path="", instance_id ="", test_id = "", alias="", version="", **params):
+        """ Download a specific test instance as a sciunit.Test instance.
+
+        A specific test definition can be specified
+        in the following ways (in order of priority):
+
+        1. load from a local JSON file specified via 'test_path'
+        2. specify 'instance_id' correspoding to test instance in test library
+        3. specify "test_id" and "version"
+        4. specify "alias" (of the test) and "version"
+
+        Parameters
+        ----------
+        test_path : string
+            Location of local JSON file.
+        instance_id : UUID
+            System generated unique identifier associated with test instance.
+        test_id : UUID
+            System generated unique identifier associated with test definition.
+        alias : string
+            User-assigned unique identifier associated with test definition.
+        version : string
+            User-assigned identifier (unique for each test) associated with test instance.
+        **params :
+            additional keyword arguments to be passed.
+
+        Returns
+        -------
+        sciunit.Test
+            Returns a :class:`sciunit.Test` instance.
+
+        Examples
+        --------
+        >>> test = test_library.get_test(alias="CDT-6", instance_id="36a1960e-3e1f-4c3c-a3b6-d94e6754da1b")
         """
-        Download a test definition from the test library using the 'test_id' or alias,
-        or load from a local JSON file specified via 'test_path'. 'test_path' takes priority if mutliple specified.
-        'test_id' takes priority over 'alias' when both provided.
-        `params` are additional keyword arguments to be passed to the :class:`Test` constructor.
-        Returns a :class:`sciunit.Test` instance.
-        """
+
         test_json = self.get_test_definition(test_path=test_path, test_id=test_id, alias=alias)
         test_instances_json = self.get_test_instance(instance_id=instance_id)
 
@@ -364,18 +522,28 @@ class TestLibrary(BaseClient):
         return observation_data
 
     def get_options(self, param=""):
-        """
-        Will return the list of valid values (where applicable) for various fields.
-        If a parameter is specified then, only values that correspond to it will be returned,
-        else values for all fields are returned.
-        Note: When specified, only the first parameter is considered; the rest are ignored.
-              So the function either returns for all parameters or a single parameter.
+        """ Retrieve valid values for parameters.
 
-        Example Usage:
-        data = test_library.get_options()
-        or
-        data = test_library.get_options("cell_type")
+        Will return the list of valid values (where applicable) for various parameters.
+        If a parameter is specified then, only values that correspond to it will be returned,
+        else values for all parameters are returned.
+
+        Parameters
+        ----------
+        param : string, optional
+            Parameter of interest
+
+        Returns
+        -------
+        UUID
+            UUID of the test instance that has been created.
+
+        Examples
+        --------
+        >>> data = test_library.get_options()
+        >>> data = test_library.get_options("cell_type")
         """
+
         if param == "":
             param = "all"
 
@@ -386,20 +554,68 @@ class TestLibrary(BaseClient):
         data = requests.get(url, auth=self.auth).json()
         return ast.literal_eval(json.dumps(data))
 
-    def register_test(self, name="", alias=None, author="", publication="",
-                      species="", brain_region="", cell_type="", age="", data_modality="",
-                      test_type="", score_type="", protocol="", data_location="", data_type="",
-                      version="", repository="", path=""):
-        """
-        To register a new test on the test catalog.
-        You need to specify an instance (version) of this test when creating it.
 
-        Example usage:
-        test = test_library.register_test(name="Cell Density Test", alias="CDT-4", author="Shailesh Appukuttan", publication="Halasy et al., 1996",
-                            species="Mouse (Mus musculus)", brain_region="Hippocampus", cell_type="Other", age="TBD", data_modality="electron microscopy",
-              test_type="network structure", score_type="Other", protocol="To be filled later", data_location="collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json", data_type="Mean, SD",
-              repository="https://github.com/appukuttan-shailesh/morphounit.git", path="morphounit.tests.CellDensityTest", version="1.0")
+    def register_test(self, name="", alias=None, version="", author="", species="",
+                      age="", brain_region="", cell_type="", data_modality="",
+                      test_type="", score_type="", protocol="", data_location="",
+                      data_type="", publication="", repository="", path=""):
+        """ Register a new test on the test catalog.
+
+        This allows you to add a new test to the test catalog. A test instance
+        (version) needs to be specified when registering a new test.
+
+        Parameters
+        ----------
+        name : string
+            Name of the test definition to be created
+        alias : string, optional
+            User-assigned unique identifier to be associated with test definition.
+        version : string
+            User-assigned identifier (unique for each test) associated with test instance.
+        author : string
+            Name of person creating the test
+        species : string
+            The species from which the data was collected.
+        age : string
+            The age of the specimen.
+        brain_region : string
+            The brain region being targeted in the test.
+        cell_type : string
+            The type of cell being examined.
+        data_modality : string
+            Specifies the type of observation used in the test.
+        test_type : string
+            Specifies the type of the test.
+        score_type : string
+            The type of score produced by the test.
+        protocol : string
+            Experimental protocol involved in obtaining reference data.
+        data_location : string
+            URL of file containing reference data (observation).
+        data_type : string
+            The type of reference data (observation).
+        publication : string
+            Publication or comment (e.g. 'Unpublished') to be associated with observation.
+        repository : string
+            URL of Python package repository (e.g. github).
+        path : string
+            Path to test source code within Python package.
+
+        Returns
+        -------
+        UUID
+            (Verify!) UUID of the test instance that has been created.
+
+        Examples
+        --------
+        >>> test = test_library.register_test(name="Cell Density Test", alias="", version="1.0", author="Shailesh Appukuttan",
+                                species="Mouse (Mus musculus)", age="TBD", brain_region="Hippocampus", cell_type="Other",
+                                data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
+                                data_location="collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json",
+                                data_type="Mean, SD", publication="Halasy et al., 1996",
+                                repository="https://github.com/appukuttan-shailesh/morphounit.git", path="morphounit.tests.CellDensityTest")
         """
+
         values = self.get_options()
 
         if species not in values["species"]:
@@ -438,20 +654,74 @@ class TestLibrary(BaseClient):
         else:
             raise Exception("Error in adding test. Response = " + str(response.json()))
 
-    def edit_test(self, name="", test_id="", alias=None, author="", publication="",
-                      species="", brain_region="", cell_type="", age="", data_modality="",
-                      test_type="", score_type="", protocol="", data_location="", data_type=""):
-        """
-        To edit an existing test in the test library.
-        test_id must be provided. Any of the other parameters maybe updated.
-        Note: this does not allow editing details of instances. Will be implemented later, if required.
+    def edit_test(self, name="", test_id="", alias=None, version="", author="",
+                  species="", age="", brain_region="", cell_type="", data_modality="",
+                  test_type="", score_type="", protocol="", data_location="",
+                  data_type="", publication="", repository="", path=""):
+        """ Edit an existing test in the test library.
 
-        Example usage:
-        test = test_library.register_test(name="Cell Density Test", alias="CDT-4", author="Shailesh Appukuttan", publication="Halasy et al., 1996",
-                            species="Mouse (Mus musculus)", brain_region="Hippocampus", cell_type="Other", age="TBD", data_modality="electron microscopy",
-              test_type="network structure", score_type="Other", protocol="To be filled later", data_location="collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json", data_type="Mean, SD",
-              repository="https://github.com/appukuttan-shailesh/morphounit.git", path="morphounit.tests.CellDensityTest", version="1.0")
+        To update an existing test, the `test_id` must be provided. Any of the
+        other parameters may be updated.
+
+        Parameters
+        ----------
+        name : string
+            Name of the test definition to be created
+        test_id : UUID
+            System generated unique identifier associated with test definition.
+        alias : string, optional
+            User-assigned unique identifier to be associated with test definition.
+        version : string
+            User-assigned identifier (unique for each test) associated with test instance.
+        author : string
+            Name of person creating the test
+        species : string
+            The species from which the data was collected.
+        age : string
+            The age of the specimen.
+        brain_region : string
+            The brain region being targeted in the test.
+        cell_type : string
+            The type of cell being examined.
+        data_modality : string
+            Specifies the type of observation used in the test.
+        test_type : string
+            Specifies the type of the test.
+        score_type : string
+            The type of score produced by the test.
+        protocol : string
+            Experimental protocol involved in obtaining reference data.
+        data_location : string
+            URL of file containing reference data (observation).
+        data_type : string
+            The type of reference data (observation).
+        publication : string
+            Publication or comment (e.g. 'Unpublished') to be associated with observation.
+        repository : string
+            URL of Python package repository (e.g. github).
+        path : string
+            Path to test source code within Python package.
+
+        Note
+        ----
+        Does not allow editing details of instances.
+        Will be implemented later, if required.
+
+        Returns
+        -------
+        UUID
+            (Verify!) UUID of the test instance that has been edited.
+
+        Examples
+        --------
+        test = test_library.register_test(name="Cell Density Test", alias="CDT-4", version="1.0", author="Shailesh Appukuttan",
+                            species="Mouse (Mus musculus)", brain_region="Hippocampus", cell_type="Other", age="TBD",
+                            data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
+                            data_location="collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json",
+                            data_type="Mean, SD", publication="Halasy et al., 1996",
+                            repository="https://github.com/appukuttan-shailesh/morphounit.git", path="morphounit.tests.CellDensityTest")
         """
+
         values = self.get_options()
 
         if species not in values["species"]:
@@ -486,25 +756,30 @@ class TestLibrary(BaseClient):
         else:
             raise Exception("Error in editing test. Response = " + str(response.json()))
 
-    # TODO
-    def list_validation_tests(self, **filters):
-        """
-        docstring needed
-        """
-        url = self.url + "/search?{}".format(urlencode(filters))
-        print(url)
-        response = requests.get(url)
-        return response.json()
 
     def register_result(self, test_result="", data_store=None):
-        """
-        Register the test result with the HBP Validation Results Service.
+        """ Register test result with HBP Validation Results Service.
 
-        Arguments:
-            test_result - a :class:`sciunit.Score` instance returned by `test.judge(model)`
-            data_store - a :class:`DataStore` instance, for uploading related data
-                         generated by the test run, e.g. figures.
+        The score of a test, along with related output data such as figures,
+        can be registered on the validation framework.
+
+        Parameters
+        ----------
+        test_result : :class:`sciunit.Score`
+            a :class:`sciunit.Score` instance returned by `test.judge(model)`
+        data_store : :class:`DataStore`
+            a :class:`DataStore` instance, for uploading related data generated by the test run, e.g. figures.
+
+        Returns
+        -------
+        UUID
+            (Verify!) UUID of the test results that has been created.
+
+        Examples
+        --------
+        >>> TODO
         """
+
         print("TEST RESULT: {}".format(test_result))
         print(test_result.model)
         print(test_result.prediction)
@@ -536,7 +811,7 @@ class TestLibrary(BaseClient):
                         "score": test_result.score,
                         "passed": None,
                         "timestamp": "2049-05-18T18:47:14Z",
-                        "platform": "abcde",    #self.get_platform(),
+                        "platform": "abcde",    #self._get_platform(),
                         "project": "azerty",
                         "normalized_score": test_result.score
                       }
@@ -550,7 +825,7 @@ class TestLibrary(BaseClient):
                                  auth=self.auth, headers=headers)
         print(response.content)
 
-    def get_platform(self):
+    def _get_platform(self):
         """
         Return a dict containing information about the platform the test was run on.
         """
@@ -600,7 +875,7 @@ class ModelCatalog(BaseClient):
 
     def get_model(self, model_id="", alias="", instances=True, images=True):
         """
-        Retrieve a model description by its model_id or alias.
+        Retrieve a specific model description by its model_id or alias.
         Either model_id or alias needs to be provided, with model_id taking precedence over alias.
         Will return the entire model description as a JSON object.
 
@@ -812,9 +1087,9 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model instance. Response = " + str(response.json()))
 
-    def get_model_instance(self, instance_path="", model_id="", alias=""):
+    def get_model_instance(self, instance_path="", instance_id="", model_id="", alias="", version=""):
         """
-        Download a model instance definition from the model catalog
+        Download a specific model instance definition from the model catalog
         in the following ways (in order of priority):
         1) load from a local JSON file specified via 'instance_path'
         2) specify 'instance_id' correspoding to test instance in test library
@@ -822,23 +1097,26 @@ class ModelCatalog(BaseClient):
         4) specify "alias" (of the model) and "version"
         Returns a dict containing information about the model instance.
         """
-        if instance_path == "" and model_id == "" and alias == "":
-            raise Exception("instance_path or model_id or alias needs to be provided for finding model instances.")
+        if instance_path == "" and instance_id=="" and (model_id == "" or version == "") and (alias == "" or version == ""):
+            raise Exception("instance_path or instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.")
         if instance_path and os.path.isfile(instance_path):
             # instance_path is a local path
             with open(instance_path) as fp:
-                model_instances_json = json.load(fp)
+                model_instance_json = json.load(fp)
         else:
-            if model_id:
-                instance_uri = self.url + "/scientificmodelinstance/?model_id=" + model_id + "&format=json"
+            if instance_id:
+                instance_uri = self.url + "/scientificmodelinstance/?id=" + instance_id + "&format=json"
+            elif model_id and version:
+                instance_uri = self.url + "/scientificmodelinstance/?model_id=" + model_id + "&version=" + version + "&format=json"
             else:
-                instance_uri = self.url + "/scientificmodelinstance/?model_alias=" + alias + "&format=json"
-            model_instances_json = requests.get(instance_uri, auth=self.auth)
-        print model_instances_json.content
-        if str(model_instances_json) != "<Response [200]>":
-            raise Exception("Error in retrieving model instances. Response = " + str(model_instances_json))
-        model_instances_json = model_instances_json.json()
-        return model_instances_json#["instances"]
+                instance_uri = self.url + "/scientificmodelinstance/?model_alias=" + alias + "&version=" + version + "&format=json"
+            model_instance_json = requests.get(instance_uri, auth=self.auth)
+        if str(model_instance_json) != "<Response [200]>":
+            raise Exception("Error in retrieving model instance. Response = " + str(model_instance_json))
+        model_instance_json = model_instance_json.json()
+        if len(model_instance_json["instances"]) == 0:
+            raise Exception("There is no model instance with these specifications.")
+        return model_instance_json["instances"][0]
 
     def list_model_instances(self, instance_path="", model_id="", alias=""):
         """
@@ -860,12 +1138,12 @@ class ModelCatalog(BaseClient):
                 instance_uri = self.url + "/scientificmodelinstance/?model_id=" + model_id + "&format=json"
             else:
                 instance_uri = self.url + "/scientificmodelinstance/?model_alias=" + alias + "&format=json"
+            print "instance_uri = ", instance_uri
             model_instances_json = requests.get(instance_uri, auth=self.auth)
-        print "++++++",model_instances_json.content
         if str(model_instances_json) != "<Response [200]>":
             raise Exception("Error in retrieving model instances. Response = " + str(model_instances_json))
         model_instances_json = model_instances_json.json()
-        return model_instances_json#["instances"]
+        return model_instances_json["instances"]
 
     def add_model_image(self, model_id="", alias="", url="", caption=""):
         """
@@ -901,6 +1179,22 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding image. Response = " + str(response.json()))
 
+    def get_model_image(self, image_id=""):
+        """
+        Download a specific image associated with a model from the
+        model catalog by specifying the image id.
+        Returns a single dict containing information about the model image.
+        """
+        if not image_id:
+            raise Exception("image_id needs to be provided for finding a specific model image.")
+        else:
+            instance_uri = self.url + "/scientificmodelimage/?id=" + image_id + "&format=json"
+        model_image_json = requests.get(instance_uri, auth=self.auth)
+        if str(model_image_json) != "<Response [200]>":
+            raise Exception("Error in retrieving model instances. Response = " + str(model_image_json))
+        model_image_json = model_image_json.json()
+        return model_image_json["images"][0]
+
     def list_model_images(self, model_id="", alias=""):
         """
         Download a list of images associated with a model
@@ -916,11 +1210,10 @@ class ModelCatalog(BaseClient):
         else:
             instance_uri = self.url + "/scientificmodelimage/?model_alias=" + alias + "&format=json"
         model_images_json = requests.get(instance_uri, auth=self.auth)
-        #print model_images_json.content
         if str(model_images_json) != "<Response [200]>":
-            raise Exception("Error in retrieving model instances. Response = " + str(model_images_json))
+            raise Exception("Error in retrieving model images. Response = " + str(model_images_json.content))
         model_images_json = model_images_json.json()
-        return model_images_json#["images"]
+        return model_images_json["images"]
 
 def _have_internet_connection():
     """
