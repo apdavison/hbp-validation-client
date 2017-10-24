@@ -1,3 +1,4 @@
 sciunit
 quantities
 requests
+hbp-service-client
