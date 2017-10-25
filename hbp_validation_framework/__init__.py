@@ -238,7 +238,7 @@ class TestLibrary(BaseClient):
         in the following ways (in order of priority):
 
         1. load from a local JSON file specified via `instance_path`
-        2. specify `instance_id` correspoding to test instance in test library
+        2. specify `instance_id` corresponding to test instance in test library
         3. specify "test_id" and "version"
         4. specify "alias" (of the test) and "version"
 
@@ -457,7 +457,7 @@ class TestLibrary(BaseClient):
         in the following ways (in order of priority):
 
         1. load from a local JSON file specified via `test_path`
-        2. specify `instance_id` correspoding to test instance in test library
+        2. specify `instance_id` corresponding to test instance in test library
         3. specify "test_id" and "version"
         4. specify "alias" (of the test) and "version"
 
@@ -1316,7 +1316,7 @@ class ModelCatalog(BaseClient):
         in the following ways (in order of priority):
 
         1. load from a local JSON file specified via `instance_path`
-        2. specify `instance_id` correspoding to test instance in test library
+        2. specify `instance_id` corresponding to test instance in test library
         3. specify "model_id" and "version"
         4. specify "alias" (of the model) and "version"
 
