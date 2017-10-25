@@ -151,7 +151,16 @@ class TestLibrary(BaseClient):
     ====================================   ====================================
     Action                                 Method
     ====================================   ====================================
-    Get a test definition                  :meth:`get_test_definition`
+    Get test definition                    :meth:`get_test_definition`
+    Get test instances                     :meth:`get_test_instance`
+    List test instances                    :meth:`list_test_instances`
+    Add new test instance                  :meth:`add_test_instance`
+    Edit test instance                     :meth:`edit_test_instance`
+    Get `sciunit` test                     :meth:`get_test`
+    Get valid parameter values             :meth:`get_options`
+    Register new test definition           :meth:`register_test`
+    Edit test definition                   :meth:`edit_test`
+    Register test result                   :meth:`register_result`
     ====================================   ====================================
 
     Parameters
@@ -173,14 +182,14 @@ class TestLibrary(BaseClient):
     """
 
     def get_test_definition(self, test_path="", test_id = "", alias=""):
-        """ Download a specific test definition from the test library.
+        """Retrieve a specific test definition.
 
-        A specific test definition can be downloaded
+        A specific test definition can be retrieved from the test library
         in the following ways (in order of priority):
 
-        1. load from a local JSON file specified via 'test_path'
-        2. specify the 'test_id'
-        3. specify the 'alias' (of the test)
+        1. load from a local JSON file specified via `test_path`
+        2. specify the `test_id`
+        3. specify the `alias` (of the test)
 
         Parameters
         ----------
@@ -223,13 +232,13 @@ class TestLibrary(BaseClient):
         return test_json["tests"][0]
 
     def get_test_instance(self, instance_path="", instance_id="", test_id="", alias="", version=""):
-        """ Download a specific test instance definition from the test library.
+        """Retrieve a specific test instance definition from the test library.
 
-        A specific test definition can be downloaded
+        A specific test instance can be retrieved
         in the following ways (in order of priority):
 
-        1. load from a local JSON file specified via 'instance_path'
-        2. specify 'instance_id' correspoding to test instance in test library
+        1. load from a local JSON file specified via `instance_path`
+        2. specify `instance_id` correspoding to test instance in test library
         3. specify "test_id" and "version"
         4. specify "alias" (of the test) and "version"
 
@@ -277,11 +286,11 @@ class TestLibrary(BaseClient):
         return test_instance_json["tests"][0]
 
     def list_test_instances(self, instance_path="", test_id="", alias=""):
-        """ Download list of test instances belonging to a specified test.
+        """Retrieve list of test instances belonging to a specified test.
 
         This can be retrieved in the following ways (in order of priority):
 
-        1. load from a local JSON file specified via 'instance_path'
+        1. load from a local JSON file specified via `instance_path`
         2. specify "test_id"
         3. specify "alias" (of the test)
 
@@ -322,10 +331,12 @@ class TestLibrary(BaseClient):
         test_instances_json = test_instances_json.json()
         return test_instances_json["tests"]
 
-    def add_test_instance(self, test_id="", alias="", repository="", path="", version=""):
-        """ Register a new test instance.
 
-        This adds a new test instance to an existing test in the test library.
+    def add_test_instance(self, test_id="", alias="", repository="", path="", version=""):
+        """Register a new test instance.
+
+        This allows to add a new instance to an existing test in the test library.
+        The `test_id` needs to be specified as input parameter.
 
         Parameters
         ----------
@@ -347,7 +358,7 @@ class TestLibrary(BaseClient):
 
         Note
         ----
-        * 'alias' is not currently implemented in the API; kept for future use.
+        * `alias` is not currently implemented in the API; kept for future use.
         * TODO: Either test_id or alias needs to be provided, with test_id taking precedence over alias.
 
         Examples
@@ -381,9 +392,10 @@ class TestLibrary(BaseClient):
 
 
     def edit_test_instance(self, test_id="", alias="", repository="", path="", version=""):
-        """ Edit an existing test instance.
+        """Edit an existing test instance.
 
-        This allows to edit existing test instances in the test library.
+        This allows to edit an instance of an existing test in the test library.
+        The `test_id` needs to be specified as input parameter.
 
         Parameters
         ----------
@@ -405,7 +417,7 @@ class TestLibrary(BaseClient):
 
         Note
         ----
-        * 'alias' is not currently implemented in the API; kept for future use.
+        * `alias` is not currently implemented in the API; kept for future use.
         * TODO: Either test_id or alias needs to be provided, with test_id taking precedence over alias.
 
         Examples
@@ -439,13 +451,13 @@ class TestLibrary(BaseClient):
 
     #TODO
     def get_test(self, test_path="", instance_id ="", test_id = "", alias="", version="", **params):
-        """ Download a specific test instance as a sciunit.Test instance.
+        """Retrieve a specific test instance as a sciunit.Test instance.
 
         A specific test definition can be specified
         in the following ways (in order of priority):
 
-        1. load from a local JSON file specified via 'test_path'
-        2. specify 'instance_id' correspoding to test instance in test library
+        1. load from a local JSON file specified via `test_path`
+        2. specify `instance_id` correspoding to test instance in test library
         3. specify "test_id" and "version"
         4. specify "alias" (of the test) and "version"
 
@@ -522,7 +534,7 @@ class TestLibrary(BaseClient):
         return observation_data
 
     def get_options(self, param=""):
-        """ Retrieve valid values for parameters.
+        """Retrieve valid values for parameters.
 
         Will return the list of valid values (where applicable) for various parameters.
         If a parameter is specified then, only values that correspond to it will be returned,
@@ -559,9 +571,9 @@ class TestLibrary(BaseClient):
                       age="", brain_region="", cell_type="", data_modality="",
                       test_type="", score_type="", protocol="", data_location="",
                       data_type="", publication="", repository="", path=""):
-        """ Register a new test on the test catalog.
+        """Register a new test on the test library.
 
-        This allows you to add a new test to the test catalog. A test instance
+        This allows you to add a new test to the test library. A test instance
         (version) needs to be specified when registering a new test.
 
         Parameters
@@ -595,7 +607,7 @@ class TestLibrary(BaseClient):
         data_type : string
             The type of reference data (observation).
         publication : string
-            Publication or comment (e.g. 'Unpublished') to be associated with observation.
+            Publication or comment (e.g. "Unpublished") to be associated with observation.
         repository : string
             URL of Python package repository (e.g. github).
         path : string
@@ -658,7 +670,7 @@ class TestLibrary(BaseClient):
                   species="", age="", brain_region="", cell_type="", data_modality="",
                   test_type="", score_type="", protocol="", data_location="",
                   data_type="", publication="", repository="", path=""):
-        """ Edit an existing test in the test library.
+        """Edit an existing test in the test library.
 
         To update an existing test, the `test_id` must be provided. Any of the
         other parameters may be updated.
@@ -696,7 +708,7 @@ class TestLibrary(BaseClient):
         data_type : string
             The type of reference data (observation).
         publication : string
-            Publication or comment (e.g. 'Unpublished') to be associated with observation.
+            Publication or comment (e.g. "Unpublished") to be associated with observation.
         repository : string
             URL of Python package repository (e.g. github).
         path : string
@@ -704,8 +716,8 @@ class TestLibrary(BaseClient):
 
         Note
         ----
-        Does not allow editing details of instances.
-        Will be implemented later, if required.
+        Test instances cannot be edited here.
+        This has to be done using :meth:`edit_test_instance`
 
         Returns
         -------
@@ -758,7 +770,7 @@ class TestLibrary(BaseClient):
 
 
     def register_result(self, test_result="", data_store=None):
-        """ Register test result with HBP Validation Results Service.
+        """Register test result with HBP Validation Results Service.
 
         The score of a test, along with related output data such as figures,
         can be registered on the validation framework.
@@ -859,34 +871,76 @@ class TestLibrary(BaseClient):
 
 
 class ModelCatalog(BaseClient):
-    """
-    Client for the HBP Model Repository. Can do the following:
-    > Retrieve a specific model description from the repository
-    > Retrieve a list of model descriptions from the repository
-    > Return list of valid values (where applicable) for model catalog fields
-    > Add a new model description to the repository
-    > Add a new model instance for an existing model in the repository
-    > Add a new image for an existing model in the repository
+    """Client for the HBP Model Catalog.
 
-    Usage
-    -----
-    model_catalog = ModelCatalog()
+    ModelCatalog class manages all actions pertaining to models.
+    The following actions can be performed:
+
+    ====================================   ====================================
+    Action                                 Method
+    ====================================   ====================================
+    Get model description                  :meth:`get_model`
+    List model descriptions                :meth:`list_models`
+    Get valid parameter values             :meth:`get_options`
+    Register new model description         :meth:`register_model`
+    Edit model description                 :meth:`edit_model`
+    Add new model instance                 :meth:`add_model_instance`
+    Get model instance                     :meth:`get_model_instance`
+    List model instances                   :meth:`list_model_instances`
+    Add image to model description         :meth:`add_model_image`
+    Get image from model description       :meth:`get_model_image`
+    List images from model description     :meth:`list_model_images`
+    ====================================   ====================================
+
+    Parameters
+    ----------
+    username : string
+        Your HBP collaboratory username
+    password : string, optional
+        Your HBP collaboratory password; advisable to not enter as plaintext.
+        If left empty, you would be prompted for password at run time (safer).
+    url : string, optional
+        The base URL to access the HBP Validation Web Services. Can be left
+        empty, as default values are appropriate for most use-cases.
+
+    Examples
+    --------
+    Instantiate an instance of the ModelCatalog class
+
+    >>> test_library = ModelCatalog(hbp_username)
     """
 
     def get_model(self, model_id="", alias="", instances=True, images=True):
-        """
-        Retrieve a specific model description by its model_id or alias.
-        Either model_id or alias needs to be provided, with model_id taking precedence over alias.
-        Will return the entire model description as a JSON object.
+        """Retrieve a specific model description by its model_id or alias.
 
-        (Optional) Set 'instances' to False if you wish to omit the details of the model instances.
-        (Optional) Set 'images' to False if you wish to omit the details of the model images.
+        A specific model description can be retrieved from the model catalog
+        in the following ways (in order of priority):
 
-        Example usage:
-        model = model_catalog.get_model(model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5")
-        or
-        model = model_catalog.get_model(alias="B1")
+        1. specify the `model_id`
+        2. specify the `alias` (of the model)
+
+        Parameters
+        ----------
+        model_id : UUID
+            System generated unique identifier associated with model description.
+        alias : string
+            User-assigned unique identifier associated with model description.
+        instances : boolean, optional
+            Set to False if you wish to omit the details of the model instances; default True.
+        images : boolean, optional
+            Set to False if you wish to omit the details of the model images; default True.
+
+        Returns
+        -------
+        dict
+            Entire model description as a JSON object.
+
+        Examples
+        --------
+        >>> model = model_catalog.get_model(model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5")
+        >>> model = model_catalog.get_model(alias="B1")
         """
+
         if model_id == "" and alias == "":
             raise Exception("Model ID or alias needs to be provided for finding a model.")
         elif model_id != "":
@@ -905,33 +959,56 @@ class ModelCatalog(BaseClient):
         return model["models"][0]
 
     def list_models(self, **filters):
-        """
-        List models satisfying all specified filters
+        """Retrieve list of model descriptions satisfying specified filters
 
-        Example usage:
-        models = model_catalog.list_models()
-        models = model_catalog.list_models(app_id="39968")
-        models = model_catalog.list_models(cell_type="Pyramidal Cell",
-                                           brain_region="Hippocampus")
+        The filters may specify one or more parameters that belong
+        to a model description.
+
+        Parameters
+        ----------
+        **filters : variable length keyword arguments
+            To be used to filter model descriptions from the model catalog.
+
+        Returns
+        -------
+        list
+            List of model descriptions satisfying specified filters.
+
+        Examples
+        --------
+        >>> models = model_catalog.list_models()
+        >>> models = model_catalog.list_models(app_id="39968")
+        >>> models = model_catalog.list_models(cell_type="Pyramidal Cell", brain_region="Hippocampus")
         """
+
         params = locals()["filters"]
         model_list_uri = self.url + "/scientificmodel/?"+urlencode(params)+"&format=json"
         models = requests.get(model_list_uri, auth=self.auth).json()
         return models["models"]
 
     def get_options(self, param=""):
-        """
-        Will return the list of valid values (where applicable) for various fields.
-        If a parameter is specified then, only values that correspond to it will be returned,
-        else values for all fields are returned.
-        Note: When specified, only the first parameter is considered; the rest are ignored.
-              So the function either returns for all parameters or a single parameter.
+        """Retrieve valid values for parameters.
 
-        Example Usage:
-        data = model_catalog.get_options()
-        or
-        data = model_catalog.get_options("cell_type")
+        Will return the list of valid values (where applicable) for various parameters.
+        If a parameter is specified then, only values that correspond to it will be returned,
+        else values for all parameters are returned.
+
+        Parameters
+        ----------
+        param : string, optional
+            Parameter of interest
+
+        Returns
+        -------
+        UUID
+            UUID of the test instance that has been created.
+
+        Examples
+        --------
+        >>> data = model_catalog.get_options()
+        >>> data = model_catalog.get_options("cell_type")
         """
+
         if param == "":
             param = "all"
 
@@ -942,22 +1019,61 @@ class ModelCatalog(BaseClient):
         data = requests.get(url, auth=self.auth).json()
         return ast.literal_eval(json.dumps(data))
 
-    def register_model(self, app_id="", name="", alias=None, author="", private="False",
-                       cell_type="", model_type="", brain_region="", species="", description="",
+    def register_model(self, app_id="", name="", alias=None, author="", private=False,
+                       species="", brain_region="", cell_type="", model_type="", description="",
                        instances=[], images=[]):
-        """
-        To register a new model on the model catalog
+        """Register a new model on the model catalog.
 
-        Example usage:
-        (without specification of instances and images)
-        model = model_catalog.register_model(app_id="39968", name="Test Model - B2",
+        This allows you to add a new model to the model catalog. Model instances
+        and/or images can optionally be specified at the time of model creation,
+        or can be added later individually.
+
+        Parameters
+        ----------
+        app_id : string
+            Specifies the ID of the host model catalog app on the HBP collaboratory.
+            (the model would belong to this app)
+        name : string
+            Name of the model description to be created.
+        alias : string, optional
+            User-assigned unique identifier to be associated with model description.
+        author : string
+            Name of person creating the model description.
+        private : boolean
+            Set visibility of model description. If True, model would only be seen in host app (where created). Default False.
+        species : string
+            The species for which the model is developed.
+        brain_region : string
+            The brain region for which the model is developed.
+        cell_type : string
+            The type of cell for which the model is developed.
+        model_type : string
+            Specifies the type of the model.
+        description : string
+            Provides a description of the model.
+        instances : list, optional
+            Specify a list of instances (versions) of the model.
+        images : list, optional
+            Specify a list of images to be linked to the model.
+
+        Returns
+        -------
+        UUID
+            (Verify!) UUID of the model description that has been created.
+
+        Examples
+        --------
+        (without instances and images)
+
+        >>> model = model_catalog.register_model(app_id="39968", name="Test Model - B2",
                         alias="Model-B2", author="Shailesh Appukuttan",
                         private="False", cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
                         description="This is a test entry")
-        or
-        (with specification of instances and images)
-        model = model_catalog.register_model(app_id="39968", name="Client Test - C2",
+
+        (with instances and images)
+
+        >>> model = model_catalog.register_model(app_id="39968", name="Client Test - C2",
                         alias="C2", author="Shailesh Appukuttan",
                         private="False", cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
@@ -971,6 +1087,7 @@ class ModelCatalog(BaseClient):
                                 {"url":"https://collab.humanbrainproject.eu/assets/hbp_diamond_120.png",
                                  "caption":"HBP Logo"}])
         """
+
         values = self.get_options()
 
         if cell_type not in values["cell_type"]:
@@ -982,10 +1099,11 @@ class ModelCatalog(BaseClient):
         if species not in values["species"]:
             raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
 
-        if private not in ["True", "False"]:
+        if private not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
-        if alias == "":
-            alias = None
+        else:
+            # TODO: Check if this works
+            private = str(private)
 
         model_data = locals()
         for key in ["self", "app_id", "instances", "images"]:
@@ -1007,19 +1125,66 @@ class ModelCatalog(BaseClient):
 
     def edit_model(self, app_id="", name="", model_id="", alias=None, author="", private="False",
                        cell_type="", model_type="", brain_region="", species="", description=""):
-        """
-        To edit an existing model description on the model catalog.
-        model_id must be provided. Any of the other parameters maybe updated.
-        Note: this does not allow editing details of instances and images. Will be implemented later, if required.
+        """Edit an existing model on the model catalog.
 
-        Example usage:
-        model = model_catalog.edit_model(app_id="39968", name="Test Model - B2",
+        This allows you to edit an new model to the model catalog. Model instances
+        and/or images can optionally be specified at the time of model creation,
+        or can be added later individually.
+
+
+
+                To edit an existing model description on the model catalog.
+                model_id must be provided. Any of the other parameters maybe updated.
+                Note: this does not allow editing details of instan
+
+        Parameters
+        ----------
+        app_id : string
+            Specifies the ID of the host model catalog app on the HBP collaboratory.
+            (the model would belong to this app)
+        name : string
+            Name of the model description to be created.
+        alias : string, optional
+            User-assigned unique identifier to be associated with model description.
+        author : string
+            Name of person creating the model description.
+        private : boolean
+            Set visibility of model description. If True, model would only be seen in host app (where created). Default False.
+        species : string
+            The species for which the model is developed.
+        brain_region : string
+            The brain region for which the model is developed.
+        cell_type : string
+            The type of cell for which the model is developed.
+        model_type : string
+            Specifies the type of the model.
+        description : string
+            Provides a description of the model.
+        instances : list, optional
+            Specify a list of instances (versions) of the model.
+        images : list, optional
+            Specify a list of images to be linked to the model.
+
+        Note
+        ----
+        Does not allow editing details of model instances and images.
+        Will be implemented later, if required.
+
+        Returns
+        -------
+        UUID
+            (Verify!) UUID of the model description that has been edited.
+
+        Examples
+        --------
+        >>> model = model_catalog.edit_model(app_id="39968", name="Test Model - B2",
                         model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5",
                         alias="Model-B2", author="Shailesh Appukuttan",
                         private="False", cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
                         description="This is a test entry")
         """
+
         values = self.get_options()
 
         if cell_type not in values["cell_type"]:
@@ -1054,20 +1219,42 @@ class ModelCatalog(BaseClient):
             raise Exception("Error in updating model. Response = " + str(response.json()))
 
     def add_model_instance(self, model_id="", alias="", source="", version="", parameters=""):
-        """
-        To add a single new instance of an existing model in the model catalog.
-        'model_id' needs to be specified as input parameter.
-        Returns the UUID of the instance added to the model catalog.
+        """Register a new model instance.
 
-        Example usage:
-        instance_id = model_catalog.add_model_instance(model_id="196b89a3-e672-4b96-8739-748ba3850254",
+        This allows to add a new instance of an existing model in the model catalog.
+        The `model_id` needs to be specified as input parameter.
+
+        Parameters
+        ----------
+        model_id : UUID
+            System generated unique identifier associated with model description.
+        alias : string
+            User-assigned unique identifier associated with model description.
+        source : string
+            Path to model source code repository (e.g. github).
+        version : string
+            User-assigned identifier (unique for each model) associated with model instance.
+        parameters : string
+            Any additional parameters to be submitted to model at runtime.
+
+        Returns
+        -------
+        UUID
+            UUID of the model instance that has been created.
+
+        Note
+        ----
+        * `alias` is not currently implemented in the API; kept for future use.
+        * TODO: Either model_id or alias needs to be provided, with model_id taking precedence over alias.
+
+        Examples
+        --------
+        >>> instance_id = model_catalog.add_model_instance(model_id="196b89a3-e672-4b96-8739-748ba3850254",
                                                   source="https://www.abcde.com",
                                                   version="1.0",
                                                   parameters="")
-
-        Note: 'alias' is not currently implemented in the API, and the same is kept for future use here.
-        TO DO: Either model_id or alias needs to be provided, with model_id taking precedence over alias.
         """
+
         instance_data = locals()
         instance_data.pop("self")
 
@@ -1087,16 +1274,75 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model instance. Response = " + str(response.json()))
 
+    # TODO
+    def _edit_model_instance():
+        """Edit an existing model instance.
+
+        This allows to edit an instance of an existing model in the model catalog.
+        The `model_id` needs to be specified as input parameter.
+
+        Parameters
+        ----------
+        model_id : UUID
+            System generated unique identifier associated with model description.
+        alias : string
+            User-assigned unique identifier associated with model description.
+        source : string
+            Path to model source code repository (e.g. github).
+        version : string
+            User-assigned identifier (unique for each model) associated with model instance.
+        parameters : string
+            Any additional parameters to be submitted to model at runtime.
+
+        Returns
+        -------
+        UUID
+            UUID of the model instance that has been created.
+
+        Note
+        ----
+        * `alias` is not currently implemented in the API; kept for future use.
+        * TODO: Either model_id or alias needs to be provided, with model_id taking precedence over alias.
+
+        Examples
+        --------
+        >>>
+        """
+
     def get_model_instance(self, instance_path="", instance_id="", model_id="", alias="", version=""):
-        """
-        Download a specific model instance definition from the model catalog
+        """Retrieve an existing model instance.
+
+        A specific model instance can be retrieved
         in the following ways (in order of priority):
-        1) load from a local JSON file specified via 'instance_path'
-        2) specify 'instance_id' correspoding to test instance in test library
-        3) specify "model_id" and "version"
-        4) specify "alias" (of the model) and "version"
-        Returns a dict containing information about the model instance.
+
+        1. load from a local JSON file specified via `instance_path`
+        2. specify `instance_id` correspoding to test instance in test library
+        3. specify "model_id" and "version"
+        4. specify "alias" (of the model) and "version"
+
+        Parameters
+        ----------
+        instance_path : string
+            Location of local JSON file.
+        instance_id : UUID
+            System generated unique identifier associated with model instance.
+        model_id : UUID
+            System generated unique identifier associated with model description.
+        alias : string
+            User-assigned unique identifier associated with model description.
+        version : string
+            User-assigned identifier (unique for each model) associated with model instance.
+
+        Returns
+        -------
+        dict
+            Information about the model instance.
+
+        Examples
+        --------
+        >>> model_instance = model_catalog.get_model_instance(model_id="a035f2b2-fe2e-42fd-82e2-4173a304263b")
         """
+
         if instance_path == "" and instance_id=="" and (model_id == "" or version == "") and (alias == "" or version == ""):
             raise Exception("instance_path or instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.")
         if instance_path and os.path.isfile(instance_path):
@@ -1119,14 +1365,33 @@ class ModelCatalog(BaseClient):
         return model_instance_json["instances"][0]
 
     def list_model_instances(self, instance_path="", model_id="", alias=""):
+        """Retrieve list of model instances belonging to a specified model.
+
+        This can be retrieved in the following ways (in order of priority):
+
+        1. load from a local JSON file specified via `instance_path`
+        2. specify "model_id"
+        3. specify "alias" (of the model)
+
+        Parameters
+        ----------
+        instance_path : string
+            Location of local JSON file.
+        model_id : UUID
+            System generated unique identifier associated with model description.
+        alias : string
+            User-assigned unique identifier associated with model description.
+
+        Returns
+        -------
+        list
+            List of dicts containing information about the model instances.
+
+        Examples
+        --------
+        >>> model_instances = model_catalog.list_model_instances(alias="alias2")
         """
-        Download a list of model instance definitions belonging to a specified
-        model from the model catalog in the following ways (in order of priority):
-        1) load from a local JSON file specified via 'instance_path'
-        2) specify "model_id"
-        3) specify "alias" (of the model)
-        Returns a list of dicts containing information about the model instances.
-        """
+
         if instance_path == "" and model_id == "" and alias == "":
             raise Exception("instance_path or model_id or alias needs to be provided for finding model instances.")
         if instance_path and os.path.isfile(instance_path):
@@ -1146,19 +1411,40 @@ class ModelCatalog(BaseClient):
         return model_instances_json["instances"]
 
     def add_model_image(self, model_id="", alias="", url="", caption=""):
-        """
-        To add a new image to an existing model in the model catalog.
-        'model_id' needs to be specified as input parameter.
-        Returns the UUID of the image added in the model catalog.
+        """Add a new image to a model description.
 
-        Example usage:
-        image_id = model_catalog.add_model_image(model_id="196b89a3-e672-4b96-8739-748ba3850254",
+        This allows to add a new image to an existing model in the model catalog.
+        The `model_id` needs to be specified as input parameter.
+
+        Parameters
+        ----------
+        model_id : UUID
+            System generated unique identifier associated with model description.
+        alias : string
+            User-assigned unique identifier associated with model description.
+        url : string
+            Url of image to be added.
+        caption : string
+            Caption to be associated with the image.
+
+        Returns
+        -------
+        UUID
+            UUID of the image that was added.
+
+        Note
+        ----
+        * `alias` is not currently implemented in the API; kept for future use.
+        * TODO: Either model_id or alias needs to be provided, with model_id taking precedence over alias.
+        * TODO: Allow image to be located locally
+
+        Examples
+        --------
+        >>> image_id = model_catalog.add_model_image(model_id="196b89a3-e672-4b96-8739-748ba3850254",
                                                url="http://www.neuron.yale.edu/neuron/sites/default/themes/xchameleon/logo.png",
                                                caption="NEURON Logo")
-
-        Note: 'alias' is not currently implemented in the API, and the same is kept for future use here.
-        TO DO: Either model_id or alias needs to be provided, with uri taking precedence over alias.
         """
+
         image_data = locals()
         image_data.pop("self")
         image_data.pop("alias")
@@ -1180,11 +1466,26 @@ class ModelCatalog(BaseClient):
             raise Exception("Error in adding image. Response = " + str(response.json()))
 
     def get_model_image(self, image_id=""):
+        """Retrieve image info from a model description.
+
+        This allows to retrieve image info from the model catalog.
+        The `image_id` needs to be specified as input parameter.
+
+        Parameters
+        ----------
+        image_id : UUID
+            System generated unique identifier associated with image.
+
+        Returns
+        -------
+        dict
+            Information about the image retrieved.
+
+        Examples
+        --------
+        >>> model_image = model_catalog.get_model_image(image_id="2b45e7d4-a7a1-4a31-a287-aee7072e3e75")
         """
-        Download a specific image associated with a model from the
-        model catalog by specifying the image id.
-        Returns a single dict containing information about the model image.
-        """
+
         if not image_id:
             raise Exception("image_id needs to be provided for finding a specific model image.")
         else:
@@ -1196,13 +1497,29 @@ class ModelCatalog(BaseClient):
         return model_image_json["images"][0]
 
     def list_model_images(self, model_id="", alias=""):
+        """Retrieve all images associated with a model.
+
+        This can be retrieved in the following ways (in order of priority):
+        1. specify "model_id"
+        2. specify "alias" (of the model)
+
+        Parameters
+        ----------
+        model_id : UUID
+            System generated unique identifier associated with model description.
+        alias : string
+            User-assigned unique identifier associated with model description.
+
+        Returns
+        -------
+        list
+            List of dicts containing information about the model images.
+
+        Examples
+        --------
+        >>> model_images = model_catalog.list_model_images(model_id="196b89a3-e672-4b96-8739-748ba3850254")
         """
-        Download a list of images associated with a model
-        from the model catalog in the following ways (in order of priority):
-        1) specify "model_id"
-        2) specify "alias" (of the model)
-        Returns a list of dicts containing information about the model images.
-        """
+
         if model_id == "" and alias == "":
             raise Exception("model_id or alias needs to be provided for finding model images.")
         elif model_id:
