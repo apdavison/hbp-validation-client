@@ -18,6 +18,6 @@ TestLibrary
     :members:
 
 ModelCatalog
-===========
+============
 .. autoclass:: ModelCatalog
     :members:
