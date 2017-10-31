@@ -28,10 +28,10 @@ from requests.auth import AuthBase
 from .datastores import URI_SCHEME_MAP
 
 
-#VALIDATION_FRAMEWORK_URL = "https://validation.brainsimulation.eu"
+# VALIDATION_FRAMEWORK_URL = "https://validation.brainsimulation.eu"
 VALIDATION_FRAMEWORK_URL = "https://validation-dev.brainsimulation.eu"
-#VALIDATION_FRAMEWORK_URL = "https://validation-v1.brainsimulation.eu"
-#VALIDATION_FRAMEWORK_URL = "http://127.0.0.1:8001"
+# VALIDATION_FRAMEWORK_URL = "https://validation-v1.brainsimulation.eu"
+# VALIDATION_FRAMEWORK_URL = "http://127.0.0.1:8001"
 
 
 class HBPAuth(AuthBase):
@@ -59,9 +59,13 @@ class BaseClient(object):
         self.url = url
         self.verify = True
         if password is None:
-            # prompt for password
-            #password = getpass.getpass()
-            password = os.environ.get('HBP_PASS')
+            try:
+                # see if password available as an environment variable
+                password = os.environ.get('HBP_PASS')
+            except:
+                # prompt for password
+                password = getpass.getpass()
+
         self._hbp_auth(username, password)
         self.auth = HBPAuth(self.token)
 
@@ -85,7 +89,7 @@ class BaseClient(object):
                 # Dev ID = 90c719e0-29ce-43a2-9c53-15cb314c2d0b
                 # Prototype ID = 8a6b7458-1044-4ebd-9b7e-f8fd3469069c
                 # Prod ID = 3ae21f28-0302-4d28-8581-15853ad6107d
-                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id=3ae21f28-0302-4d28-8581-15853ad6107d".format(state, self.url)
+                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id=90c719e0-29ce-43a2-9c53-15cb314c2d0b".format(state, self.url)
             # get the exchange cookie
             cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
             self.session.headers.update({'cookie': cookie})
@@ -949,9 +953,9 @@ class TestLibrary(BaseClient):
                         "test_code_id": test_result.test.id,
                         "results_storage": results_storage,
                         "score": test_result.score,
-                        "passed": None,
+                        "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
                         "platform": str(self._get_platform()), # database accepts a string
-                        "project": "" if "project" not in test_result.related_data else test_result.related_data["project"],
+                        "project": test_result.related_data["project"],
                         "normalized_score": test_result.score
                       }
 

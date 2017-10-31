@@ -21,3 +21,9 @@ ModelCatalog
 ============
 .. autoclass:: ModelCatalog
     :members:
+
+Utilities
+============
+.. autoclass:: Utilities
+    :members:
+
