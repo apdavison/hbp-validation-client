@@ -1,6 +1,11 @@
 import os
 import json
 import webbrowser
+import argparse
+import sciunit
+from datetime import datetime
+from . import TestLibrary, ModelCatalog
+from .datastores import CollabDataStore
 
 
 def view_json_tree(data):
@@ -46,3 +51,108 @@ def _make_js_file(data):
         outfile.write("var data = '")
         json.dump(data, outfile)
         outfile.write("'")
+
+def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id=""):
+    """Run validation test and register result
+
+    This method will accept a model, located locally, run the specified
+    test on the model, and store the results on the validation service.
+    The test can be specified in the following ways (in order of priority):
+
+    1. specify `test_instance_id` corresponding to test instance in test library
+    2. specify `test_id` and `test_version`
+    3. specify `test_alias` and `test_version`
+
+    Parameters
+    ----------
+    hbp_username : string
+        Your HBP collaboratory username.
+    model : sciunit.Model
+        A :class:`sciunit.Model` instance.
+    test_instance_id : UUID
+        System generated unique identifier associated with test instance.
+    test_id : UUID
+        System generated unique identifier associated with test definition.
+    test_alias : string
+        User-assigned unique identifier associated with test definition.
+    test_version : string
+        User-assigned identifier (unique for each test) associated with test instance.
+    storage_collab_id : string
+        Collab ID where ouput files should be stored; if empty, stored in model's host collab.
+
+    Note
+    ----
+    This is a very basic implementation that would suffice for simple use cases.
+    You can customize and create your own run_test() implementations.
+
+    Returns
+    -------
+    None
+        Does not return any data.
+
+    Examples
+    --------
+    >>> import models
+    >>> from hbp_validation_framework import utils
+    >>> mymodel = models.hippoCircuit()
+    >>> utils.run_test(hbp_username="shailesh", model=mymodel, test_alias="CDT-5", test_version="5.0")
+    """
+
+    # Check the model
+    if not isinstance(model, sciunit.Model):
+        raise TypeError("`model` is not a sciunit Model!")
+    print "----------------------------------------------"
+    print "Model name: ", model
+    print "Model type: ", type(model)
+    print "----------------------------------------------"
+
+    if not hbp_username:
+        print "\n=============================================="
+        print "Please enter your HBP username."
+        hbp_username = raw_input('HBP Username: ')
+
+    # Load the test
+    test_library = TestLibrary(hbp_username)
+
+    if test_instance_id == "" and (test_id == "" or test_version == "") and (test_alias == "" or test_version == ""):
+        raise Exception("test_instance_id or (test_id, test_version) or (test_alias, test_version) needs to be provided for finding test.")
+    else:
+        test = test_library.get_validation_test(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version)
+
+    print "----------------------------------------------"
+    print "Test name: ", test
+    print "Test type: ", type(test)
+    print "----------------------------------------------"
+
+    # Run the test
+    score = test.judge(model, deep_error=True)
+    print "----------------------------------------------"
+    print "Score: ", score
+    if "figures" in score.related_data:
+        print "Output files: "
+        for item in score.related_data["figures"]:
+            print item
+    print "----------------------------------------------"
+
+    # Register the result with the HBP Validation service
+    model_catalog = ModelCatalog(hbp_username)
+    model_instance_json = model_catalog.get_model_instance(instance_id=score.model.id)
+    model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
+    model_host_collab_id = model_json["app"]["collab_id"]
+    model_name = model_json["name"]
+
+    if not storage_collab_id:
+        storage_collab_id = model_host_collab_id
+        score.related_data["project"] = storage_collab_id
+    #     print "=============================================="
+    #     print "Enter Collab ID for Data Storage (if applicable)"
+    #     print "(Leave empty for Model's host collab, i.e. ", model_host_collab_id, ")"
+    #     score.related_data["project"] = raw_input('Collab ID: ')
+
+    collab_folder = "{}_{}".format(model_name, datetime.now().strftime("%Y%m%d-%H%M%S"))
+    collab_storage = CollabDataStore(collab_id=storage_collab_id,
+                                     base_folder=collab_folder,
+                                     auth=test_library.auth)
+
+    test_library.register_result(test_result=score, data_store=collab_storage)
+    # test_library.register_result(test_result=score)

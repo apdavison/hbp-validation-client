@@ -171,7 +171,7 @@ class TestLibrary(BaseClient):
     Parameters
     ----------
     username : string
-        Your HBP collaboratory username
+        Your HBP collaboratory username.
     password : string, optional
         Your HBP collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
@@ -250,7 +250,7 @@ class TestLibrary(BaseClient):
 
         1. load from a local JSON file specified via `test_path` and `instance_path`
         2. specify `instance_id` corresponding to test instance in test library
-        3. specify `test_id and `version`
+        3. specify `test_id` and `version`
         4. specify `alias` (of the test) and `version`
 
         Parameters
@@ -285,16 +285,22 @@ class TestLibrary(BaseClient):
         >>> test = test_library.get_validation_test(alias="CDT-6", instance_id="36a1960e-3e1f-4c3c-a3b6-d94e6754da1b")
         """
 
-        if test_path == "" and test_id == "" and alias == "":
+        if test_path == "" and instance_id == "" and test_id == "" and alias == "":
             raise Exception("One of the following needs to be provided for finding the required test:\n"
-                            "test_path, test_id or alias")
+                            "test_path, instance_id, test_id or alias")
         elif instance_path == "" and instance_id == "" and  version == "":
             raise Exception("One of the following needs to be provided for finding the required test instance:\n"
                             "instance_path, instance_id or version")
         else:
-            test_json = self.get_test_definition(test_path=test_path, test_id=test_id, alias=alias)
-            test_id = test_json["id"] # in case test_id was not input for specifying test
-            test_instance_json = self.get_test_instance(instance_path=instance_path, instance_id=instance_id, test_id=test_id, version=version)
+            if instance_id:
+                # `instance_id` is sufficient for identifying both test and instance
+                test_instance_json = self.get_test_instance(instance_path=instance_path, instance_id=instance_id) # instance_path added just to maintain order of priority
+                test_id = test_instance_json["test_definition_id"]
+                test_json = self.get_test_definition(test_path=test_path, test_id=test_id) # test_path added just to maintain order of priority
+            else:
+                test_json = self.get_test_definition(test_path=test_path, test_id=test_id, alias=alias)
+                test_id = test_json["id"] # in case test_id was not input for specifying test
+                test_instance_json = self.get_test_instance(instance_path=instance_path, instance_id=instance_id, test_id=test_id, version=version)
 
         # Import the Test class specified in the definition.
         # This assumes that the module containing the class is installed.
@@ -592,7 +598,7 @@ class TestLibrary(BaseClient):
         >>> test_instance = test_library.get_test_instance(test_id="7b63f87b-d709-4194-bae1-15329daf3dec", version="1.0")
         """
 
-        if instance_path == "" and instance_id=="" and (test_id == "" or version == "") and (alias == "" or version == ""):
+        if instance_path == "" and instance_id == "" and (test_id == "" or version == "") and (alias == "" or version == ""):
             raise Exception("instance_path or instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance.")
         if instance_path:
             if os.path.isfile(instance_path):
@@ -1017,7 +1023,7 @@ class ModelCatalog(BaseClient):
     Parameters
     ----------
     username : string
-        Your HBP collaboratory username
+        Your HBP collaboratory username.
     password : string, optional
         Your HBP collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
