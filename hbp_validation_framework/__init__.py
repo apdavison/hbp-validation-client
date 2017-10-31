@@ -59,10 +59,9 @@ class BaseClient(object):
         self.url = url
         self.verify = True
         if password is None:
-            try:
-                # see if password available as an environment variable
-                password = os.environ.get('HBP_PASS')
-            except:
+            # see if password available as an environment variable
+            password = os.environ.get('HBP_PASS')
+            if password is None:
                 # prompt for password
                 password = getpass.getpass()
 
