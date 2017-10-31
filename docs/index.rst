@@ -24,6 +24,5 @@ ModelCatalog
 
 Utilities
 ============
-.. autoclass:: Utilities
-    :members:
-
+.. automodule:: hbp_validation_framework.utils
+   :members:
