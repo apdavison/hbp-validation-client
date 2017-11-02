@@ -1,3 +1,17 @@
+"""
+Miscellaneous methods that help in different aspects of model validation.
+Does not require explicit instantiation.
+
+The following methods are available:
+
+====================================   ====================================
+Action                                 Method
+====================================   ====================================
+View JSON data in web browser          :meth:`view_json_tree`
+Run test and register result           :meth:`run_test`
+====================================   ====================================
+"""
+
 import os
 import json
 import webbrowser
