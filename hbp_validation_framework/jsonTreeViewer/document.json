@@ -1,0 +1,28 @@
+{
+  "results": [
+    {
+      "model_version_id": "f32776c7-658f-462f-a944-1daf8765ec97",
+      "timestamp": "2049-05-17T18:47:14Z",
+      "id": "901ac0f3-2557-4ae3-bb2b-37617312da09",
+      "test_code_id": "36a1960e-3e1f-4c3c-a3b6-d94e6754da1b",
+      "results_storage": "Dummy",
+      "project": "azerty",
+      "platform": "abcde",
+      "score": -4,
+      "passed": "None",
+      "normalized_score": -4
+    },
+    {
+      "model_version_id": "f32776c7-658f-462f-a944-1daf8765ec97",
+      "timestamp": "2049-05-18T18:47:14Z",
+      "test_code_id": "36a1960e-3e1f-4c3c-a3b6-d94e6754da1b",
+      "results_storage": "Dummy",
+      "project": "azerty",
+      "platform": "abcde",
+      "score": -14,
+      "passed": "None",
+      "normalized_score": -14,
+      "id": "fe247a00-213a-4d9e-b051-f7972788e6c5"
+    }
+  ]
+}
