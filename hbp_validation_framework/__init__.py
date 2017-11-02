@@ -1078,8 +1078,10 @@ class ModelCatalog(BaseClient):
 
         model = requests.get(url, auth=self.auth)
         if str(model) != "<Response [200]>":
-            raise Exception("Error in retrieving model. Possibly invalid model_id or alias. Response = " + str(model))
+            raise Exception("Error in retrieving model. Response = " + str(model))
         model = model.json()
+        if len(model["models"]) == 0:
+            raise Exception("Error in retrieving model. Possibly invalid model_id or alias. Response = " + str(model))
         if instances == False:
             model["models"][0].pop("instances")
         if images == False:
@@ -1114,7 +1116,7 @@ class ModelCatalog(BaseClient):
         models = requests.get(url, auth=self.auth).json()
         return models["models"]
 
-    def register_model(self, app_id="", name="", alias=None, author="", private=False,
+    def register_model(self, app_id="", name="", alias=None, author="", organization="", private=False,
                        species="", brain_region="", cell_type="", model_type="", description="",
                        instances=[], images=[]):
         """Register a new model on the model catalog.
@@ -1134,6 +1136,8 @@ class ModelCatalog(BaseClient):
             User-assigned unique identifier to be associated with model description.
         author : string
             Name of person creating the model description.
+        organization : string, optional
+            Option to tag model with organization info.
         private : boolean
             Set visibility of model description. If True, model would only be seen in host app (where created). Default False.
         species : string
@@ -1161,7 +1165,7 @@ class ModelCatalog(BaseClient):
         (without instances and images)
 
         >>> model = model_catalog.register_model(app_id="39968", name="Test Model - B2",
-                        alias="Model-B2", author="Shailesh Appukuttan",
+                        alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private="False", cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
                         description="This is a test entry")
@@ -1169,8 +1173,8 @@ class ModelCatalog(BaseClient):
         (with instances and images)
 
         >>> model = model_catalog.register_model(app_id="39968", name="Client Test - C2",
-                        alias="C2", author="Shailesh Appukuttan",
-                        private="False", cell_type="Granule Cell", model_type="Single Cell",
+                        alias="C2", author="Shailesh Appukuttan", organization="HBP-SP6",
+                        private=False, cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
                         description="This is a test entry! Please ignore.",
                         instances=[{"source":"https://www.abcde.com",
@@ -1193,11 +1197,12 @@ class ModelCatalog(BaseClient):
             raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
         if species not in values["species"]:
             raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
+        if organization not in values["organization"]:
+            raise Exception("organization = '" +organization+"' is invalid.\nValue has to be one of these: " + str(values["organization"]+[""]))
 
         if private not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
         else:
-            # TODO: Check if this works
             private = str(private)
 
         model_data = locals()
@@ -1218,8 +1223,8 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model. Response = " + str(response.json()))
 
-    def edit_model(self, model_id="", app_id="", name="", alias=None, author="", private="False",
-                       cell_type="", model_type="", brain_region="", species="", description=""):
+    def edit_model(self, model_id="", app_id="", name="", alias=None, author="", organization="", private="False",
+                   cell_type="", model_type="", brain_region="", species="", description=""):
         """Edit an existing model on the model catalog.
 
         This allows you to edit an new model to the model catalog.
@@ -1238,6 +1243,8 @@ class ModelCatalog(BaseClient):
             User-assigned unique identifier to be associated with model description.
         author : string
             Name of person creating the model description.
+        organization : string, optional
+            Option to tag model with organization info.
         private : boolean
             Set visibility of model description. If True, model would only be seen in host app (where created). Default False.
         species : string
@@ -1269,8 +1276,8 @@ class ModelCatalog(BaseClient):
         --------
         >>> model = model_catalog.edit_model(app_id="39968", name="Test Model - B2",
                         model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5",
-                        alias="Model-B2", author="Shailesh Appukuttan",
-                        private="False", cell_type="Granule Cell", model_type="Single Cell",
+                        alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
+                        private=False, cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
                         description="This is a test entry")
         """
@@ -1286,10 +1293,10 @@ class ModelCatalog(BaseClient):
         if species not in values["species"]:
             raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
 
-        if private not in ["True", "False"]:
+        if private not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
-        if alias == "":
-            alias = None
+        else:
+            private = str(private)
 
         id = model_id   # as needed by API
         model_data = locals()
@@ -1334,7 +1341,7 @@ class ModelCatalog(BaseClient):
         if param == "":
             param = "all"
 
-        if param in ["cell_type", "test_type", "score_type", "brain_region", "model_type", "data_modalities", "species", "all"]:
+        if param in ["cell_type", "test_type", "score_type", "brain_region", "model_type", "data_modalities", "species", "organization", "all"]:
             url = self.url + "/authorizedcollabparameterrest/?python_client=true&parameters="+param+"&format=json"
         else:
             raise Exception("Parameter, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_type, data_modalities, species, all]")
