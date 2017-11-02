@@ -768,7 +768,7 @@ class TestLibrary(BaseClient):
         for key in ["self", "test_id"]:
             instance_data.pop(key)
 
-        if instance_id=="" and (test_id == "" or version == "") and (alias == "" or version == ""):
+        if instance_id == "" and (test_id == "" or version == "") and (alias == "" or version == ""):
             raise Exception("instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance.")
         elif instance_id:
             url = self.url + "/validationtestscode/?id=" + instance_id + "&format=json"
@@ -926,7 +926,8 @@ class TestLibrary(BaseClient):
 
         Examples
         --------
-        >>> TODO
+        >>> score = test.judge(model)
+        >>> test_library.register_result(test_result=score)
         """
 
         # print("TEST RESULT: {}".format(test_result))
@@ -1382,7 +1383,7 @@ class ModelCatalog(BaseClient):
         >>> model_instance = model_catalog.get_model_instance(model_id="a035f2b2-fe2e-42fd-82e2-4173a304263b")
         """
 
-        if instance_path == "" and instance_id=="" and (model_id == "" or version == "") and (alias == "" or version == ""):
+        if instance_path == "" and instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
             raise Exception("instance_path or instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.")
         if instance_path and os.path.isfile(instance_path):
             # instance_path is a local path
@@ -1536,13 +1537,19 @@ class ModelCatalog(BaseClient):
 
         Examples
         --------
-        >>> TODO
+        >>> instance_id = model_catalog.edit_model_instance(instance_id="fd1ab546-80f7-4912-9434-3c62af87bc77",
+                                                model_id="196b89a3-e672-4b96-8739-748ba3850254",
+                                                source="https://www.abcde.com",
+                                                version="10.0",
+                                                parameters="")
         """
 
+        id = instance_id
         instance_data = locals()
-        instance_data.pop("self")
+        for key in ["self", "instance_id"]:
+            instance_data.pop(key)
 
-        if instance_id=="" and (model_id == "" or version == "") and (alias == "" or version == ""):
+        if instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
             raise Exception("instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.")
         elif instance_id:
             url = self.url + "/scientificmodelinstance/?id=" + instance_id + "&format=json"
@@ -1557,7 +1564,7 @@ class ModelCatalog(BaseClient):
         if str(response) == "<Response [202]>":
             return response.json()
         else:
-            raise Exception("Error in adding model instance. Response = " + str(response.json()))
+            raise Exception("Error in editing model instance. Response = " + str(response.json()))
 
     def get_model_image(self, image_id=""):
         """Retrieve image info from a model description.
@@ -1699,17 +1706,18 @@ class ModelCatalog(BaseClient):
 
         Examples
         --------
-        >>> TODO
+        >>> image_id = model_catalog.edit_model_image(image_id="2b45e7d4-a7a1-4a31-a287-aee7072e3e75", caption = "Some Logo", url="http://www.somesite.com/logo.png")
         """
 
+        id = image_id
         image_data = locals()
-        image_data.pop("self")
+        for key in ["self", "image_id"]:
+            image_data.pop(key)
 
         if image_id == "":
             raise Exception("Image ID needs to be provided for finding the image.")
         else:
             url = self.url + "/scientificmodelimage/?id=" + image_id + "&format=json"
-            url = self.url + "/scientificmodelimage/?format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([image_data]), auth=self.auth, headers=headers)
         if str(response) == "<Response [202]>":
