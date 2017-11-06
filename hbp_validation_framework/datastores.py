@@ -25,7 +25,7 @@ except (NameError, ImportError):
     from urllib.parse import urlparse
 import mimetypes
 import requests
-from hbp_service_client.document_service.client import Client as DocClient
+from hbp_service_client.storage_service.client import Client as DocClient
 
 mimetypes.init()
 
