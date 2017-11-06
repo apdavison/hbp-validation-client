@@ -7,6 +7,11 @@
 HBP Validation Framework - Python Client: Documentation
 =======================================================
 
+.. toctree::
+   :maxdepth: 2
+
+.. automodule:: hbp_validation_framework
+
 Quick Overview
 ==============
 We discuss here some of the terms used in this documentation.
@@ -54,10 +59,6 @@ For any queries, you can contact:
 * Andrew Davison: ``andrew.davison@unic.cnrs-gif.fr``
 * Shailesh Appukuttan: ``shailesh.appukuttan@unic.cnrs-gif.fr``
 
-.. toctree::
-   :maxdepth: 2
-
-.. automodule:: hbp_validation_framework
 
 TestLibrary
 ===========
