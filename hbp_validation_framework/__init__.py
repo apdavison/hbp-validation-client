@@ -162,7 +162,7 @@ class TestLibrary(BaseClient):
     List test instances                    :meth:`list_test_instances`
     Add new test instance                  :meth:`add_test_instance`
     Edit test instance                     :meth:`edit_test_instance`
-    Get valid parameter values             :meth:`get_options`
+    Get valid attribute values             :meth:`get_attribute_options`
     Get test result                        :meth:`get_result`
     List test results                      :meth:`list_results`
     Register test result                   :meth:`register_result`
@@ -171,9 +171,9 @@ class TestLibrary(BaseClient):
     Parameters
     ----------
     username : string
-        Your HBP collaboratory username.
+        Your HBP Collaboratory username.
     password : string, optional
-        Your HBP collaboratory password; advisable to not enter as plaintext.
+        Your HBP Collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
     url : string, optional
         The base URL to access the HBP Validation Web Services. Can be left
@@ -268,7 +268,7 @@ class TestLibrary(BaseClient):
         version : string
             User-assigned identifier (unique for each test) associated with test instance.
         **params :
-            additional keyword arguments to be passed.
+            additional keyword arguments to be passed to the Test constructor.
 
         Note
         ----
@@ -341,8 +341,23 @@ class TestLibrary(BaseClient):
     def list_tests(self, **filters):
         """Retrieve a list of test definitions satisfying specified filters.
 
-        The filters may specify one or more parameters that belong
-        to a test definition.
+        The filters may specify one or more attributes that belong
+        to a test definition. The following test attributes can be specified:
+
+        * name
+        * alias
+        * version
+        * author
+        * species
+        * age
+        * brain_region
+        * cell_type
+        * data_modality
+        * test_type
+        * score_type
+        * model_type
+        * data_type
+        * publication
 
         Parameters
         ----------
@@ -378,13 +393,13 @@ class TestLibrary(BaseClient):
         Parameters
         ----------
         name : string
-            Name of the test definition to be created
+            Name of the test definition to be created.
         alias : string, optional
             User-assigned unique identifier to be associated with test definition.
         version : string
             User-assigned identifier (unique for each test) associated with test instance.
         author : string
-            Name of person creating the test
+            Name of person creating the test.
         species : string
             The species from which the data was collected.
         age : string
@@ -408,9 +423,9 @@ class TestLibrary(BaseClient):
         publication : string
             Publication or comment (e.g. "Unpublished") to be associated with observation.
         repository : string
-            URL of Python package repository (e.g. github).
+            URL of Python package repository (e.g. GitHub).
         path : string
-            Path to test source code within Python package.
+            Python path (not filesystem path) to test source code within Python package.
 
         Returns
         -------
@@ -427,7 +442,7 @@ class TestLibrary(BaseClient):
                                 repository="https://github.com/appukuttan-shailesh/morphounit.git", path="morphounit.tests.CellDensityTest")
         """
 
-        values = self.get_options()
+        values = self.get_attribute_options()
 
         if species not in values["species"]:
             raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
@@ -460,7 +475,7 @@ class TestLibrary(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps(test_json),
                                  auth=self.auth, headers=headers)
-        if str(response) == "<Response [201]>":
+        if response.status_code == 201:
             return response.json()
         else:
             raise Exception("Error in adding test. Response = " + str(response.json()))
@@ -477,7 +492,7 @@ class TestLibrary(BaseClient):
         Parameters
         ----------
         name : string
-            Name of the test definition to be created
+            Name of the test definition.
         test_id : UUID
             System generated unique identifier associated with test definition.
         alias : string, optional
@@ -485,7 +500,7 @@ class TestLibrary(BaseClient):
         version : string
             User-assigned identifier (unique for each test) associated with test instance.
         author : string
-            Name of person creating the test
+            Name of person who created the test.
         species : string
             The species from which the data was collected.
         age : string
@@ -511,7 +526,7 @@ class TestLibrary(BaseClient):
         repository : string
             URL of Python package repository (e.g. github).
         path : string
-            Path to test source code within Python package.
+            Python path (not filesystem path) to test source code within Python package.
 
         Note
         ----
@@ -530,7 +545,7 @@ class TestLibrary(BaseClient):
                                       test_type="network structure", score_type="Other", protocol="To be filled sometime later", data_location="collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json", data_type="Mean, SD")
         """
 
-        values = self.get_options()
+        values = self.get_attribute_options()
 
         if species not in values["species"]:
             raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
@@ -559,7 +574,7 @@ class TestLibrary(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps(test_json),
                                 auth=self.auth, headers=headers)
-        if str(response) == "<Response [202]>":
+        if response.status_code == 202:
             return response.json()
         else:
             raise Exception("Error in editing test. Response = " + str(response.json()))
@@ -682,7 +697,7 @@ class TestLibrary(BaseClient):
         repository : string
             URL of Python package repository (e.g. github).
         path : string
-            Path to test source code within Python package.
+            Python path (not filesystem path) to test source code within Python package.
         version : string
             User-assigned identifier (unique for each test) associated with test instance.
 
@@ -720,7 +735,7 @@ class TestLibrary(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([instance_data]),
                                  auth=self.auth, headers=headers)
-        if str(response) == "<Response [201]>":
+        if response.status_code == 201:
             return response.content
         else:
             raise Exception("Error in adding test instance. Response = " + str(response))
@@ -746,7 +761,7 @@ class TestLibrary(BaseClient):
         repository : string
             URL of Python package repository (e.g. github).
         path : string
-            Path to test source code within Python package.
+            Python path (not filesystem path) to test source code within Python package.
         version : string
             User-assigned identifier (unique for each test) associated with test instance.
 
@@ -780,7 +795,7 @@ class TestLibrary(BaseClient):
 
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
-        if str(response) == "<Response [202]>":
+        if response.status_code == 202:
             return response.content
         else:
             raise Exception("Error in editing test instance. Response = " + str(response.content))
@@ -793,36 +808,45 @@ class TestLibrary(BaseClient):
         observation_data = datastore.load_data(uri)
         return observation_data
 
-    def get_options(self, param=""):
-        """Retrieve valid values for parameters.
+    def get_attribute_options(self, param=""):
+        """Retrieve valid values for test attributes.
 
-        Will return the list of valid values (where applicable) for various parameters.
-        If a parameter is specified then, only values that correspond to it will be returned,
-        else values for all parameters are returned.
+        Will return the list of valid values (where applicable) for various test attributes.
+	The following test attributes can be specified:
+
+	* cell_type
+	* test_type
+	* score_type
+	* brain_region
+	* data_modalities
+	* species
+
+        If an attribute is specified, then only values that correspond to it will be returned,
+        else values for all attributes are returned.
 
         Parameters
         ----------
         param : string, optional
-            Parameter of interest
+            Attribute of interest
 
         Returns
         -------
-        UUID
-            UUID of the test instance that has been created.
+        dict
+            Dictionary with key(s) as attribute(s), and value(s) as list of valid options.
 
         Examples
         --------
-        >>> data = test_library.get_options()
-        >>> data = test_library.get_options("cell_type")
+        >>> data = test_library.get_attribute_options()
+        >>> data = test_library.get_attribute_options("cell_type")
         """
 
         if param == "":
             param = "all"
 
-        if param in ["cell_type", "test_type", "score_type", "brain_region", "model_type", "data_modalities", "species", "all"]:
+        if param in ["cell_type", "test_type", "score_type", "brain_region", "model_type", "data_modalities", "species", "organization", "all"]:
             url = self.url + "/authorizedcollabparameterrest/?python_client=true&parameters="+param+"&format=json"
         else:
-            raise Exception("Parameter, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_type, data_modalities, species, all]")
+            raise Exception("Attribute, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_type, data_modalities, species, all]")
         data = requests.get(url, auth=self.auth).json()
         return ast.literal_eval(json.dumps(data))
 
@@ -1010,7 +1034,7 @@ class ModelCatalog(BaseClient):
     List model descriptions                :meth:`list_models`
     Register new model description         :meth:`register_model`
     Edit model description                 :meth:`edit_model`
-    Get valid parameter values             :meth:`get_options`
+    Get valid attribute values             :meth:`get_attribute_options`
     Get model instance                     :meth:`get_model_instance`
     List model instances                   :meth:`list_model_instances`
     Add new model instance                 :meth:`add_model_instance`
@@ -1024,9 +1048,9 @@ class ModelCatalog(BaseClient):
     Parameters
     ----------
     username : string
-        Your HBP collaboratory username.
+        Your HBP Collaboratory username.
     password : string, optional
-        Your HBP collaboratory password; advisable to not enter as plaintext.
+        Your HBP Collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
     url : string, optional
         The base URL to access the HBP Validation Web Services. Can be left
@@ -1092,8 +1116,18 @@ class ModelCatalog(BaseClient):
     def list_models(self, **filters):
         """Retrieve list of model descriptions satisfying specified filters.
 
-        The filters may specify one or more parameters that belong
-        to a model description.
+        The filters may specify one or more attributes that belong
+        to a model description. The following model attributes can be specified:
+
+        * app_id
+        * name
+        * alias
+        * author
+        * organization
+        * species
+        * brain_region
+        * cell_type
+        * model_type
 
         Parameters
         ----------
@@ -1120,7 +1154,7 @@ class ModelCatalog(BaseClient):
     def register_model(self, app_id="", name="", alias=None, author="", organization="", private=False,
                        species="", brain_region="", cell_type="", model_type="", description="",
                        instances=[], images=[]):
-        """Register a new model on the model catalog.
+        """Register a new model in the model catalog.
 
         This allows you to add a new model to the model catalog. Model instances
         and/or images can optionally be specified at the time of model creation,
@@ -1129,7 +1163,7 @@ class ModelCatalog(BaseClient):
         Parameters
         ----------
         app_id : string
-            Specifies the ID of the host model catalog app on the HBP collaboratory.
+            Specifies the ID of the host model catalog app on the HBP Collaboratory.
             (the model would belong to this app)
         name : string
             Name of the model description to be created.
@@ -1188,7 +1222,7 @@ class ModelCatalog(BaseClient):
                                  "caption":"HBP Logo"}])
         """
 
-        values = self.get_options()
+        values = self.get_attribute_options()
 
         if cell_type not in values["cell_type"]:
             raise Exception("cell_type = '" +cell_type+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
@@ -1219,7 +1253,7 @@ class ModelCatalog(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps(model_json),
                                  auth=self.auth, headers=headers)
-        if str(response) == "<Response [201]>":
+        if response.status_code == 201:
             return response.json()
         else:
             raise Exception("Error in adding model. Response = " + str(response.json()))
@@ -1236,7 +1270,7 @@ class ModelCatalog(BaseClient):
         model_id : UUID
             System generated unique identifier associated with model description.
         app_id : string
-            Specifies the ID of the host model catalog app on the HBP collaboratory.
+            Specifies the ID of the host model catalog app on the HBP Collaboratory.
             (the model would belong to this app)
         name : string
             Name of the model description to be created.
@@ -1283,7 +1317,7 @@ class ModelCatalog(BaseClient):
                         description="This is a test entry")
         """
 
-        values = self.get_options()
+        values = self.get_attribute_options()
 
         if cell_type not in values["cell_type"]:
             raise Exception("cell_type = '" +cell_type+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
@@ -1293,6 +1327,8 @@ class ModelCatalog(BaseClient):
             raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
         if species not in values["species"]:
             raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
+	if organization not in values["organization"]:
+            raise Exception("organization = '" +organization+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
 
         if private not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
@@ -1311,32 +1347,40 @@ class ModelCatalog(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps(model_json),
                                  auth=self.auth, headers=headers)
-        if str(response) == "<Response [202]>":
+        if response.status_code == 202:
             return response.json()
         else:
             raise Exception("Error in updating model. Response = " + str(response.json()))
 
-    def get_options(self, param=""):
-        """Retrieve valid values for parameters.
+    def get_attribute_options(self, param=""):
+        """Retrieve valid values for attributes.
 
-        Will return the list of valid values (where applicable) for various parameters.
-        If a parameter is specified then, only values that correspond to it will be returned,
-        else values for all parameters are returned.
+        Will return the list of valid values (where applicable) for various attributes.
+	The following model attributes can be specified:
+
+	* cell_type
+	* brain_region
+	* model_type
+	* species
+	* organization
+
+        If an attribute is specified then, only values that correspond to it will be returned,
+        else values for all attributes are returned.
 
         Parameters
         ----------
         param : string, optional
-            Parameter of interest
+            Attribute of interest
 
         Returns
         -------
-        UUID
-            UUID of the test instance that has been created.
+        dict
+            Dictionary with key(s) as attribute(s), and value(s) as list of valid options.
 
         Examples
         --------
-        >>> data = model_catalog.get_options()
-        >>> data = model_catalog.get_options("cell_type")
+        >>> data = model_catalog.get_attribute_options()
+        >>> data = model_catalog.get_attribute_options("cell_type")
         """
 
         if param == "":
@@ -1345,7 +1389,7 @@ class ModelCatalog(BaseClient):
         if param in ["cell_type", "test_type", "score_type", "brain_region", "model_type", "data_modalities", "species", "organization", "all"]:
             url = self.url + "/authorizedcollabparameterrest/?python_client=true&parameters="+param+"&format=json"
         else:
-            raise Exception("Parameter, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_type, data_modalities, species, all]")
+            raise Exception("Attribute, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_type, data_modalities, species, all]")
         data = requests.get(url, auth=self.auth).json()
         return ast.literal_eval(json.dumps(data))
 
@@ -1500,7 +1544,7 @@ class ModelCatalog(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([instance_data]),
                                  auth=self.auth, headers=headers)
-        if str(response) == "<Response [201]>":
+        if response.status_code == 201:
             return response.json()
         else:
             raise Exception("Error in adding model instance. Response = " + str(response.json()))
@@ -1561,7 +1605,7 @@ class ModelCatalog(BaseClient):
 
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
-        if str(response) == "<Response [202]>":
+        if response.status_code == 202:
             return response.json()
         else:
             raise Exception("Error in editing model instance. Response = " + str(response.json()))
@@ -1683,7 +1727,7 @@ class ModelCatalog(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([image_data]),
                                  auth=self.auth, headers=headers)
-        if str(response) == "<Response [201]>":
+        if response.status_code == 201:
             return response.json()
         else:
             raise Exception("Error in adding image. Response = " + str(response.json()))
@@ -1720,7 +1764,7 @@ class ModelCatalog(BaseClient):
             url = self.url + "/scientificmodelimage/?id=" + image_id + "&format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([image_data]), auth=self.auth, headers=headers)
-        if str(response) == "<Response [202]>":
+        if response.status_code == 202:
             return response.json()
         else:
             raise Exception("Error in adding image. Response = " + str(response.json()))
