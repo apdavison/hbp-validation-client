@@ -1,4 +1,10 @@
 # Created by .ignore support plugin (hsz.mobi)
+
+# Editor temporary/working/backup files
+*~
+.bak
+*.tmp*
+
 ### Python template
 # Byte-compiled / optimized / DLL files
 __pycache__/
