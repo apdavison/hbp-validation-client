@@ -1,7 +1,7 @@
 """
 A Python package for working with the Human Brain Project Model Validation Framework.
 
-Andrew Davison and Shailesh Appukuttan, CNRS, February 2016
+Andrew Davison and Shailesh Appukuttan, CNRS, 2017
 
 Licence: BSD 3-clause, see LICENSE.txt
 
@@ -29,8 +29,8 @@ from .datastores import URI_SCHEME_MAP
 
 
 # VALIDATION_FRAMEWORK_URL = "https://validation.brainsimulation.eu"
-VALIDATION_FRAMEWORK_URL = "https://validation-dev.brainsimulation.eu"
-# VALIDATION_FRAMEWORK_URL = "https://validation-v1.brainsimulation.eu"
+# VALIDATION_FRAMEWORK_URL = "https://validation-dev.brainsimulation.eu"
+VALIDATION_FRAMEWORK_URL = "https://validation-v1.brainsimulation.eu"
 # VALIDATION_FRAMEWORK_URL = "http://127.0.0.1:8001"
 
 
@@ -85,10 +85,10 @@ class BaseClient(object):
             else:
                 res = rNMPI1.content
                 state = res[res.find("state")+6:res.find("&redirect_uri")]
-                # Dev ID = 90c719e0-29ce-43a2-9c53-15cb314c2d0b
-                # Prototype ID = 8a6b7458-1044-4ebd-9b7e-f8fd3469069c
-                # Prod ID = 3ae21f28-0302-4d28-8581-15853ad6107d
-                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id=90c719e0-29ce-43a2-9c53-15cb314c2d0b".format(state, self.url)
+		# clientID = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c" # Prototype ID
+		# clientID = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
+		clientID = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
+                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, clientID)
             # get the exchange cookie
             cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
             self.session.headers.update({'cookie': cookie})
@@ -154,7 +154,7 @@ class TestLibrary(BaseClient):
     Action                                 Method
     ====================================   ====================================
     Get test definition                    :meth:`get_test_definition`
-    Get `sciunit` test                     :meth:`get_validation_test`
+    Get test as Python (sciunit) class     :meth:`get_validation_test`
     List test definitions                  :meth:`list_tests`
     Add new test definition                :meth:`add_test`
     Edit test definition                   :meth:`edit_test`
@@ -243,7 +243,7 @@ class TestLibrary(BaseClient):
         return test_json["tests"][0]
 
     def get_validation_test(self, test_path="", instance_path="", instance_id ="", test_id = "", alias="", version="", **params):
-        """Retrieve a specific test instance as a sciunit.Test instance.
+        """Retrieve a specific test instance as a Python class (sciunit.Test instance).
 
         A specific test definition can be specified
         in the following ways (in order of priority):
