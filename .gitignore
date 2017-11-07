@@ -1,4 +1,11 @@
 # Created by .ignore support plugin (hsz.mobi)
+
+# Editor temporary/working/backup files
+*~
+.bak
+*.tmp*
+hbp_validation_framework/jsonTreeViewer/data.js
+
 ### Python template
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -63,7 +70,9 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+docs/_build
+docs/_static
+docs/_templates
 
 # PyBuilder
 target/
@@ -88,5 +97,3 @@ ENV/
 .spyderproject
 .ropeproject
 .idea
-
-
