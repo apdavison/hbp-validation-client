@@ -92,7 +92,7 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
     test_version : string
         User-assigned identifier (unique for each test) associated with test instance.
     storage_collab_id : string
-        Collab ID where ouput files should be stored; if empty, stored in model's host collab.
+        Collab ID where output files should be stored; if empty, stored in model's host collab.
 
     Note
     ----

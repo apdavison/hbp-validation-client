@@ -44,7 +44,7 @@ We discuss here some of the terms used in this documentation.
    be considered as different versions (instances) of that particular test.
 
 **sciunit**
-   A Python package that handles of testing of models.
+   A Python package that handles testing of models.
    For more, see: https://github.com/scidash/sciunit
 
 **Result**
