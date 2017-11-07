@@ -12,7 +12,7 @@ json_files = package_files('hbp_validation_framework/jsonTreeViewer')
 
 setup(
         name='hbp_validation_framework',
-        version='1.0',
+        version='0.3.0',
         packages=['hbp_validation_framework'],
 	package_data={'hbp_validation_framework': json_files},
         url='',

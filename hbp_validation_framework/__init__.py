@@ -147,7 +147,7 @@ class BaseClient(object):
 class TestLibrary(BaseClient):
     """Client for the HBP Validation Test library.
 
-    TestLibrary class manages all actions pertaining to tests and results.
+    The TestLibrary client manages all actions pertaining to tests and results.
     The following actions can be performed:
 
     ====================================   ====================================
@@ -1024,7 +1024,7 @@ class TestLibrary(BaseClient):
 class ModelCatalog(BaseClient):
     """Client for the HBP Model Catalog.
 
-    ModelCatalog class manages all actions pertaining to models.
+    The ModelCatalog client manages all actions pertaining to models.
     The following actions can be performed:
 
     ====================================   ====================================
@@ -1039,10 +1039,10 @@ class ModelCatalog(BaseClient):
     List model instances                   :meth:`list_model_instances`
     Add new model instance                 :meth:`add_model_instance`
     Edit existing model instance           :meth:`edit_model_instance`
-    Get image from model description       :meth:`get_model_image`
-    List images from model description     :meth:`list_model_images`
-    Add image to model description         :meth:`add_model_image`
-    Edit existing image metadata           :meth:`edit_model_image`
+    Get figure from model description      :meth:`get_model_image`
+    List figures from model description    :meth:`list_model_images`
+    Add figure to model description        :meth:`add_model_image`
+    Edit existing figure metadata          :meth:`edit_model_image`
     ====================================   ====================================
 
     Parameters
@@ -1081,7 +1081,7 @@ class ModelCatalog(BaseClient):
         instances : boolean, optional
             Set to False if you wish to omit the details of the model instances; default True.
         images : boolean, optional
-            Set to False if you wish to omit the details of the model images; default True.
+            Set to False if you wish to omit the details of the model images (figures); default True.
 
         Returns
         -------
@@ -1157,8 +1157,8 @@ class ModelCatalog(BaseClient):
         """Register a new model in the model catalog.
 
         This allows you to add a new model to the model catalog. Model instances
-        and/or images can optionally be specified at the time of model creation,
-        or can be added later individually.
+        and/or images (figures) can optionally be specified at the time of model
+        creation, or can be added later individually.
 
         Parameters
         ----------
@@ -1188,7 +1188,7 @@ class ModelCatalog(BaseClient):
         instances : list, optional
             Specify a list of instances (versions) of the model.
         images : list, optional
-            Specify a list of images to be linked to the model.
+            Specify a list of images (figures) to be linked to the model.
 
         Returns
         -------
@@ -1295,11 +1295,11 @@ class ModelCatalog(BaseClient):
         instances : list, optional
             Specify a list of instances (versions) of the model.
         images : list, optional
-            Specify a list of images to be linked to the model.
+            Specify a list of images (figures) to be linked to the model.
 
         Note
         ----
-        Does not allow editing details of model instances and images.
+        Does not allow editing details of model instances and images (figures).
         Will be implemented later, if required.
 
         Returns
@@ -1356,13 +1356,13 @@ class ModelCatalog(BaseClient):
         """Retrieve valid values for attributes.
 
         Will return the list of valid values (where applicable) for various attributes.
-	The following model attributes can be specified:
+    	The following model attributes can be specified:
 
-	* cell_type
-	* brain_region
-	* model_type
-	* species
-	* organization
+    	* cell_type
+    	* brain_region
+    	* model_type
+    	* species
+    	* organization
 
         If an attribute is specified then, only values that correspond to it will be returned,
         else values for all attributes are returned.
@@ -1613,18 +1613,18 @@ class ModelCatalog(BaseClient):
     def get_model_image(self, image_id=""):
         """Retrieve image info from a model description.
 
-        This allows to retrieve image info from the model catalog.
+        This allows to retrieve image (figure) info from the model catalog.
         The `image_id` needs to be specified as input parameter.
 
         Parameters
         ----------
         image_id : UUID
-            System generated unique identifier associated with image.
+            System generated unique identifier associated with image (figure).
 
         Returns
         -------
         dict
-            Information about the image retrieved.
+            Information about the image (figure) retrieved.
 
         Examples
         --------
@@ -1632,17 +1632,17 @@ class ModelCatalog(BaseClient):
         """
 
         if not image_id:
-            raise Exception("image_id needs to be provided for finding a specific model image.")
+            raise Exception("image_id needs to be provided for finding a specific model image (figure).")
         else:
             url = self.url + "/scientificmodelimage/?id=" + image_id + "&format=json"
         model_image_json = requests.get(url, auth=self.auth)
         if str(model_image_json) != "<Response [200]>":
-            raise Exception("Error in retrieving model instances. Response = " + str(model_image_json))
+            raise Exception("Error in retrieving model images (figures). Response = " + str(model_image_json))
         model_image_json = model_image_json.json()
         return model_image_json["images"][0]
 
     def list_model_images(self, model_id="", alias=""):
-        """Retrieve all images associated with a model.
+        """Retrieve all images (figures) associated with a model.
 
         This can be retrieved in the following ways (in order of priority):
         1. specify `model_id`
@@ -1658,7 +1658,7 @@ class ModelCatalog(BaseClient):
         Returns
         -------
         list
-            List of dicts containing information about the model images.
+            List of dicts containing information about the model images (figures).
 
         Examples
         --------
@@ -1673,14 +1673,14 @@ class ModelCatalog(BaseClient):
             url = self.url + "/scientificmodelimage/?model_alias=" + alias + "&format=json"
         model_images_json = requests.get(url, auth=self.auth)
         if str(model_images_json) != "<Response [200]>":
-            raise Exception("Error in retrieving model images. Response = " + str(model_images_json.content))
+            raise Exception("Error in retrieving model images (figures). Response = " + str(model_images_json.content))
         model_images_json = model_images_json.json()
         return model_images_json["images"]
 
     def add_model_image(self, model_id="", alias="", url="", caption=""):
-        """Add a new image to a model description.
+        """Add a new image (figure) to a model description.
 
-        This allows to add a new image to an existing model in the model catalog.
+        This allows to add a new image (figure) to an existing model in the model catalog.
         The `model_id` needs to be specified as input parameter.
 
         Parameters
@@ -1690,20 +1690,20 @@ class ModelCatalog(BaseClient):
         alias : string
             User-assigned unique identifier associated with model description.
         url : string
-            Url of image to be added.
+            Url of image (figure) to be added.
         caption : string
-            Caption to be associated with the image.
+            Caption to be associated with the image (figure).
 
         Returns
         -------
         UUID
-            UUID of the image that was added.
+            UUID of the image (figure) that was added.
 
         Note
         ----
         * `alias` is not currently implemented in the API; kept for future use.
         * TODO: Either model_id or alias needs to be provided, with model_id taking precedence over alias.
-        * TODO: Allow image to be located locally
+        * TODO: Allow image (figure) to be located locally
 
         Examples
         --------
@@ -1730,23 +1730,23 @@ class ModelCatalog(BaseClient):
         if response.status_code == 201:
             return response.json()
         else:
-            raise Exception("Error in adding image. Response = " + str(response.json()))
+            raise Exception("Error in adding image (figure). Response = " + str(response.json()))
 
     def edit_model_image(self, image_id="", url="", caption=""):
-        """Edit an existing image metadata.
+        """Edit an existing image (figure) metadata.
 
-        This allows to edit the metadata of an image in the model catalog.
+        This allows to edit the metadata of an image (figure) in the model catalog.
         The `image_id` needs to be specified as input parameter.
 
         Parameters
         ----------
         image_id : UUID
-            System generated unique identifier associated with image.
+            System generated unique identifier associated with image (figure).
 
         Returns
         -------
         UUID
-            UUID of the image that was edited.
+            UUID of the image (figure) that was edited.
 
         Examples
         --------
@@ -1759,7 +1759,7 @@ class ModelCatalog(BaseClient):
             image_data.pop(key)
 
         if image_id == "":
-            raise Exception("Image ID needs to be provided for finding the image.")
+            raise Exception("Image ID needs to be provided for finding the image (figure).")
         else:
             url = self.url + "/scientificmodelimage/?id=" + image_id + "&format=json"
         headers = {'Content-type': 'application/json'}
@@ -1767,7 +1767,7 @@ class ModelCatalog(BaseClient):
         if response.status_code == 202:
             return response.json()
         else:
-            raise Exception("Error in adding image. Response = " + str(response.json()))
+            raise Exception("Error in adding image (figure). Response = " + str(response.json()))
 
 
 def _have_internet_connection():
