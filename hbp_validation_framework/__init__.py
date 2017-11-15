@@ -727,7 +727,8 @@ class TestLibrary(BaseClient):
                                         version="3.0")
         """
 
-        test_definition_id = test_id    # as needed by API
+        if test_id:
+            test_definition_id = test_id    # as needed by API
         instance_data = locals()
         for key in ["self", "test_id"]:
             instance_data.pop(key)
@@ -789,21 +790,20 @@ class TestLibrary(BaseClient):
                                         path="morphounit.tests.CellDensityTest",
                                         version="4.0")
         """
-
-        test_definition_id = test_id    # as needed by API
+        if instance_id:
+            id = instance_id    # as needed by API
+        if test_id:
+            test_definition_id = test_id    # as needed by API
+        if alias:
+            test_alias = alias  # as needed by API
         instance_data = locals()
-        for key in ["self", "test_id"]:
+        for key in ["self", "test_id", "alias"]:
             instance_data.pop(key)
 
         if instance_id == "" and (test_id == "" or version == "") and (alias == "" or version == ""):
             raise Exception("instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance.")
-        elif instance_id:
-            url = self.url + "/validationtestscode/?id=" + instance_id + "&format=json"
-            #url = self.url + "/validationtestscode/?format=json"
-        elif test_id and version:
-            url = self.url + "/validationtestscode/?test_definition_id=" + test_id + "&version=" + version + "&format=json"
         else:
-            url = self.url + "/validationtestscode/?test_alias=" + alias + "&version=" + version + "&format=json"
+            url = self.url + "/validationtestscode/?format=json"
 
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
@@ -1604,20 +1604,18 @@ class ModelCatalog(BaseClient):
                                                 parameters="")
         """
 
-        id = instance_id
+        if instance_id:
+            id = instance_id    # as needed by API
+        if alias:
+            model_alias = alias # as needed by API
         instance_data = locals()
-        for key in ["self", "instance_id"]:
+        for key in ["self", "instance_id", "alias"]:
             instance_data.pop(key)
 
         if instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
             raise Exception("instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.")
-        elif instance_id:
-            url = self.url + "/scientificmodelinstance/?id=" + instance_id + "&format=json"
-            #url = self.url + "/scientificmodelinstance/?format=json"
-        elif model_id and version:
-            url = self.url + "/scientificmodelinstance/?model_id=" + model_id + "&version=" + version + "&format=json"
         else:
-            url = self.url + "/scientificmodelinstance/?test_alias=" + alias + "&version=" + version + "&format=json"
+            url = self.url + "/scientificmodelinstance/?format=json"
 
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
