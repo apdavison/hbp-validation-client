@@ -49,7 +49,7 @@ class HBPAuth(AuthBase):
 
 class BaseClient(object):
     """
-
+    Base class that handles HBP authentication
     """
 
     def __init__(self, username,
@@ -59,17 +59,25 @@ class BaseClient(object):
         self.url = url
         self.verify = True
         if password is None:
-            # see if password available as an environment variable
-            password = os.environ.get('HBP_PASS')
-            if password is None:
-                # prompt for password
-                password = getpass.getpass()
-
-        self._hbp_auth(username, password)
+            # check for a stored token
+            self.token = None
+            if os.path.exists(TOKENFILE):
+                with open(TOKENFILE) as fp:
+                    self.token = json.load(fp).get(username, None)["access_token"]
+            if self.token is None:
+                password = os.environ.get('HBP_PASS')
+                if password is None:
+                    # prompt for password
+                    password = getpass.getpass()
+                self._hbp_auth(username, password)
+                with open(TOKENFILE, "w") as fp:
+                    json.dump({username: self.config["auth"]["token"]}, fp)
+                os.chmod(TOKENFILE, 0o600)
         self.auth = HBPAuth(self.token)
 
     def _hbp_auth(self, username, password):
         """
+        HBP authentication
         """
         redirect_uri = self.url + '/complete/hbp/'
 
