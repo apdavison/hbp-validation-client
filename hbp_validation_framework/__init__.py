@@ -276,7 +276,7 @@ class TestLibrary(BaseClient):
         version : string
             User-assigned identifier (unique for each test) associated with test instance.
         **params :
-            additional keyword arguments to be passed to the Test constructor.
+            Additional keyword arguments to be passed to the Test constructor.
 
         Note
         ----
@@ -342,7 +342,7 @@ class TestLibrary(BaseClient):
                         observations[key] = quantities.Quantity(number, units)
 
         # Create the :class:`sciunit.Test` instance
-        test_instance = test_cls(observations, **params)
+        test_instance = test_cls(observation=observations, **params)
         test_instance.id = test_instance_json["id"]  # this is just the path part. Should be a full url
         return test_instance
 
