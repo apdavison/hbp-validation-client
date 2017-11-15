@@ -642,7 +642,7 @@ class TestLibrary(BaseClient):
         if str(test_instance_json) != "<Response [200]>":
             raise Exception("Error in retrieving test instance. Response = " + str(test_instance_json.content))
         test_instance_json = test_instance_json.json()
-        return test_instance_json["tests"][0]
+        return test_instance_json["test_codes"][0]
 
     def list_test_instances(self, instance_path="", test_id="", alias=""):
         """Retrieve list of test instances belonging to a specified test.
@@ -688,7 +688,7 @@ class TestLibrary(BaseClient):
         if str(test_instances_json) != "<Response [200]>":
             raise Exception("Error in retrieving test instances. Response = " + str(test_instances_json))
         test_instances_json = test_instances_json.json()
-        return test_instances_json["tests"]
+        return test_instances_json["test_codes"]
 
     def add_test_instance(self, test_id="", alias="", repository="", path="", version=""):
         """Register a new test instance.
