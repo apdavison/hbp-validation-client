@@ -32,7 +32,7 @@ from .datastores import URI_SCHEME_MAP
 # VALIDATION_FRAMEWORK_URL = "https://validation-dev.brainsimulation.eu"
 VALIDATION_FRAMEWORK_URL = "https://validation-v1.brainsimulation.eu"
 # VALIDATION_FRAMEWORK_URL = "http://127.0.0.1:8001"
-
+TOKENFILE = os.path.expanduser("~/.hbptoken")
 
 class HBPAuth(AuthBase):
     """Attaches OIDC Bearer Authentication to the given Request object."""
