@@ -758,6 +758,10 @@ class TestLibrary(BaseClient):
         2. specify `test_id` and `version`
         3. specify `alias` (of the test) and `version`
 
+        You cannot edit the test `version` in the latter two cases. To do so,
+        you must employ the first option above. You can retrieve the `instance_id`
+        via :meth:`get_test_instance`
+
         Parameters
         ----------
         instance_id : UUID
@@ -1566,6 +1570,10 @@ class ModelCatalog(BaseClient):
         1. specify `instance_id` corresponding to model instance in model catalog
         2. specify `model_id` and `version`
         3. specify `alias` (of the model) and `version`
+
+        You cannot edit the model `version` in the latter two cases. To do so,
+        you must employ the first option above. You can retrieve the `instance_id`
+        via :meth:`get_model_instance`
 
         Parameters
         ----------
