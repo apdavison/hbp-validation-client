@@ -25,7 +25,7 @@ except (NameError, ImportError):
     from urllib.parse import urlparse
 import mimetypes
 import requests
-from hbp_service_client.storage_service.api import ApiClient as DocClient
+from hbp_service_client.storage_service.api import ApiClient
 
 mimetypes.init()
 
@@ -61,7 +61,7 @@ class CollabDataStore(object):
     def authorize(self, auth=None):
         if auth is None:
             auth = self._auth
-        self.doc_client = DocClient.new(auth.token)
+        self.doc_client = ApiClient.new(auth.token)
         self._authorized = True
 
     def upload_data(self, file_paths):
