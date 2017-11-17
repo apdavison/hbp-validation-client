@@ -27,11 +27,16 @@ import requests
 from requests.auth import AuthBase
 from .datastores import URI_SCHEME_MAP
 
+# Set True if using for developement work; else False
+DEVELOPER = False
 
-# VALIDATION_FRAMEWORK_URL = "https://validation.brainsimulation.eu"
-# VALIDATION_FRAMEWORK_URL = "https://validation-dev.brainsimulation.eu"
-VALIDATION_FRAMEWORK_URL = "https://validation-v1.brainsimulation.eu"
-# VALIDATION_FRAMEWORK_URL = "http://127.0.0.1:8001"
+if DEVELOPER:
+    VALIDATION_FRAMEWORK_URL = "https://validation-dev.brainsimulation.eu"
+    CLIENT_ID = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
+else:
+    VALIDATION_FRAMEWORK_URL = "https://validation-v1.brainsimulation.eu"
+    CLIENT_ID = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
+
 TOKENFILE = os.path.expanduser("~/.hbptoken")
 
 class HBPAuth(AuthBase):
@@ -120,10 +125,7 @@ class BaseClient(object):
             else:
                 res = rNMPI1.content
                 state = res[res.find("state")+6:res.find("&redirect_uri")]
-		# clientID = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c" # Prototype ID
-		# clientID = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
-		clientID = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
-                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, clientID)
+                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, CLIENT_ID)
             # get the exchange cookie
             cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
             self.session.headers.update({'cookie': cookie})
@@ -1099,7 +1101,7 @@ class ModelCatalog(BaseClient):
     --------
     Instantiate an instance of the ModelCatalog class
 
-    >>> test_library = ModelCatalog(hbp_username)
+    >>> model_catalog = ModelCatalog(hbp_username)
     """
 
     def get_model(self, model_id="", alias="", instances=True, images=True):
