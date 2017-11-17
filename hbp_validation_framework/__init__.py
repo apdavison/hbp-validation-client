@@ -51,6 +51,7 @@ class BaseClient(object):
     """
     Base class that handles HBP authentication
     """
+    # Note: Could possibly simplify the code later
 
     def __init__(self, username,
                  password=None,
@@ -63,16 +64,42 @@ class BaseClient(object):
             self.token = None
             if os.path.exists(TOKENFILE):
                 with open(TOKENFILE) as fp:
-                    self.token = json.load(fp).get(username, None)["access_token"]
+                    # self.token = json.load(fp).get(username, None)["access_token"]
+                    data = json.load(fp).get(username, None)
+                    if data and "access_token" in data:
+                        self.token = data["access_token"]
+                    else:
+                        print "HBP authentication token file not having required JSON data."
+            else:
+                print "HBP authentication token file not found locally."
             if self.token is None:
                 password = os.environ.get('HBP_PASS')
-                if password is None:
-                    # prompt for password
-                    password = getpass.getpass()
-                self._hbp_auth(username, password)
+                if password is not None:
+                    try:
+                        self._hbp_auth(username, password)
+                    except Exception:
+                        print "Authentication Failure. Possibly incorrect HBP password saved in environment variable 'HBP_PASS'."
+                if not hasattr(self, 'config'):
+                    try:
+                        # prompt for password
+                        print "Please enter your HBP password: "
+                        password = getpass.getpass()
+                        self._hbp_auth(username, password)
+                    except Exception:
+                        print "Authentication Failure! Password entered is possibly incorrect."
+                        raise
                 with open(TOKENFILE, "w") as fp:
                     json.dump({username: self.config["auth"]["token"]}, fp)
                 os.chmod(TOKENFILE, 0o600)
+        else:
+            try:
+                self._hbp_auth(username, password)
+            except Exception:
+                print "Authentication Failure! Password entered is possibly incorrect."
+                raise
+            with open(TOKENFILE, "w") as fp:
+                json.dump({username: self.config["auth"]["token"]}, fp)
+            os.chmod(TOKENFILE, 0o600)
         self.auth = HBPAuth(self.token)
 
     def _hbp_auth(self, username, password):
