@@ -167,8 +167,8 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
         elif not hasattr(score.model, 'id'):
             # If no Model ID specified, register the model on the validation framework
             model_id = model_catalog.register_model(app_id=model_metadata["app_id"],
-                                                    name=model.name,
-                                                    alias=model.name, #model_metadata["alias"],
+                                                    name=model_metadata["name"] if "name" in model_metadata else model.name,
+                                                    alias=model_metadata["alias"] if "alias" in model_metadata else None,
                                                     author=model_metadata["author"],
                                                     organization=model_metadata["organization"],
                                                     private=model_metadata["private"],
