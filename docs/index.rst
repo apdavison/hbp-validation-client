@@ -72,10 +72,10 @@ General Info
   login credentials.
 
 * The model being tested can be registered on the *Model Catalog* beforehand,
-  or ask to be registered automatically after the test is complete, and just
+  or asked to be registered automatically after the test is complete, just
   before registering the result on the validation framework.
 
-* Registration of the model and its results would also require authenticating
+* Registration of the model and its test results also require authenticating
   your HBP login credentials.
 
 * It should be noted that an HBP account can be created even by non-HBP users.
@@ -91,21 +91,20 @@ General Info
   can be used. These filters restrict the type of data displayed in that particular
   instance of the app.
 
-* All tests are public, i.e. every test registered on the validation framework
+* All tests are public, i.e. every test registered on the *Validation Framework*
   can can be seen by all users.
 
-* Models are created inside specific collab instances of the Model Catalog app.
+* Models are created inside specific collab instances of the *Model Catalog* app.
   The particular app inside which a model was created is termed its *host app*.
-  Similarly, the collab containing the *host app* can be termed the *host collab*.
+  Similarly, the collab containing the *host app* is termed the *host collab*.
 
 * Models can be set as public/private. If public, the model and its associated
   results are available to all users. If private, it can only be seen by users who
-  have access to the *host collab*. If the collab itself is public, then the models
-  under it would be treated as public irrespective of their public/private status.
+  have access to the *host collab*.
 
-* No information can be deleted from the ModelCatalog and Validation Framework.
-  In future, an option to *hide* data would be implemented. This would offer users
-  functionality similar to deleting, but with the data being retained in the
+* No information can be deleted from the *Model Catalog* and *Validation Framework* 
+  apps. In future, an option to *hide* data would be implemented. This would offer 
+  users functionality similar to deleting, but with the data being retained in the
   database back-end.
 
 * Models, model instances, tests and test instances can be edited as long as
@@ -127,7 +126,7 @@ On first use, the users have the following options (in order of priority):
 Once you do either of the two, the Python Client will save the retrieved token
 locally on your system. Henceforth, this token would be used for all subsequent
 requests that require authentication. This approach has been found to significantly
-speed-up the processing of the requests. If the authentication times out or is
+speed-up the processing of the requests. If the authentication token expires, or is
 found invalid, then the user would again be give the above two options.
 
 TestLibrary
