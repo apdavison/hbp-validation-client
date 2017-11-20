@@ -180,6 +180,55 @@ class BaseClient(object):
         else:
             raise Exception("Something went wrong. Status code {} from NMPI, expected 302".format(rNMPI1.status_code))
 
+    def _translate_URL_to_UUID(self, path):
+        """
+        Can take a path such as `collab:///5165/hippoCircuit_20171027-142713`
+        with 5165 being the collab ID and the latter part being the target folder
+        name, and translate this to the UUID on the HBP Collaboratory storage.
+        The target can be a file or folder.
+        """
+        base_url = "https://services.humanbrainproject.eu/storage/v1/api/entity/"
+        if path.startswith("collab://"):
+            path = path[len("collab://"):]
+        url = base_url + "?path=" + path
+        data = requests.get(url, auth=self.auth)
+        if data.status_code == 200:
+            return data.json()["uuid"]
+        else:
+            raise Exception("The provided 'path' is invalid!")
+
+    def _download_resource(self, uuid):
+        """
+        Downloads the resource specified by the UUID on the HBP Collaboratory.
+        Target can be a file or a folder.
+        """
+        base_url = "https://services.humanbrainproject.eu/storage/v1/api/entity/"
+        url = base_url + "?uuid=" + uuid
+        data = requests.get(url, auth=self.auth)
+        if data.status_code != 200:
+            raise Exception("The provided 'uuid' is invalid!")
+        else:
+            data = data.json()
+            if data["entity_type"] == "folder":
+                if not os.path.exists(data["name"]):
+                    os.makedirs(data["name"])
+                os.chdir(data["name"])
+                base_url = "https://services.humanbrainproject.eu/storage/v1/api/folder/"
+                url = base_url + uuid + "/children/"
+                folder_data = requests.get(url, auth=self.auth)
+                folder_sublist = folder_data.json()["results"]
+                for entity in folder_sublist:
+                    self._download_resource(entity["uuid"])
+                os.chdir('..')
+            elif data["entity_type"] == "file":
+                base_url = "https://services.humanbrainproject.eu/storage/v1/api/file/"
+                url = base_url + uuid + "/content/"
+                file_data = requests.get(url, auth=self.auth)
+                with open(data["name"], "w") as filename:
+                    filename.write("%s" % file_data.content)
+            else:
+                raise Exception("Downloading of resources currently supported only for files and folders!")
+
 
 class TestLibrary(BaseClient):
     """Client for the HBP Validation Test library.
