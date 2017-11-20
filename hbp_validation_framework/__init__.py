@@ -1044,12 +1044,12 @@ class TestLibrary(BaseClient):
         Returns
         -------
         UUID
-            (Verify!) UUID of the test results that has been created.
+            UUID of the test results that has been created.
 
         Examples
         --------
         >>> score = test.judge(model)
-        >>> test_library.register_result(test_result=score)
+        >>> response = test_library.register_result(test_result=score)
         """
 
         # print("TEST RESULT: {}".format(test_result))
@@ -1091,7 +1091,8 @@ class TestLibrary(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([result_json]),
                                  auth=self.auth, headers=headers)
-        print("Result Registered!, UUID = " + response.content)
+        print("Result registered successfully!")
+        return response.content["uuid"]
 
     def _get_platform(self):
         """
