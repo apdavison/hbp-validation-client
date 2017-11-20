@@ -98,8 +98,8 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
         Default is set as True.
     model_metadata : dict
         Data for registering model in the model catalog. If the model already exists
-        in the model catalog, then the model_instance UUID must be specified in the model's
-        code by setting `model.id`. Otherwise, the model is registered using info from
+        in the model catalog, then the model_instance UUID must be specified in the model's source
+        code by setting `model.instance_id`. Otherwise, the model is registered using info from
         `model_metadata`. If `id` and `model_metadata` are both absent, then the results
         will not be saved on the validation framework (even if `register_result` = True).
     **test_kwargs : list
@@ -163,9 +163,9 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
         # Register the result with the HBP Validation service
         model_catalog = ModelCatalog(hbp_username)
         if not hasattr(score.model, 'id') and not model_metadata:
-            print "Model = ", model, " => Results NOT saved on validation framework: no model.id or model_metadata provided!"
+            print "Model = ", model, " => Results NOT saved on validation framework: no model.instance_id or model_metadata provided!"
         elif not hasattr(score.model, 'id'):
-            # If no Model ID specified, register the model on the validation framework
+            # If model instance_id not specified, register the model on the validation framework
             model_id = model_catalog.register_model(app_id=model_metadata["app_id"],
                                                     name=model_metadata["name"] if "name" in model_metadata else model.name,
                                                     alias=model_metadata["alias"] if "alias" in model_metadata else None,
@@ -179,9 +179,9 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
                                                     description=model_metadata["description"],
                                                     instances=model_metadata["instances"])
             model_instance_id = model_catalog.get_model_instance(model_id=model_id["uuid"], version=model_metadata["instances"][0]["version"])
-            score.model.id = model_instance_id["id"]
+            score.model.instance_id = model_instance_id["id"]
 
-        model_instance_json = model_catalog.get_model_instance(instance_id=score.model.id)
+        model_instance_json = model_catalog.get_model_instance(instance_id=score.model.instance_id)
         model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
         model_host_collab_id = model_json["app"]["collab_id"]
         model_name = model_json["name"]
