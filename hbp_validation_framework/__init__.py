@@ -277,7 +277,10 @@ class TestLibrary(BaseClient):
         if str(test_json) != "<Response [200]>":
             raise Exception("Error in retrieving test. Response = " + str(test_json.content))
         test_json = test_json.json()
-        return test_json["tests"][0]
+        if len(test_json["tests"]) == 1:
+            return test_json["tests"][0]
+        else:
+            raise Exception("Error in retrieving test definition. Possibly invalid input data.")
 
     def get_validation_test(self, test_path="", instance_path="", instance_id ="", test_id = "", alias="", version="", **params):
         """Retrieve a specific test instance as a Python class (sciunit.Test instance).
@@ -671,7 +674,10 @@ class TestLibrary(BaseClient):
         if str(test_instance_json) != "<Response [200]>":
             raise Exception("Error in retrieving test instance. Response = " + str(test_instance_json.content))
         test_instance_json = test_instance_json.json()
-        return test_instance_json["test_codes"][0]
+        if len(test_json["test_codes"]) == 1:
+            return test_instance_json["test_codes"][0]
+        else:
+            raise Exception("Error in retrieving test instance. Possibly invalid input data.")
 
     def list_test_instances(self, instance_path="", test_id="", alias=""):
         """Retrieve list of test instances belonging to a specified test.
@@ -926,6 +932,8 @@ class TestLibrary(BaseClient):
         if str(result_json) != "<Response [200]>":
             raise Exception("Error in retrieving result. Response = " + str(result_json) + ".\nContent = " + result_json.content)
         result_json = result_json.json()
+        # Unlike other "get_" methods, we do not return "[key][0]" as the key can vary
+        # based on the parameter "order". Retaining this key is potentially useful.
         return result_json
 
     def list_results(self, order="", **filters):
@@ -1142,17 +1150,19 @@ class ModelCatalog(BaseClient):
         else:
             url = self.url + "/scientificmodel/?alias=" + alias + "&format=json"
 
-        model = requests.get(url, auth=self.auth)
-        if str(model) != "<Response [200]>":
-            raise Exception("Error in retrieving model. Response = " + str(model))
-        model = model.json()
-        if len(model["models"]) == 0:
-            raise Exception("Error in retrieving model. Possibly invalid model_id or alias. Response = " + str(model))
-        if instances == False:
-            model["models"][0].pop("instances")
-        if images == False:
-            model["models"][0].pop("images")
-        return model["models"][0]
+        model_json = requests.get(url, auth=self.auth)
+        if str(model_json) != "<Response [200]>":
+            raise Exception("Error in retrieving model. Response = " + str(model_json))
+        model_json = model_json.json()
+
+        if len(model_json["models"]) == 1:
+            if instances == False:
+                model_json["models"][0].pop("instances")
+            if images == False:
+                model_json["models"][0].pop("images")
+            return model_json["models"][0]
+        else:
+            raise Exception("Error in retrieving model description. Possibly invalid input data.")
 
     def list_models(self, **filters):
         """Retrieve list of model descriptions satisfying specified filters.
@@ -1485,9 +1495,10 @@ class ModelCatalog(BaseClient):
         if str(model_instance_json) != "<Response [200]>":
             raise Exception("Error in retrieving model instance. Response = " + str(model_instance_json))
         model_instance_json = model_instance_json.json()
-        if len(model_instance_json["instances"]) == 0:
-            raise Exception("There is no model instance with these specifications.")
-        return model_instance_json["instances"][0]
+        if len(model_instance_json["instances"]) == 1:
+            return model_instance_json["instances"][0]
+        else:
+            raise Exception("Error in retrieving model instance. Possibly invalid input data.")
 
     def list_model_instances(self, instance_path="", model_id="", alias=""):
         """Retrieve list of model instances belonging to a specified model.
@@ -1682,6 +1693,10 @@ class ModelCatalog(BaseClient):
         if str(model_image_json) != "<Response [200]>":
             raise Exception("Error in retrieving model images (figures). Response = " + str(model_image_json))
         model_image_json = model_image_json.json()
+        if len(model_image_json["images"]) == 1:
+            return model_image_json["images"][0]
+        else:
+            raise Exception("Error in retrieving model image. Possibly invalid input data.")
         return model_image_json["images"][0]
 
     def list_model_images(self, model_id="", alias=""):
