@@ -59,6 +59,76 @@ For any queries, you can contact:
 * Andrew Davison: ``andrew.davison@unic.cnrs-gif.fr``
 * Shailesh Appukuttan: ``shailesh.appukuttan@unic.cnrs-gif.fr``
 
+General Info
+============
+
+* From the above descriptions, it can be identified that *running a particular
+  test for a model* under the validation framework is more accurately described as
+  the *running of a specific test instance for a specific model instance*.
+
+
+* When running a test, the test metadata and test instance info is typically
+  retrieved from the validation framework. This involves authenticating your HBP
+  login credentials.
+
+* The model being tested can be registered on the *Model Catalog* beforehand,
+  or ask to be registered automatically after the test is complete, and just
+  before registering the result on the validation framework.
+
+* Registration of the model and its results would also require authenticating
+  your HBP login credentials.
+
+* It should be noted that an HBP account can be created even by non-HBP users.
+  For more information, please visit: https://services.humanbrainproject.eu/oidc/account/request
+
+* Collabs on the HBP Collaboratory can be either public or private. Public
+  collabs can be accessed by all registered users, whereas private collabs
+  require the user to be granted permission for access.
+
+* The *Model Catalog* and the *Validation Framework* apps can be added to any
+  collab. A collab may have multiple instances of these apps. The apps require
+  to be *configured* by setting the provided filters appropriately before they
+  can be used. These filters restrict the type of data displayed in that particular
+  instance of the app.
+
+* All tests are public, i.e. every test registered on the validation framework
+  can can be seen by all users.
+
+* Models are created inside specific collab instances of the Model Catalog app.
+  The particular app inside which a model was created is termed its *host app*.
+  Similarly, the collab containing the *host app* can be termed the *host collab*.
+
+* Models can be set as public/private. If public, the model and its associated
+  results are available to all users. If private, it can only be seen by users who
+  have access to the *host collab*. If the collab itself is public, then the models
+  under it would be treated as public irrespective of their public/private status.
+
+* No information can be deleted from the ModelCatalog and Validation Framework.
+  In future, an option to *hide* data would be implemented. This would offer users
+  functionality similar to deleting, but with the data being retained in the
+  database back-end.
+
+* Models, model instances, tests and test instances can be edited as long as
+  there are no results associated with them. Results can never be edited!
+
+Regarding HBP Authentication
+============================
+The Python Client for the Validation Framework attempts to simplify the HBP
+authentication process. It does this as follows:
+
+On first use, the users have the following options (in order of priority):
+
+#. Setting an environment variable named ``HBP_PASS`` with your HBP password.
+   On Linux, this can be done as:
+   ``export HBP_PASS='putyourpasswordhere'``
+
+#. Enter your HBP password when prompted by the Python Client.
+
+Once you do either of the two, the Python Client will save the retrieved token
+locally on your system. Henceforth, this token would be used for all subsequent
+requests that require authentication. This approach has been found to significantly
+speed-up the processing of the requests. If the authentication times out or is
+found invalid, then the user would again be give the above two options.
 
 TestLibrary
 ===========

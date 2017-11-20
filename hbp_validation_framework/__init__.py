@@ -3,7 +3,7 @@ A Python package for working with the Human Brain Project Model Validation Frame
 
 Andrew Davison and Shailesh Appukuttan, CNRS, 2017
 
-Licence: BSD 3-clause, see LICENSE.txt
+License: BSD 3-clause, see LICENSE.txt
 
 """
 
