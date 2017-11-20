@@ -274,7 +274,7 @@ class TestLibrary(BaseClient):
                 url = self.url + "/validationtestdef/?alias=" + alias + "&format=json"
             test_json = requests.get(url, auth=self.auth)
 
-        if str(test_json) != "<Response [200]>":
+        if test_json.status_code != 200:
             raise Exception("Error in retrieving test. Response = " + str(test_json.content))
         test_json = test_json.json()
         if len(test_json["tests"]) == 1:
@@ -671,7 +671,7 @@ class TestLibrary(BaseClient):
                 url = self.url + "/validationtestscode/?test_alias=" + alias + "&version=" + version + "&format=json"
             test_instance_json = requests.get(url, auth=self.auth)
 
-        if str(test_instance_json) != "<Response [200]>":
+        if test_instance_json.status_code != 200:
             raise Exception("Error in retrieving test instance. Response = " + str(test_instance_json.content))
         test_instance_json = test_instance_json.json()
         if len(test_json["test_codes"]) == 1:
@@ -720,7 +720,7 @@ class TestLibrary(BaseClient):
                 url = self.url + "/validationtestscode/?test_alias=" + alias + "&format=json"
             test_instances_json = requests.get(url, auth=self.auth)
 
-        if str(test_instances_json) != "<Response [200]>":
+        if test_instances_json.status_code != 200:
             raise Exception("Error in retrieving test instances. Response = " + str(test_instances_json))
         test_instances_json = test_instances_json.json()
         return test_instances_json["test_codes"]
@@ -929,7 +929,7 @@ class TestLibrary(BaseClient):
         else:
             url = self.url + "/validationmodelresultrest2/?id=" + result_id + "&order=" + order + "&format=json"
         result_json = requests.get(url, auth=self.auth)
-        if str(result_json) != "<Response [200]>":
+        if result_json.status_code != 200:
             raise Exception("Error in retrieving result. Response = " + str(result_json) + ".\nContent = " + result_json.content)
         result_json = result_json.json()
         # Unlike other "get_" methods, we do not return "[key][0]" as the key can vary
@@ -969,7 +969,7 @@ class TestLibrary(BaseClient):
             params = locals()["filters"]
             url = self.url + "/validationmodelresultrest2/?" + "order=" + order + "&" + urlencode(params) + "&format=json"
         result_json = requests.get(url, auth=self.auth)
-        if str(result_json) != "<Response [200]>":
+        if result_json.status_code != 200:
             raise Exception("Error in retrieving results. Response = " + str(result_json) + ".\nContent = " + result_json.content)
         result_json = result_json.json()
         return result_json
@@ -1151,7 +1151,7 @@ class ModelCatalog(BaseClient):
             url = self.url + "/scientificmodel/?alias=" + alias + "&format=json"
 
         model_json = requests.get(url, auth=self.auth)
-        if str(model_json) != "<Response [200]>":
+        if model_json.status_code != 200:
             raise Exception("Error in retrieving model. Response = " + str(model_json))
         model_json = model_json.json()
 
@@ -1492,7 +1492,7 @@ class ModelCatalog(BaseClient):
             else:
                 url = self.url + "/scientificmodelinstance/?model_alias=" + alias + "&version=" + version + "&format=json"
             model_instance_json = requests.get(url, auth=self.auth)
-        if str(model_instance_json) != "<Response [200]>":
+        if model_instance_json.status_code != 200:
             raise Exception("Error in retrieving model instance. Response = " + str(model_instance_json))
         model_instance_json = model_instance_json.json()
         if len(model_instance_json["instances"]) == 1:
@@ -1540,7 +1540,7 @@ class ModelCatalog(BaseClient):
             else:
                 url = self.url + "/scientificmodelinstance/?model_alias=" + alias + "&format=json"
             model_instances_json = requests.get(url, auth=self.auth)
-        if str(model_instances_json) != "<Response [200]>":
+        if model_instances_json.status_code != 200:
             raise Exception("Error in retrieving model instances. Response = " + str(model_instances_json))
         model_instances_json = model_instances_json.json()
         return model_instances_json["instances"]
@@ -1690,7 +1690,7 @@ class ModelCatalog(BaseClient):
         else:
             url = self.url + "/scientificmodelimage/?id=" + image_id + "&format=json"
         model_image_json = requests.get(url, auth=self.auth)
-        if str(model_image_json) != "<Response [200]>":
+        if model_image_json.status_code != 200:
             raise Exception("Error in retrieving model images (figures). Response = " + str(model_image_json))
         model_image_json = model_image_json.json()
         if len(model_image_json["images"]) == 1:
@@ -1730,7 +1730,7 @@ class ModelCatalog(BaseClient):
         else:
             url = self.url + "/scientificmodelimage/?model_alias=" + alias + "&format=json"
         model_images_json = requests.get(url, auth=self.auth)
-        if str(model_images_json) != "<Response [200]>":
+        if model_images_json.status_code != 200:
             raise Exception("Error in retrieving model images (figures). Response = " + str(model_images_json.content))
         model_images_json = model_images_json.json()
         return model_images_json["images"]
