@@ -66,7 +66,7 @@ def _make_js_file(data):
         json.dump(data, outfile)
         outfile.write("'")
 
-def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id=""):
+def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, model_metadata="", **test_kwargs):
     """Run validation test and register result
 
     This method will accept a model, located locally, run the specified
@@ -92,7 +92,18 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
     test_version : string
         User-assigned identifier (unique for each test) associated with test instance.
     storage_collab_id : string
-        Collab ID where ouput files should be stored; if empty, stored in model's host collab.
+        Collab ID where output files should be stored; if empty, stored in model's host collab.
+    register_result : boolean
+        Specify whether the test results are to be scored on the validation framework.
+        Default is set as True.
+    model_metadata : dict
+        Data for registering model in the model catalog. If the model already exists
+        in the model catalog, then the model_instance UUID must be specified in the model's source
+        code by setting `model.instance_id`. Otherwise, the model is registered using info from
+        `model_metadata`. If `id` and `model_metadata` are both absent, then the results
+        will not be saved on the validation framework (even if `register_result` = True).
+    **test_kwargs : list
+        Keyword arguments to be passed to the Test constructor.
 
     Note
     ----
@@ -131,7 +142,7 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
     if test_instance_id == "" and (test_id == "" or test_version == "") and (test_alias == "" or test_version == ""):
         raise Exception("test_instance_id or (test_id, test_version) or (test_alias, test_version) needs to be provided for finding test.")
     else:
-        test = test_library.get_validation_test(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version)
+        test = test_library.get_validation_test(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version, **test_kwargs)
 
     print "----------------------------------------------"
     print "Test name: ", test
@@ -148,25 +159,45 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
             print item
     print "----------------------------------------------"
 
-    # Register the result with the HBP Validation service
-    model_catalog = ModelCatalog(hbp_username)
-    model_instance_json = model_catalog.get_model_instance(instance_id=score.model.id)
-    model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
-    model_host_collab_id = model_json["app"]["collab_id"]
-    model_name = model_json["name"]
+    if register_result:
+        # Register the result with the HBP Validation service
+        model_catalog = ModelCatalog(hbp_username)
+        if not hasattr(score.model, 'id') and not model_metadata:
+            print "Model = ", model, " => Results NOT saved on validation framework: no model.instance_id or model_metadata provided!"
+        elif not hasattr(score.model, 'id'):
+            # If model instance_id not specified, register the model on the validation framework
+            model_id = model_catalog.register_model(app_id=model_metadata["app_id"],
+                                                    name=model_metadata["name"] if "name" in model_metadata else model.name,
+                                                    alias=model_metadata["alias"] if "alias" in model_metadata else None,
+                                                    author=model_metadata["author"],
+                                                    organization=model_metadata["organization"],
+                                                    private=model_metadata["private"],
+                                                    cell_type=model_metadata["cell_type"],
+                                                    model_type=model_metadata["model_type"],
+                                                    brain_region=model_metadata["brain_region"],
+                                                    species=model_metadata["species"],
+                                                    description=model_metadata["description"],
+                                                    instances=model_metadata["instances"])
+            model_instance_id = model_catalog.get_model_instance(model_id=model_id["uuid"], version=model_metadata["instances"][0]["version"])
+            score.model.instance_id = model_instance_id["id"]
 
-    if not storage_collab_id:
-        storage_collab_id = model_host_collab_id
-        score.related_data["project"] = storage_collab_id
-    #     print "=============================================="
-    #     print "Enter Collab ID for Data Storage (if applicable)"
-    #     print "(Leave empty for Model's host collab, i.e. ", model_host_collab_id, ")"
-    #     score.related_data["project"] = raw_input('Collab ID: ')
+        model_instance_json = model_catalog.get_model_instance(instance_id=score.model.instance_id)
+        model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
+        model_host_collab_id = model_json["app"]["collab_id"]
+        model_name = model_json["name"]
 
-    collab_folder = "{}_{}".format(model_name, datetime.now().strftime("%Y%m%d-%H%M%S"))
-    collab_storage = CollabDataStore(collab_id=storage_collab_id,
-                                     base_folder=collab_folder,
-                                     auth=test_library.auth)
+        if not storage_collab_id:
+            storage_collab_id = model_host_collab_id
+            score.related_data["project"] = storage_collab_id
+        #     print "=============================================="
+        #     print "Enter Collab ID for Data Storage (if applicable)"
+        #     print "(Leave empty for Model's host collab, i.e. ", model_host_collab_id, ")"
+        #     score.related_data["project"] = raw_input('Collab ID: ')
 
-    test_library.register_result(test_result=score, data_store=collab_storage)
-    # test_library.register_result(test_result=score)
+        collab_folder = "{}_{}".format(model_name, datetime.now().strftime("%Y%m%d-%H%M%S"))
+        collab_storage = CollabDataStore(collab_id=storage_collab_id,
+                                         base_folder=collab_folder,
+                                         auth=test_library.auth)
+
+        test_library.register_result(test_result=score, data_store=collab_storage)
+        # test_library.register_result(test_result=score)

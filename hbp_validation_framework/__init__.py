@@ -3,7 +3,7 @@ A Python package for working with the Human Brain Project Model Validation Frame
 
 Andrew Davison and Shailesh Appukuttan, CNRS, 2017
 
-Licence: BSD 3-clause, see LICENSE.txt
+License: BSD 3-clause, see LICENSE.txt
 
 """
 
@@ -27,12 +27,17 @@ import requests
 from requests.auth import AuthBase
 from .datastores import URI_SCHEME_MAP
 
+# Set True if using for developement work; else False
+DEVELOPER = False
 
-# VALIDATION_FRAMEWORK_URL = "https://validation.brainsimulation.eu"
-# VALIDATION_FRAMEWORK_URL = "https://validation-dev.brainsimulation.eu"
-VALIDATION_FRAMEWORK_URL = "https://validation-v1.brainsimulation.eu"
-# VALIDATION_FRAMEWORK_URL = "http://127.0.0.1:8001"
+if DEVELOPER:
+    VALIDATION_FRAMEWORK_URL = "https://validation-dev.brainsimulation.eu"
+    CLIENT_ID = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
+else:
+    VALIDATION_FRAMEWORK_URL = "https://validation-v1.brainsimulation.eu"
+    CLIENT_ID = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
 
+TOKENFILE = os.path.expanduser("~/.hbptoken")
 
 class HBPAuth(AuthBase):
     """Attaches OIDC Bearer Authentication to the given Request object."""
@@ -49,8 +54,9 @@ class HBPAuth(AuthBase):
 
 class BaseClient(object):
     """
-
+    Base class that handles HBP authentication
     """
+    # Note: Could possibly simplify the code later
 
     def __init__(self, username,
                  password=None,
@@ -59,17 +65,51 @@ class BaseClient(object):
         self.url = url
         self.verify = True
         if password is None:
-            # see if password available as an environment variable
-            password = os.environ.get('HBP_PASS')
-            if password is None:
-                # prompt for password
-                password = getpass.getpass()
-
-        self._hbp_auth(username, password)
+            # check for a stored token
+            self.token = None
+            if os.path.exists(TOKENFILE):
+                with open(TOKENFILE) as fp:
+                    # self.token = json.load(fp).get(username, None)["access_token"]
+                    data = json.load(fp).get(username, None)
+                    if data and "access_token" in data:
+                        self.token = data["access_token"]
+                    else:
+                        print "HBP authentication token file not having required JSON data."
+            else:
+                print "HBP authentication token file not found locally."
+            if self.token is None:
+                password = os.environ.get('HBP_PASS')
+                if password is not None:
+                    try:
+                        self._hbp_auth(username, password)
+                    except Exception:
+                        print "Authentication Failure. Possibly incorrect HBP password saved in environment variable 'HBP_PASS'."
+                if not hasattr(self, 'config'):
+                    try:
+                        # prompt for password
+                        print "Please enter your HBP password: "
+                        password = getpass.getpass()
+                        self._hbp_auth(username, password)
+                    except Exception:
+                        print "Authentication Failure! Password entered is possibly incorrect."
+                        raise
+                with open(TOKENFILE, "w") as fp:
+                    json.dump({username: self.config["auth"]["token"]}, fp)
+                os.chmod(TOKENFILE, 0o600)
+        else:
+            try:
+                self._hbp_auth(username, password)
+            except Exception:
+                print "Authentication Failure! Password entered is possibly incorrect."
+                raise
+            with open(TOKENFILE, "w") as fp:
+                json.dump({username: self.config["auth"]["token"]}, fp)
+            os.chmod(TOKENFILE, 0o600)
         self.auth = HBPAuth(self.token)
 
     def _hbp_auth(self, username, password):
         """
+        HBP authentication
         """
         redirect_uri = self.url + '/complete/hbp/'
 
@@ -85,10 +125,7 @@ class BaseClient(object):
             else:
                 res = rNMPI1.content
                 state = res[res.find("state")+6:res.find("&redirect_uri")]
-		# clientID = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c" # Prototype ID
-		# clientID = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
-		clientID = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
-                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, clientID)
+                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, CLIENT_ID)
             # get the exchange cookie
             cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
             self.session.headers.update({'cookie': cookie})
@@ -240,7 +277,10 @@ class TestLibrary(BaseClient):
         if str(test_json) != "<Response [200]>":
             raise Exception("Error in retrieving test. Response = " + str(test_json.content))
         test_json = test_json.json()
-        return test_json["tests"][0]
+        if len(test_json["tests"]) == 1:
+            return test_json["tests"][0]
+        else:
+            raise Exception("Error in retrieving test definition. Possibly invalid input data.")
 
     def get_validation_test(self, test_path="", instance_path="", instance_id ="", test_id = "", alias="", version="", **params):
         """Retrieve a specific test instance as a Python class (sciunit.Test instance).
@@ -268,7 +308,7 @@ class TestLibrary(BaseClient):
         version : string
             User-assigned identifier (unique for each test) associated with test instance.
         **params :
-            additional keyword arguments to be passed to the Test constructor.
+            Additional keyword arguments to be passed to the Test constructor.
 
         Note
         ----
@@ -334,7 +374,7 @@ class TestLibrary(BaseClient):
                         observations[key] = quantities.Quantity(number, units)
 
         # Create the :class:`sciunit.Test` instance
-        test_instance = test_cls(observations, **params)
+        test_instance = test_cls(observation=observations, **params)
         test_instance.id = test_instance_json["id"]  # this is just the path part. Should be a full url
         return test_instance
 
@@ -634,7 +674,10 @@ class TestLibrary(BaseClient):
         if str(test_instance_json) != "<Response [200]>":
             raise Exception("Error in retrieving test instance. Response = " + str(test_instance_json.content))
         test_instance_json = test_instance_json.json()
-        return test_instance_json["tests"][0]
+        if len(test_json["test_codes"]) == 1:
+            return test_instance_json["test_codes"][0]
+        else:
+            raise Exception("Error in retrieving test instance. Possibly invalid input data.")
 
     def list_test_instances(self, instance_path="", test_id="", alias=""):
         """Retrieve list of test instances belonging to a specified test.
@@ -680,7 +723,7 @@ class TestLibrary(BaseClient):
         if str(test_instances_json) != "<Response [200]>":
             raise Exception("Error in retrieving test instances. Response = " + str(test_instances_json))
         test_instances_json = test_instances_json.json()
-        return test_instances_json["tests"]
+        return test_instances_json["test_codes"]
 
     def add_test_instance(self, test_id="", alias="", repository="", path="", version=""):
         """Register a new test instance.
@@ -719,7 +762,8 @@ class TestLibrary(BaseClient):
                                         version="3.0")
         """
 
-        test_definition_id = test_id    # as needed by API
+        if test_id:
+            test_definition_id = test_id    # as needed by API
         instance_data = locals()
         for key in ["self", "test_id"]:
             instance_data.pop(key)
@@ -750,6 +794,10 @@ class TestLibrary(BaseClient):
         2. specify `test_id` and `version`
         3. specify `alias` (of the test) and `version`
 
+        You cannot edit the test `version` in the latter two cases. To do so,
+        you must employ the first option above. You can retrieve the `instance_id`
+        via :meth:`get_test_instance`
+
         Parameters
         ----------
         instance_id : UUID
@@ -777,21 +825,20 @@ class TestLibrary(BaseClient):
                                         path="morphounit.tests.CellDensityTest",
                                         version="4.0")
         """
-
-        test_definition_id = test_id    # as needed by API
+        if instance_id:
+            id = instance_id    # as needed by API
+        if test_id:
+            test_definition_id = test_id    # as needed by API
+        if alias:
+            test_alias = alias  # as needed by API
         instance_data = locals()
-        for key in ["self", "test_id"]:
+        for key in ["self", "test_id", "alias"]:
             instance_data.pop(key)
 
         if instance_id == "" and (test_id == "" or version == "") and (alias == "" or version == ""):
             raise Exception("instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance.")
-        elif instance_id:
-            url = self.url + "/validationtestscode/?id=" + instance_id + "&format=json"
-            #url = self.url + "/validationtestscode/?format=json"
-        elif test_id and version:
-            url = self.url + "/validationtestscode/?test_definition_id=" + test_id + "&version=" + version + "&format=json"
         else:
-            url = self.url + "/validationtestscode/?test_alias=" + alias + "&version=" + version + "&format=json"
+            url = self.url + "/validationtestscode/?format=json"
 
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
@@ -885,6 +932,8 @@ class TestLibrary(BaseClient):
         if str(result_json) != "<Response [200]>":
             raise Exception("Error in retrieving result. Response = " + str(result_json) + ".\nContent = " + result_json.content)
         result_json = result_json.json()
+        # Unlike other "get_" methods, we do not return "[key][0]" as the key can vary
+        # based on the parameter "order". Retaining this key is potentially useful.
         return result_json
 
     def list_results(self, order="", **filters):
@@ -1060,7 +1109,7 @@ class ModelCatalog(BaseClient):
     --------
     Instantiate an instance of the ModelCatalog class
 
-    >>> test_library = ModelCatalog(hbp_username)
+    >>> model_catalog = ModelCatalog(hbp_username)
     """
 
     def get_model(self, model_id="", alias="", instances=True, images=True):
@@ -1101,17 +1150,19 @@ class ModelCatalog(BaseClient):
         else:
             url = self.url + "/scientificmodel/?alias=" + alias + "&format=json"
 
-        model = requests.get(url, auth=self.auth)
-        if str(model) != "<Response [200]>":
-            raise Exception("Error in retrieving model. Response = " + str(model))
-        model = model.json()
-        if len(model["models"]) == 0:
-            raise Exception("Error in retrieving model. Possibly invalid model_id or alias. Response = " + str(model))
-        if instances == False:
-            model["models"][0].pop("instances")
-        if images == False:
-            model["models"][0].pop("images")
-        return model["models"][0]
+        model_json = requests.get(url, auth=self.auth)
+        if str(model_json) != "<Response [200]>":
+            raise Exception("Error in retrieving model. Response = " + str(model_json))
+        model_json = model_json.json()
+
+        if len(model_json["models"]) == 1:
+            if instances == False:
+                model_json["models"][0].pop("instances")
+            if images == False:
+                model_json["models"][0].pop("images")
+            return model_json["models"][0]
+        else:
+            raise Exception("Error in retrieving model description. Possibly invalid input data.")
 
     def list_models(self, **filters):
         """Retrieve list of model descriptions satisfying specified filters.
@@ -1444,9 +1495,10 @@ class ModelCatalog(BaseClient):
         if str(model_instance_json) != "<Response [200]>":
             raise Exception("Error in retrieving model instance. Response = " + str(model_instance_json))
         model_instance_json = model_instance_json.json()
-        if len(model_instance_json["instances"]) == 0:
-            raise Exception("There is no model instance with these specifications.")
-        return model_instance_json["instances"][0]
+        if len(model_instance_json["instances"]) == 1:
+            return model_instance_json["instances"][0]
+        else:
+            raise Exception("Error in retrieving model instance. Possibly invalid input data.")
 
     def list_model_instances(self, instance_path="", model_id="", alias=""):
         """Retrieve list of model instances belonging to a specified model.
@@ -1559,6 +1611,10 @@ class ModelCatalog(BaseClient):
         2. specify `model_id` and `version`
         3. specify `alias` (of the model) and `version`
 
+        You cannot edit the model `version` in the latter two cases. To do so,
+        you must employ the first option above. You can retrieve the `instance_id`
+        via :meth:`get_model_instance`
+
         Parameters
         ----------
         instance_id : UUID
@@ -1588,20 +1644,18 @@ class ModelCatalog(BaseClient):
                                                 parameters="")
         """
 
-        id = instance_id
+        if instance_id:
+            id = instance_id    # as needed by API
+        if alias:
+            model_alias = alias # as needed by API
         instance_data = locals()
-        for key in ["self", "instance_id"]:
+        for key in ["self", "instance_id", "alias"]:
             instance_data.pop(key)
 
         if instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
             raise Exception("instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.")
-        elif instance_id:
-            url = self.url + "/scientificmodelinstance/?id=" + instance_id + "&format=json"
-            #url = self.url + "/scientificmodelinstance/?format=json"
-        elif model_id and version:
-            url = self.url + "/scientificmodelinstance/?model_id=" + model_id + "&version=" + version + "&format=json"
         else:
-            url = self.url + "/scientificmodelinstance/?test_alias=" + alias + "&version=" + version + "&format=json"
+            url = self.url + "/scientificmodelinstance/?format=json"
 
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
@@ -1639,6 +1693,10 @@ class ModelCatalog(BaseClient):
         if str(model_image_json) != "<Response [200]>":
             raise Exception("Error in retrieving model images (figures). Response = " + str(model_image_json))
         model_image_json = model_image_json.json()
+        if len(model_image_json["images"]) == 1:
+            return model_image_json["images"][0]
+        else:
+            raise Exception("Error in retrieving model image. Possibly invalid input data.")
         return model_image_json["images"][0]
 
     def list_model_images(self, model_id="", alias=""):
