@@ -77,6 +77,11 @@ class BaseClient(object):
                         print "HBP authentication token file not having required JSON data."
             else:
                 print "HBP authentication token file not found locally."
+
+            if not self._check_token_valid():
+                print "HBP authentication token is invalid or has expired. Will need to re-authenticate."
+                self.token = None
+
             if self.token is None:
                 password = os.environ.get('HBP_PASS')
                 if password is not None:
@@ -106,6 +111,18 @@ class BaseClient(object):
                 json.dump({username: self.config["auth"]["token"]}, fp)
             os.chmod(TOKENFILE, 0o600)
         self.auth = HBPAuth(self.token)
+
+    def _check_token_valid(self):
+        """
+        Checks with the hbp-collab-service if the locally saved HBP token is valid.
+        See if this can be tweaked to improve performance.
+        """
+        url = "https://services.humanbrainproject.eu/collab/v0/collab/"
+        data = requests.get(url, auth=HBPAuth(self.token))
+        if data.status_code == 200:
+            return True
+        else:
+            return False
 
     def _hbp_auth(self, username, password):
         """
