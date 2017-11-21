@@ -212,13 +212,16 @@ class BaseClient(object):
         if data.status_code == 200:
             return data.json()["uuid"]
         else:
-            raise Exception("The provided 'path' is invalid!")
+            raise Exception("The provided 'path' is invalid! Error: " + str(data))
 
     def _download_resource(self, uuid):
         """
         Downloads the resource specified by the UUID on the HBP Collaboratory.
-        Target can be a file or a folder.
+        Target can be a file or a folder. Returns a list containing absolute
+        filepaths of all downloaded files.
         """
+        files_downloaded = []
+
         base_url = "https://services.humanbrainproject.eu/storage/v1/api/entity/"
         url = base_url + "?uuid=" + uuid
         data = requests.get(url, auth=self.auth)
@@ -235,7 +238,7 @@ class BaseClient(object):
                 folder_data = requests.get(url, auth=self.auth)
                 folder_sublist = folder_data.json()["results"]
                 for entity in folder_sublist:
-                    self._download_resource(entity["uuid"])
+                    files_downloaded.extend(self._download_resource(entity["uuid"]))
                 os.chdir('..')
             elif data["entity_type"] == "file":
                 base_url = "https://services.humanbrainproject.eu/storage/v1/api/file/"
@@ -243,9 +246,10 @@ class BaseClient(object):
                 file_data = requests.get(url, auth=self.auth)
                 with open(data["name"], "w") as filename:
                     filename.write("%s" % file_data.content)
+                    files_downloaded.append(os.path.realpath(filename.name))
             else:
                 raise Exception("Downloading of resources currently supported only for files and folders!")
-
+        return files_downloaded
 
 class TestLibrary(BaseClient):
     """Client for the HBP Validation Test library.
@@ -740,7 +744,7 @@ class TestLibrary(BaseClient):
         if test_instance_json.status_code != 200:
             raise Exception("Error in retrieving test instance. Response = " + str(test_instance_json.content))
         test_instance_json = test_instance_json.json()
-        if len(test_json["test_codes"]) == 1:
+        if len(test_instance_json["test_codes"]) == 1:
             return test_instance_json["test_codes"][0]
         else:
             raise Exception("Error in retrieving test instance. Possibly invalid input data.")
