@@ -279,9 +279,10 @@ class TestLibrary(BaseClient):
     password : string, optional
         Your HBP Collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
-    url : string, optional
-        The base URL to access the HBP Validation Web Services. Can be left
-        empty, as default values are appropriate for most use-cases.
+    developer : boolean, optional
+        Used to indicate whether being used for development/testing purposes.
+        Set to `False` as default, which is appropriate for most users. When set
+        to `True`, the Python Client accesses a different database.
 
     Examples
     --------
@@ -1169,9 +1170,10 @@ class ModelCatalog(BaseClient):
     password : string, optional
         Your HBP Collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
-    url : string, optional
-        The base URL to access the HBP Validation Web Services. Can be left
-        empty, as default values are appropriate for most use-cases.
+    developer : boolean, optional
+        Used to indicate whether being used for development/testing purposes.
+        Set to `False` as default, which is appropriate for most users. When set
+        to `True`, the Python Client accesses a different database.
 
     Examples
     --------

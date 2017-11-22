@@ -9,6 +9,7 @@ Action                                 Method
 ====================================   ====================================
 View JSON data in web browser          :meth:`view_json_tree`
 Run test and register result           :meth:`run_test`
+Download PDF report of test results    :meth:`generate_report`
 ====================================   ====================================
 """
 
@@ -203,22 +204,56 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
         test_library.register_result(test_result=score, data_store=collab_storage)
         # test_library.register_result(test_result=score)
 
-def generate_report(hbp_username="", result_list=[], remove_temp=False):
-    """
-    Create
+def generate_report(hbp_username="", result_list=[], only_combined=True):
+    """Generates and downloads a PDF report of test results
+
+    This method will generate and download a PDF report of the specified
+    test results. The report will consist of all information relevant to
+    that particular result, such as:
+
+    * result info
+    * model info
+    * model instance info
+    * test info
+    * test instance info
+    * output files associated with result
+
+    Parameters
+    ----------
+    hbp_username : string
+        Your HBP collaboratory username.
+    result_list : list
+        List of result UUIDs that need to be included in report.
+    only_combined : boolean, optional
+        Indicates whether only a single combined PDF should be saved. Set to
+        `True` as default. When set to `False`, then `n+2` PDFs will be saved,
+        where `n` is the number of valid result UUIDs. These would include:
+
+        * Combined PDF report
+        * Summary of call to `generate_report()`
+        * One PDF for each valid result UUID
+
+    Returns
+    -------
+    list
+        List of valid UUIDs for which the PDF report was generated.
+
+    Examples
+    --------
+    >>> result_list = ["a618a6b1-e92e-4ac6-955a-7b8c6859285a", "793e5852-761b-4801-84cb-53af6f6c1acf"]
+    >>> utils.generate_report(hbp_username="shailesh", result_list=result_list)
     """
     # This method can be significantly improved in future.
 
     model_catalog = ModelCatalog(hbp_username)
     test_library = TestLibrary(hbp_username)
     result_data = {}
-    failed_uuids = []
+    valid_uuids = []
 
     for result_id in result_list:
         result = test_library.get_result(result_id=result_id)
-        if len(result["results"]) == 0:
-            failed_uuids.append(result_id)
-        else:
+        if len(result["results"]) != 0:
+            valid_uuids.append(result_id)
             result_data[result_id] = result["results"][0]
 
     def _print_param_value(pdf, param, value, fontsize):
@@ -244,19 +279,19 @@ def generate_report(hbp_username="", result_list=[], remove_temp=False):
     pdf.ln(10)
     pdf.set_font('Arial', '', 14)
 
-    for result_id in result_list:
-        if result_id not in failed_uuids:
+    for result_id in valid_uuids:
             pdf.cell(40)
             pdf.cell(0, 10, result_id)
             pdf.ln(10)
 
-    if len(failed_uuids) > 0:
+    if len(valid_uuids) < len(result_list):
         pdf.ln(10)
         pdf.set_font('Arial', 'B', 14)
         pdf.cell(40, 10, "Following UUIDs were invalid: ")
         pdf.ln(10)
         pdf.set_font('Arial', '', 14)
-        for result_id in failed_uuids:
+        for result_id in result_list:
+            if result_id not in valid_uuids:
             pdf.cell(40)
             pdf.cell(0, 10, result_id)
             pdf.ln(10)
@@ -280,8 +315,7 @@ def generate_report(hbp_username="", result_list=[], remove_temp=False):
     result_ctr = 0
 
     # Result Pages
-    for result_id in result_list:
-        if result_id not in failed_uuids:
+    for result_id in valid_uuids:
             pdf = PDF()
             # pdf.alias_nb_pages()
             pdf.add_page()
@@ -366,13 +400,14 @@ def generate_report(hbp_username="", result_list=[], remove_temp=False):
 
     merger = PdfFileMerger()
     merger.append(str("./report/"+filename[:-4]+"_cover.pdf"))
-    if remove_temp:
+    if only_combined:
         os.remove(str("./report/"+filename[:-4]+"_cover.pdf"))
     for i in range(result_ctr):
         merger.append(str("./report/"+filename[:-4]+"_"+str(i)+".pdf"))
-        if remove_temp:
+        if only_combined:
             os.remove(str("./report/"+filename[:-4]+"_"+str(i)+".pdf"))
     merger.write(str("./report/"+filename))
+    return valid_uuids
 
 
 class PDF(FPDF):
