@@ -68,7 +68,7 @@ def _make_js_file(data):
         json.dump(data, outfile)
         outfile.write("'")
 
-def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, model_metadata="", **test_kwargs):
+def run_test(hbp_username="", developer=False, model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, model_metadata="", **test_kwargs):
     """Run validation test and register result
 
     This method will accept a model, located locally, run the specified
@@ -83,6 +83,10 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
     ----------
     hbp_username : string
         Your HBP collaboratory username.
+    developer : boolean, optional
+        Used to indicate whether being used for development/testing purposes.
+        Set to `False` as default, which is appropriate for most users. When set
+        to `True`, the Python Client accesses a different database.
     model : sciunit.Model
         A :class:`sciunit.Model` instance.
     test_instance_id : UUID
@@ -139,7 +143,7 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
         hbp_username = raw_input('HBP Username: ')
 
     # Load the test
-    test_library = TestLibrary(hbp_username)
+    test_library = TestLibrary(hbp_username, developer=developer)
 
     if test_instance_id == "" and (test_id == "" or test_version == "") and (test_alias == "" or test_version == ""):
         raise Exception("test_instance_id or (test_id, test_version) or (test_alias, test_version) needs to be provided for finding test.")
@@ -163,7 +167,7 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
 
     if register_result:
         # Register the result with the HBP Validation service
-        model_catalog = ModelCatalog(hbp_username)
+        model_catalog = ModelCatalog(hbp_username, developer=developer)
         if not hasattr(score.model, 'id') and not model_metadata:
             print "Model = ", model, " => Results NOT saved on validation framework: no model.instance_id or model_metadata provided!"
         elif not hasattr(score.model, 'id'):
