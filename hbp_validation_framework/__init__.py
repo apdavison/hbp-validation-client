@@ -54,10 +54,10 @@ class BaseClient(object):
 
         if developer is True:
             url = "https://validation-dev.brainsimulation.eu"
-            CLIENT_ID = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
+            self.client_id = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
         else:
             url = "https://validation-v1.brainsimulation.eu"
-            CLIENT_ID = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
+            self.client_id = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
 
         self.username = username
         self.url = url
@@ -139,7 +139,7 @@ class BaseClient(object):
             else:
                 res = rNMPI1.content
                 state = res[res.find("state")+6:res.find("&redirect_uri")]
-                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, CLIENT_ID)
+                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, self.client_id)
             # get the exchange cookie
             cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
             self.session.headers.update({'cookie': cookie})
@@ -1063,7 +1063,7 @@ class TestLibrary(BaseClient):
         Returns
         -------
         UUID
-            UUID of the test results that has been created.
+            UUID of the test result that has been created.
 
         Examples
         --------

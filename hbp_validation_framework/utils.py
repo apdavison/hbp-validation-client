@@ -114,8 +114,8 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
 
     Returns
     -------
-    None
-        Does not return any data.
+    UUID
+        UUID of the test result that has been created.
 
     Examples
     --------
@@ -201,8 +201,9 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
                                          base_folder=collab_folder,
                                          auth=test_library.auth)
 
-        test_library.register_result(test_result=score, data_store=collab_storage)
-        # test_library.register_result(test_result=score)
+        response = test_library.register_result(test_result=score, data_store=collab_storage)
+        # response = test_library.register_result(test_result=score)
+        return response
 
 def generate_report(hbp_username="", result_list=[], only_combined=True):
     """Generates and downloads a PDF report of test results
