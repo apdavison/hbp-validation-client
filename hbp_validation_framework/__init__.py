@@ -27,16 +27,6 @@ import requests
 from requests.auth import AuthBase
 from .datastores import URI_SCHEME_MAP
 
-# Set True if using for developement work; else False
-DEVELOPER = False
-
-if DEVELOPER:
-    VALIDATION_FRAMEWORK_URL = "https://validation-dev.brainsimulation.eu"
-    CLIENT_ID = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
-else:
-    VALIDATION_FRAMEWORK_URL = "https://validation-v1.brainsimulation.eu"
-    CLIENT_ID = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
-
 TOKENFILE = os.path.expanduser("~/.hbptoken")
 
 class HBPAuth(AuthBase):
@@ -60,7 +50,15 @@ class BaseClient(object):
 
     def __init__(self, username,
                  password=None,
-                 url=VALIDATION_FRAMEWORK_URL):
+                 developer=False):
+
+        if developer is True:
+            url = "https://validation-dev.brainsimulation.eu"
+            CLIENT_ID = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
+        else:
+            url = "https://validation-v1.brainsimulation.eu"
+            CLIENT_ID = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
+
         self.username = username
         self.url = url
         self.verify = True
@@ -73,14 +71,13 @@ class BaseClient(object):
                     data = json.load(fp).get(username, None)
                     if data and "access_token" in data:
                         self.token = data["access_token"]
+                        if not self._check_token_valid():
+                            print "HBP authentication token is invalid or has expired. Will need to re-authenticate."
+                            self.token = None
                     else:
                         print "HBP authentication token file not having required JSON data."
             else:
                 print "HBP authentication token file not found locally."
-
-            if not self._check_token_valid():
-                print "HBP authentication token is invalid or has expired. Will need to re-authenticate."
-                self.token = None
 
             if self.token is None:
                 password = os.environ.get('HBP_PASS')
