@@ -205,7 +205,7 @@ def run_test(hbp_username="", model="", test_instance_id="", test_id="", test_al
         # response = test_library.register_result(test_result=score)
         return response
 
-def generate_report(hbp_username="", result_list=[], only_combined=True):
+def generate_report(hbp_username="", developer=False, result_list=[], only_combined=True):
     """Generates and downloads a PDF report of test results
 
     This method will generate and download a PDF report of the specified
@@ -223,6 +223,10 @@ def generate_report(hbp_username="", result_list=[], only_combined=True):
     ----------
     hbp_username : string
         Your HBP collaboratory username.
+    developer : boolean, optional
+        Used to indicate whether being used for development/testing purposes.
+        Set to `False` as default, which is appropriate for most users. When set
+        to `True`, the Python Client accesses a different database.
     result_list : list
         List of result UUIDs that need to be included in report.
     only_combined : boolean, optional
@@ -242,12 +246,12 @@ def generate_report(hbp_username="", result_list=[], only_combined=True):
     Examples
     --------
     >>> result_list = ["a618a6b1-e92e-4ac6-955a-7b8c6859285a", "793e5852-761b-4801-84cb-53af6f6c1acf"]
-    >>> utils.generate_report(hbp_username="shailesh", result_list=result_list)
+    >>> valid_uuids = utils.generate_report(hbp_username="shailesh", result_list=result_list)
     """
     # This method can be significantly improved in future.
 
-    model_catalog = ModelCatalog(hbp_username)
-    test_library = TestLibrary(hbp_username)
+    model_catalog = ModelCatalog(hbp_username, developer=developer)
+    test_library = TestLibrary(hbp_username, developer=developer)
     result_data = {}
     valid_uuids = []
 
