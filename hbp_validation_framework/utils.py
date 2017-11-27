@@ -301,9 +301,9 @@ def generate_report(hbp_username="", developer=False, result_list=[], only_combi
         pdf.set_font('Arial', '', 14)
         for result_id in result_list:
             if result_id not in valid_uuids:
-            pdf.cell(40)
-            pdf.cell(0, 10, result_id)
-            pdf.ln(10)
+                pdf.cell(40)
+                pdf.cell(0, 10, result_id)
+                pdf.ln(10)
 
     pdf.ln(50)
     pdf.set_font('Arial', 'B', 14)
@@ -416,6 +416,7 @@ def generate_report(hbp_username="", developer=False, result_list=[], only_combi
         if only_combined:
             os.remove(str("./report/"+filename[:-4]+"_"+str(i)+".pdf"))
     merger.write(str("./report/"+filename))
+    print "Report generated at: ", os.path.abspath("./report/"+filename)
     return valid_uuids
 
 
