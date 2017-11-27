@@ -68,7 +68,7 @@ def _make_js_file(data):
         json.dump(data, outfile)
         outfile.write("'")
 
-def run_test(hbp_username="", developer=False, model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, model_metadata="", **test_kwargs):
+def run_test(hbp_username="", environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, model_metadata="", **test_kwargs):
     """Run validation test and register result
 
     This method will accept a model, located locally, run the specified
@@ -83,10 +83,12 @@ def run_test(hbp_username="", developer=False, model="", test_instance_id="", te
     ----------
     hbp_username : string
         Your HBP collaboratory username.
-    developer : boolean, optional
+    environment : string, optional
         Used to indicate whether being used for development/testing purposes.
-        Set to `False` as default, which is appropriate for most users. When set
-        to `True`, the Python Client accesses a different database.
+        Set as `production` as default for using the production system,
+        which is appropriate for most users. When set to `dev`, it uses the
+        `development` system. For other values, an external config file would
+        be read (the latter is currently not implemented).
     model : sciunit.Model
         A :class:`sciunit.Model` instance.
     test_instance_id : UUID
@@ -143,7 +145,7 @@ def run_test(hbp_username="", developer=False, model="", test_instance_id="", te
         hbp_username = raw_input('HBP Username: ')
 
     # Load the test
-    test_library = TestLibrary(hbp_username, developer=developer)
+    test_library = TestLibrary(hbp_username, environment=environment)
 
     if test_instance_id == "" and (test_id == "" or test_version == "") and (test_alias == "" or test_version == ""):
         raise Exception("test_instance_id or (test_id, test_version) or (test_alias, test_version) needs to be provided for finding test.")
@@ -167,7 +169,7 @@ def run_test(hbp_username="", developer=False, model="", test_instance_id="", te
 
     if register_result:
         # Register the result with the HBP Validation service
-        model_catalog = ModelCatalog(hbp_username, developer=developer)
+        model_catalog = ModelCatalog(hbp_username, environment=environment)
         if not hasattr(score.model, 'id') and not model_metadata:
             print "Model = ", model, " => Results NOT saved on validation framework: no model.instance_id or model_metadata provided!"
         elif not hasattr(score.model, 'id'):
@@ -209,7 +211,7 @@ def run_test(hbp_username="", developer=False, model="", test_instance_id="", te
         # response = test_library.register_result(test_result=score)
         return response
 
-def generate_report(hbp_username="", developer=False, result_list=[], only_combined=True):
+def generate_report(hbp_username="", environment="production", result_list=[], only_combined=True):
     """Generates and downloads a PDF report of test results
 
     This method will generate and download a PDF report of the specified
@@ -227,10 +229,12 @@ def generate_report(hbp_username="", developer=False, result_list=[], only_combi
     ----------
     hbp_username : string
         Your HBP collaboratory username.
-    developer : boolean, optional
+    environment : string, optional
         Used to indicate whether being used for development/testing purposes.
-        Set to `False` as default, which is appropriate for most users. When set
-        to `True`, the Python Client accesses a different database.
+        Set as `production` as default for using the production system,
+        which is appropriate for most users. When set to `dev`, it uses the
+        `development` system. For other values, an external config file would
+        be read (the latter is currently not implemented).
     result_list : list
         List of result UUIDs that need to be included in report.
     only_combined : boolean, optional
@@ -254,8 +258,8 @@ def generate_report(hbp_username="", developer=False, result_list=[], only_combi
     """
     # This method can be significantly improved in future.
 
-    model_catalog = ModelCatalog(hbp_username, developer=developer)
-    test_library = TestLibrary(hbp_username, developer=developer)
+    model_catalog = ModelCatalog(hbp_username, environment=environment)
+    test_library = TestLibrary(hbp_username, environment=environment)
     result_data = {}
     valid_uuids = []
 

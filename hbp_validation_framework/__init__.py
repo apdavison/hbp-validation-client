@@ -50,14 +50,17 @@ class BaseClient(object):
 
     def __init__(self, username,
                  password=None,
-                 developer=False):
+                 environment="production"):
 
-        if developer is True:
-            url = "https://validation-dev.brainsimulation.eu"
-            self.client_id = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
-        else:
+        if environment == "production":
             url = "https://validation-v1.brainsimulation.eu"
             self.client_id = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
+        elif environment == "dev":
+            url = "https://validation-dev.brainsimulation.eu"
+            self.client_id = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID            
+        else:
+            # TODO: Implement feature to read environment from an external config file
+            raise Exception("The argument 'environment' currently has to be set to 'production' or 'dev'.")
 
         self.username = username
         self.url = url
@@ -279,10 +282,12 @@ class TestLibrary(BaseClient):
     password : string, optional
         Your HBP Collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
-    developer : boolean, optional
+    environment : string, optional
         Used to indicate whether being used for development/testing purposes.
-        Set to `False` as default, which is appropriate for most users. When set
-        to `True`, the Python Client accesses a different database.
+        Set as `production` as default for using the production system,
+        which is appropriate for most users. When set to `dev`, it uses the
+        `development` system. For other values, an external config file would
+        be read (the latter is currently not implemented).
 
     Examples
     --------
@@ -1170,10 +1175,12 @@ class ModelCatalog(BaseClient):
     password : string, optional
         Your HBP Collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
-    developer : boolean, optional
+    environment : string, optional
         Used to indicate whether being used for development/testing purposes.
-        Set to `False` as default, which is appropriate for most users. When set
-        to `True`, the Python Client accesses a different database.
+        Set as `production` as default for using the production system,
+        which is appropriate for most users. When set to `dev`, it uses the
+        `development` system. For other values, an external config file would
+        be read (the latter is currently not implemented).
 
     Examples
     --------
