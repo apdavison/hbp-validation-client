@@ -170,9 +170,9 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     if register_result:
         # Register the result with the HBP Validation service
         model_catalog = ModelCatalog(hbp_username, environment=environment)
-        if not hasattr(score.model, 'id') and not model_metadata:
+        if not hasattr(score.model, 'instance_id') and not model_metadata:
             print "Model = ", model, " => Results NOT saved on validation framework: no model.instance_id or model_metadata provided!"
-        elif not hasattr(score.model, 'id'):
+        elif not hasattr(score.model, 'instance_id'):
             # If model instance_id not specified, register the model on the validation framework
             model_id = model_catalog.register_model(app_id=model_metadata["app_id"],
                                                     name=model_metadata["name"] if "name" in model_metadata else model.name,
