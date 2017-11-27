@@ -212,7 +212,7 @@ class BaseClient(object):
         if data.status_code == 200:
             return data.json()["uuid"]
         else:
-            raise Exception("The provided 'path' is invalid! Error: " + str(data))
+            raise Exception("Error: " + data.content)
 
     def _download_resource(self, uuid):
         """
@@ -1101,7 +1101,7 @@ class TestLibrary(BaseClient):
         # If not, offer to register it?
         url = self.url + "/validationmodelresultrest2/?format=json"
         result_json = {
-                        "model_version_id": test_result.model.id,
+                        "model_version_id": test_result.model.instance_id,
                         "test_code_id": test_result.test.id,
                         "results_storage": results_storage,
                         "score": test_result.score,
@@ -1116,7 +1116,7 @@ class TestLibrary(BaseClient):
         response = requests.post(url, data=json.dumps([result_json]),
                                  auth=self.auth, headers=headers)
         print("Result registered successfully!")
-        return response.content["uuid"]
+        return response.json()["uuid"][0]
 
     def _get_platform(self):
         """
