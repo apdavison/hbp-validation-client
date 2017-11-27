@@ -27,16 +27,6 @@ import requests
 from requests.auth import AuthBase
 from .datastores import URI_SCHEME_MAP
 
-# Set True if using for developement work; else False
-DEVELOPER = False
-
-if DEVELOPER:
-    VALIDATION_FRAMEWORK_URL = "https://validation-dev.brainsimulation.eu"
-    CLIENT_ID = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
-else:
-    VALIDATION_FRAMEWORK_URL = "https://validation-v1.brainsimulation.eu"
-    CLIENT_ID = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
-
 TOKENFILE = os.path.expanduser("~/.hbptoken")
 
 class HBPAuth(AuthBase):
@@ -60,7 +50,18 @@ class BaseClient(object):
 
     def __init__(self, username,
                  password=None,
-                 url=VALIDATION_FRAMEWORK_URL):
+                 environment="production"):
+
+        if environment == "production":
+            url = "https://validation-v1.brainsimulation.eu"
+            self.client_id = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
+        elif environment == "dev":
+            url = "https://validation-dev.brainsimulation.eu"
+            self.client_id = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID            
+        else:
+            # TODO: Implement feature to read environment from an external config file
+            raise Exception("The argument 'environment' currently has to be set to 'production' or 'dev'.")
+
         self.username = username
         self.url = url
         self.verify = True
@@ -73,10 +74,14 @@ class BaseClient(object):
                     data = json.load(fp).get(username, None)
                     if data and "access_token" in data:
                         self.token = data["access_token"]
+                        if not self._check_token_valid():
+                            print "HBP authentication token is invalid or has expired. Will need to re-authenticate."
+                            self.token = None
                     else:
                         print "HBP authentication token file not having required JSON data."
             else:
                 print "HBP authentication token file not found locally."
+
             if self.token is None:
                 password = os.environ.get('HBP_PASS')
                 if password is not None:
@@ -107,6 +112,18 @@ class BaseClient(object):
             os.chmod(TOKENFILE, 0o600)
         self.auth = HBPAuth(self.token)
 
+    def _check_token_valid(self):
+        """
+        Checks with the hbp-collab-service if the locally saved HBP token is valid.
+        See if this can be tweaked to improve performance.
+        """
+        url = "https://services.humanbrainproject.eu/collab/v0/collab/"
+        data = requests.get(url, auth=HBPAuth(self.token))
+        if data.status_code == 200:
+            return True
+        else:
+            return False
+
     def _hbp_auth(self, username, password):
         """
         HBP authentication
@@ -125,7 +142,7 @@ class BaseClient(object):
             else:
                 res = rNMPI1.content
                 state = res[res.find("state")+6:res.find("&redirect_uri")]
-                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, CLIENT_ID)
+                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, self.client_id)
             # get the exchange cookie
             cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
             self.session.headers.update({'cookie': cookie})
@@ -180,6 +197,59 @@ class BaseClient(object):
         else:
             raise Exception("Something went wrong. Status code {} from NMPI, expected 302".format(rNMPI1.status_code))
 
+    def _translate_URL_to_UUID(self, path):
+        """
+        Can take a path such as `collab:///5165/hippoCircuit_20171027-142713`
+        with 5165 being the collab ID and the latter part being the target folder
+        name, and translate this to the UUID on the HBP Collaboratory storage.
+        The target can be a file or folder.
+        """
+        base_url = "https://services.humanbrainproject.eu/storage/v1/api/entity/"
+        if path.startswith("collab://"):
+            path = path[len("collab://"):]
+        url = base_url + "?path=" + path
+        data = requests.get(url, auth=self.auth)
+        if data.status_code == 200:
+            return data.json()["uuid"]
+        else:
+            raise Exception("The provided 'path' is invalid! Error: " + str(data))
+
+    def _download_resource(self, uuid):
+        """
+        Downloads the resource specified by the UUID on the HBP Collaboratory.
+        Target can be a file or a folder. Returns a list containing absolute
+        filepaths of all downloaded files.
+        """
+        files_downloaded = []
+
+        base_url = "https://services.humanbrainproject.eu/storage/v1/api/entity/"
+        url = base_url + "?uuid=" + uuid
+        data = requests.get(url, auth=self.auth)
+        if data.status_code != 200:
+            raise Exception("The provided 'uuid' is invalid!")
+        else:
+            data = data.json()
+            if data["entity_type"] == "folder":
+                if not os.path.exists(data["name"]):
+                    os.makedirs(data["name"])
+                os.chdir(data["name"])
+                base_url = "https://services.humanbrainproject.eu/storage/v1/api/folder/"
+                url = base_url + uuid + "/children/"
+                folder_data = requests.get(url, auth=self.auth)
+                folder_sublist = folder_data.json()["results"]
+                for entity in folder_sublist:
+                    files_downloaded.extend(self._download_resource(entity["uuid"]))
+                os.chdir('..')
+            elif data["entity_type"] == "file":
+                base_url = "https://services.humanbrainproject.eu/storage/v1/api/file/"
+                url = base_url + uuid + "/content/"
+                file_data = requests.get(url, auth=self.auth)
+                with open(data["name"], "w") as filename:
+                    filename.write("%s" % file_data.content)
+                    files_downloaded.append(os.path.realpath(filename.name))
+            else:
+                raise Exception("Downloading of resources currently supported only for files and folders!")
+        return files_downloaded
 
 class TestLibrary(BaseClient):
     """Client for the HBP Validation Test library.
@@ -212,9 +282,12 @@ class TestLibrary(BaseClient):
     password : string, optional
         Your HBP Collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
-    url : string, optional
-        The base URL to access the HBP Validation Web Services. Can be left
-        empty, as default values are appropriate for most use-cases.
+    environment : string, optional
+        Used to indicate whether being used for development/testing purposes.
+        Set as `production` as default for using the production system,
+        which is appropriate for most users. When set to `dev`, it uses the
+        `development` system. For other values, an external config file would
+        be read (the latter is currently not implemented).
 
     Examples
     --------
@@ -274,7 +347,7 @@ class TestLibrary(BaseClient):
                 url = self.url + "/validationtestdef/?alias=" + alias + "&format=json"
             test_json = requests.get(url, auth=self.auth)
 
-        if str(test_json) != "<Response [200]>":
+        if test_json.status_code != 200:
             raise Exception("Error in retrieving test. Response = " + str(test_json.content))
         test_json = test_json.json()
         if len(test_json["tests"]) == 1:
@@ -671,10 +744,10 @@ class TestLibrary(BaseClient):
                 url = self.url + "/validationtestscode/?test_alias=" + alias + "&version=" + version + "&format=json"
             test_instance_json = requests.get(url, auth=self.auth)
 
-        if str(test_instance_json) != "<Response [200]>":
+        if test_instance_json.status_code != 200:
             raise Exception("Error in retrieving test instance. Response = " + str(test_instance_json.content))
         test_instance_json = test_instance_json.json()
-        if len(test_json["test_codes"]) == 1:
+        if len(test_instance_json["test_codes"]) == 1:
             return test_instance_json["test_codes"][0]
         else:
             raise Exception("Error in retrieving test instance. Possibly invalid input data.")
@@ -720,7 +793,7 @@ class TestLibrary(BaseClient):
                 url = self.url + "/validationtestscode/?test_alias=" + alias + "&format=json"
             test_instances_json = requests.get(url, auth=self.auth)
 
-        if str(test_instances_json) != "<Response [200]>":
+        if test_instances_json.status_code != 200:
             raise Exception("Error in retrieving test instances. Response = " + str(test_instances_json))
         test_instances_json = test_instances_json.json()
         return test_instances_json["test_codes"]
@@ -929,7 +1002,7 @@ class TestLibrary(BaseClient):
         else:
             url = self.url + "/validationmodelresultrest2/?id=" + result_id + "&order=" + order + "&format=json"
         result_json = requests.get(url, auth=self.auth)
-        if str(result_json) != "<Response [200]>":
+        if result_json.status_code != 200:
             raise Exception("Error in retrieving result. Response = " + str(result_json) + ".\nContent = " + result_json.content)
         result_json = result_json.json()
         # Unlike other "get_" methods, we do not return "[key][0]" as the key can vary
@@ -969,7 +1042,7 @@ class TestLibrary(BaseClient):
             params = locals()["filters"]
             url = self.url + "/validationmodelresultrest2/?" + "order=" + order + "&" + urlencode(params) + "&format=json"
         result_json = requests.get(url, auth=self.auth)
-        if str(result_json) != "<Response [200]>":
+        if result_json.status_code != 200:
             raise Exception("Error in retrieving results. Response = " + str(result_json) + ".\nContent = " + result_json.content)
         result_json = result_json.json()
         return result_json
@@ -995,12 +1068,12 @@ class TestLibrary(BaseClient):
         Returns
         -------
         UUID
-            (Verify!) UUID of the test results that has been created.
+            UUID of the test result that has been created.
 
         Examples
         --------
         >>> score = test.judge(model)
-        >>> test_library.register_result(test_result=score)
+        >>> response = test_library.register_result(test_result=score)
         """
 
         # print("TEST RESULT: {}".format(test_result))
@@ -1042,7 +1115,8 @@ class TestLibrary(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([result_json]),
                                  auth=self.auth, headers=headers)
-        print("Result Registered!, UUID = " + response.content)
+        print("Result registered successfully!")
+        return response.content["uuid"]
 
     def _get_platform(self):
         """
@@ -1101,9 +1175,12 @@ class ModelCatalog(BaseClient):
     password : string, optional
         Your HBP Collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
-    url : string, optional
-        The base URL to access the HBP Validation Web Services. Can be left
-        empty, as default values are appropriate for most use-cases.
+    environment : string, optional
+        Used to indicate whether being used for development/testing purposes.
+        Set as `production` as default for using the production system,
+        which is appropriate for most users. When set to `dev`, it uses the
+        `development` system. For other values, an external config file would
+        be read (the latter is currently not implemented).
 
     Examples
     --------
@@ -1151,7 +1228,7 @@ class ModelCatalog(BaseClient):
             url = self.url + "/scientificmodel/?alias=" + alias + "&format=json"
 
         model_json = requests.get(url, auth=self.auth)
-        if str(model_json) != "<Response [200]>":
+        if model_json.status_code != 200:
             raise Exception("Error in retrieving model. Response = " + str(model_json))
         model_json = model_json.json()
 
@@ -1492,7 +1569,7 @@ class ModelCatalog(BaseClient):
             else:
                 url = self.url + "/scientificmodelinstance/?model_alias=" + alias + "&version=" + version + "&format=json"
             model_instance_json = requests.get(url, auth=self.auth)
-        if str(model_instance_json) != "<Response [200]>":
+        if model_instance_json.status_code != 200:
             raise Exception("Error in retrieving model instance. Response = " + str(model_instance_json))
         model_instance_json = model_instance_json.json()
         if len(model_instance_json["instances"]) == 1:
@@ -1540,7 +1617,7 @@ class ModelCatalog(BaseClient):
             else:
                 url = self.url + "/scientificmodelinstance/?model_alias=" + alias + "&format=json"
             model_instances_json = requests.get(url, auth=self.auth)
-        if str(model_instances_json) != "<Response [200]>":
+        if model_instances_json.status_code != 200:
             raise Exception("Error in retrieving model instances. Response = " + str(model_instances_json))
         model_instances_json = model_instances_json.json()
         return model_instances_json["instances"]
@@ -1690,7 +1767,7 @@ class ModelCatalog(BaseClient):
         else:
             url = self.url + "/scientificmodelimage/?id=" + image_id + "&format=json"
         model_image_json = requests.get(url, auth=self.auth)
-        if str(model_image_json) != "<Response [200]>":
+        if model_image_json.status_code != 200:
             raise Exception("Error in retrieving model images (figures). Response = " + str(model_image_json))
         model_image_json = model_image_json.json()
         if len(model_image_json["images"]) == 1:
@@ -1730,7 +1807,7 @@ class ModelCatalog(BaseClient):
         else:
             url = self.url + "/scientificmodelimage/?model_alias=" + alias + "&format=json"
         model_images_json = requests.get(url, auth=self.auth)
-        if str(model_images_json) != "<Response [200]>":
+        if model_images_json.status_code != 200:
             raise Exception("Error in retrieving model images (figures). Response = " + str(model_images_json.content))
         model_images_json = model_images_json.json()
         return model_images_json["images"]
