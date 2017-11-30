@@ -53,17 +53,27 @@ class BaseClient(object):
                  environment="production"):
 
         if environment == "production":
-            url = "https://validation-v1.brainsimulation.eu"
+            self.url = "https://validation-v1.brainsimulation.eu"
             self.client_id = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
         elif environment == "dev":
-            url = "https://validation-dev.brainsimulation.eu"
-            self.client_id = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID            
+            self.url = "https://validation-dev.brainsimulation.eu"
+            self.client_id = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
         else:
-            # TODO: Implement feature to read environment from an external config file
-            raise Exception("The argument 'environment' currently has to be set to 'production' or 'dev'.")
+            if os.path.isfile('config.json') and os.access('config.json', os.R_OK):
+                with open('config.json') as config_file:
+                    config = json.load(config_file)
+                    if environment in config:
+                        if "url" in config[environment] and "client_id" in config[environment]:
+                            self.url = config[environment]["url"]
+                            self.client_id = config[environment]["client_id"]
+                        else:
+                            raise Exception("Cannot load environment info: config.json does not contain sufficient info for environment = {}".format(environment))
+                    else:
+                        raise Exception("Cannot load environment info: config.json does not contain environment = {}".format(environment))
+            else:
+                raise Exception("Cannot load environment info: config.json not found in the current directory.")
 
         self.username = username
-        self.url = url
         self.verify = True
         if password is None:
             # check for a stored token
@@ -286,8 +296,21 @@ class TestLibrary(BaseClient):
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
         which is appropriate for most users. When set to `dev`, it uses the
-        `development` system. For other values, an external config file would
-        be read (the latter is currently not implemented).
+        `development` system. Other environments, if required, should be defined
+        inside a json file named `config.json` in the working directory. Example:
+
+        .. code-block:: JSON
+
+            {
+                "prod": {
+                    "url": "https://validation-v1.brainsimulation.eu",
+                    "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
+                },
+                "dev_test": {
+                    "url": "https://validation-dev.brainsimulation.eu",
+                    "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b"
+                }
+            }
 
     Examples
     --------
@@ -1179,8 +1202,21 @@ class ModelCatalog(BaseClient):
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
         which is appropriate for most users. When set to `dev`, it uses the
-        `development` system. For other values, an external config file would
-        be read (the latter is currently not implemented).
+        `development` system. Other environments, if required, should be defined
+        inside a json file named `config.json` in the working directory. Example:
+
+        .. code-block:: JSON
+
+            {
+                "prod": {
+                    "url": "https://validation-v1.brainsimulation.eu",
+                    "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
+                },
+                "dev_test": {
+                    "url": "https://validation-dev.brainsimulation.eu",
+                    "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b"
+                }
+            }
 
     Examples
     --------
