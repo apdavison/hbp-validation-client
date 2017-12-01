@@ -67,11 +67,11 @@ class BaseClient(object):
                             self.url = config[environment]["url"]
                             self.client_id = config[environment]["client_id"]
                         else:
-                            raise Exception("Cannot load environment info: config.json does not contain sufficient info for environment = {}".format(environment))
+                            raise KeyError("Cannot load environment info: config.json does not contain sufficient info for environment = {}".format(environment))
                     else:
-                        raise Exception("Cannot load environment info: config.json does not contain environment = {}".format(environment))
+                        raise KeyError("Cannot load environment info: config.json does not contain environment = {}".format(environment))
             else:
-                raise Exception("Cannot load environment info: config.json not found in the current directory.")
+                raise IOError("Cannot load environment info: config.json not found in the current directory.")
 
         self.username = username
         self.verify = True
