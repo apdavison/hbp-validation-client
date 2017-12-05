@@ -365,9 +365,9 @@ class TestLibrary(BaseClient):
                 raise Exception("Error in local file path specified by test_path.")
         else:
             if test_id:
-                url = self.url + "/validationtestdef/?id=" + test_id + "&format=json"
+                url = self.url + "/tests/?id=" + test_id + "&format=json"
             else:
-                url = self.url + "/validationtestdef/?alias=" + alias + "&format=json"
+                url = self.url + "/tests/?alias=" + alias + "&format=json"
             test_json = requests.get(url, auth=self.auth)
 
         if test_json.status_code != 200:
@@ -513,7 +513,7 @@ class TestLibrary(BaseClient):
         """
 
         params = locals()["filters"]
-        url = self.url + "/validationtestdef/?"+urlencode(params)+"&format=json"
+        url = self.url + "/tests/?"+urlencode(params)+"&format=json"
         tests = requests.get(url, auth=self.auth).json()
         return tests["tests"]
 
@@ -602,7 +602,7 @@ class TestLibrary(BaseClient):
         for key in ["version", "repository", "path"]:
             code_data[key] = test_data.pop(key)
 
-        url = self.url + "/validationtestdef/?format=json"
+        url = self.url + "/tests/?format=json"
         test_json = {
                         "test_data": test_data,
                         "code_data": code_data
@@ -704,7 +704,7 @@ class TestLibrary(BaseClient):
         for key in ["self", "test_id"]:
             test_data.pop(key)
 
-        url = self.url + "/validationtestdef/?format=json"
+        url = self.url + "/tests/?format=json"
         test_json = test_data   # retaining similar structure as other methods
 
         headers = {'Content-type': 'application/json'}
@@ -760,11 +760,11 @@ class TestLibrary(BaseClient):
                 raise Exception("Error in local file path specified by instance_path.")
         else:
             if instance_id:
-                url = self.url + "/validationtestscode/?id=" + instance_id + "&format=json"
+                url = self.url + "/test-instances/?id=" + instance_id + "&format=json"
             elif test_id and version:
-                url = self.url + "/validationtestscode/?test_definition_id=" + test_id + "&version=" + version + "&format=json"
+                url = self.url + "/test-instances/?test_definition_id=" + test_id + "&version=" + version + "&format=json"
             else:
-                url = self.url + "/validationtestscode/?test_alias=" + alias + "&version=" + version + "&format=json"
+                url = self.url + "/test-instances/?test_alias=" + alias + "&version=" + version + "&format=json"
             test_instance_json = requests.get(url, auth=self.auth)
 
         if test_instance_json.status_code != 200:
@@ -811,9 +811,9 @@ class TestLibrary(BaseClient):
                 test_instances_json = json.load(fp)
         else:
             if test_id:
-                url = self.url + "/validationtestscode/?test_definition_id=" + test_id + "&format=json"
+                url = self.url + "/test-instances/?test_definition_id=" + test_id + "&format=json"
             else:
-                url = self.url + "/validationtestscode/?test_alias=" + alias + "&format=json"
+                url = self.url + "/test-instances/?test_alias=" + alias + "&format=json"
             test_instances_json = requests.get(url, auth=self.auth)
 
         if test_instances_json.status_code != 200:
@@ -868,10 +868,10 @@ class TestLibrary(BaseClient):
             raise Exception("test_id needs to be provided for finding the model.")
             #raise Exception("test_id or alias needs to be provided for finding the model.")
         elif test_definition_id != "":
-            url = self.url + "/validationtestscode/?format=json"
+            url = self.url + "/test-instances/?format=json"
         else:
             raise Exception("alias is not currently implemented for this feature.")
-            #url = self.url + "/validationtestscode/?alias=" + alias + "&format=json"
+            #url = self.url + "/test-instances/?alias=" + alias + "&format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([instance_data]),
                                  auth=self.auth, headers=headers)
@@ -934,7 +934,7 @@ class TestLibrary(BaseClient):
         if instance_id == "" and (test_id == "" or version == "") and (alias == "" or version == ""):
             raise Exception("instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance.")
         else:
-            url = self.url + "/validationtestscode/?format=json"
+            url = self.url + "/test-instances/?format=json"
 
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
@@ -1023,7 +1023,7 @@ class TestLibrary(BaseClient):
         elif order not in ["test", "model", ""]:
             raise Exception("order needs to be specified as 'test', 'model' or ''.")
         else:
-            url = self.url + "/validationmodelresultrest2/?id=" + result_id + "&order=" + order + "&format=json"
+            url = self.url + "/results/?id=" + result_id + "&order=" + order + "&format=json"
         result_json = requests.get(url, auth=self.auth)
         if result_json.status_code != 200:
             raise Exception("Error in retrieving result. Response = " + str(result_json) + ".\nContent = " + result_json.content)
@@ -1063,7 +1063,7 @@ class TestLibrary(BaseClient):
             raise Exception("order needs to be specified as 'test', 'model' or ''.")
         else:
             params = locals()["filters"]
-            url = self.url + "/validationmodelresultrest2/?" + "order=" + order + "&" + urlencode(params) + "&format=json"
+            url = self.url + "/results/?" + "order=" + order + "&" + urlencode(params) + "&format=json"
         result_json = requests.get(url, auth=self.auth)
         if result_json.status_code != 200:
             raise Exception("Error in retrieving results. Response = " + str(result_json) + ".\nContent = " + result_json.content)
@@ -1122,7 +1122,7 @@ class TestLibrary(BaseClient):
 
         # check that the model is registered with the model registry.
         # If not, offer to register it?
-        url = self.url + "/validationmodelresultrest2/?format=json"
+        url = self.url + "/results/?format=json"
         result_json = {
                         "model_version_id": test_result.model.instance_id,
                         "test_code_id": test_result.test.id,
@@ -1259,9 +1259,9 @@ class ModelCatalog(BaseClient):
         if model_id == "" and alias == "":
             raise Exception("Model ID or alias needs to be provided for finding a model.")
         elif model_id != "":
-            url = self.url + "/scientificmodel/?id=" + model_id + "&format=json"
+            url = self.url + "/models/?id=" + model_id + "&format=json"
         else:
-            url = self.url + "/scientificmodel/?alias=" + alias + "&format=json"
+            url = self.url + "/models/?alias=" + alias + "&format=json"
 
         model_json = requests.get(url, auth=self.auth)
         if model_json.status_code != 200:
@@ -1311,7 +1311,7 @@ class ModelCatalog(BaseClient):
         """
 
         params = locals()["filters"]
-        url = self.url + "/scientificmodel/?"+urlencode(params)+"&format=json"
+        url = self.url + "/models/?"+urlencode(params)+"&format=json"
         models = requests.get(url, auth=self.auth).json()
         return models["models"]
 
@@ -1408,7 +1408,7 @@ class ModelCatalog(BaseClient):
         for key in ["self", "app_id", "instances", "images"]:
             model_data.pop(key)
 
-        url = self.url + "/scientificmodel/?app_id="+app_id+"&format=json"
+        url = self.url + "/models/?app_id="+app_id+"&format=json"
         model_json = {
                         "model": model_data,
                         "model_instance":instances,
@@ -1504,7 +1504,7 @@ class ModelCatalog(BaseClient):
         for key in ["self", "app_id", "model_id"]:
             model_data.pop(key)
 
-        url = self.url + "/scientificmodel/?app_id="+app_id+"&format=json"
+        url = self.url + "/models/?app_id="+app_id+"&format=json"
         model_json = {
                         "models": [model_data]
                      }
@@ -1599,11 +1599,11 @@ class ModelCatalog(BaseClient):
                 model_instance_json = json.load(fp)
         else:
             if instance_id:
-                url = self.url + "/scientificmodelinstance/?id=" + instance_id + "&format=json"
+                url = self.url + "/model-instances/?id=" + instance_id + "&format=json"
             elif model_id and version:
-                url = self.url + "/scientificmodelinstance/?model_id=" + model_id + "&version=" + version + "&format=json"
+                url = self.url + "/model-instances/?model_id=" + model_id + "&version=" + version + "&format=json"
             else:
-                url = self.url + "/scientificmodelinstance/?model_alias=" + alias + "&version=" + version + "&format=json"
+                url = self.url + "/model-instances/?model_alias=" + alias + "&version=" + version + "&format=json"
             model_instance_json = requests.get(url, auth=self.auth)
         if model_instance_json.status_code != 200:
             raise Exception("Error in retrieving model instance. Response = " + str(model_instance_json))
@@ -1649,9 +1649,9 @@ class ModelCatalog(BaseClient):
                 model_instances_json = json.load(fp)
         else:
             if model_id:
-                url = self.url + "/scientificmodelinstance/?model_id=" + model_id + "&format=json"
+                url = self.url + "/model-instances/?model_id=" + model_id + "&format=json"
             else:
-                url = self.url + "/scientificmodelinstance/?model_alias=" + alias + "&format=json"
+                url = self.url + "/model-instances/?model_alias=" + alias + "&format=json"
             model_instances_json = requests.get(url, auth=self.auth)
         if model_instances_json.status_code != 200:
             raise Exception("Error in retrieving model instances. Response = " + str(model_instances_json))
@@ -1702,10 +1702,10 @@ class ModelCatalog(BaseClient):
             raise Exception("Model ID needs to be provided for finding the model.")
             #raise Exception("Model ID or alias needs to be provided for finding the model.")
         elif model_id != "":
-            url = self.url + "/scientificmodelinstance/?format=json"
+            url = self.url + "/model-instances/?format=json"
         else:
             raise Exception("alias is not currently implemented for this feature.")
-            #url = self.url + "/scientificmodelinstance/?alias=" + alias + "&format=json"
+            #url = self.url + "/model-instances/?alias=" + alias + "&format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([instance_data]),
                                  auth=self.auth, headers=headers)
@@ -1768,7 +1768,7 @@ class ModelCatalog(BaseClient):
         if instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
             raise Exception("instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.")
         else:
-            url = self.url + "/scientificmodelinstance/?format=json"
+            url = self.url + "/model-instances/?format=json"
 
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
@@ -1801,7 +1801,7 @@ class ModelCatalog(BaseClient):
         if not image_id:
             raise Exception("image_id needs to be provided for finding a specific model image (figure).")
         else:
-            url = self.url + "/scientificmodelimage/?id=" + image_id + "&format=json"
+            url = self.url + "/images/?id=" + image_id + "&format=json"
         model_image_json = requests.get(url, auth=self.auth)
         if model_image_json.status_code != 200:
             raise Exception("Error in retrieving model images (figures). Response = " + str(model_image_json))
@@ -1839,9 +1839,9 @@ class ModelCatalog(BaseClient):
         if model_id == "" and alias == "":
             raise Exception("model_id or alias needs to be provided for finding model images.")
         elif model_id:
-            url = self.url + "/scientificmodelimage/?model_id=" + model_id + "&format=json"
+            url = self.url + "/images/?model_id=" + model_id + "&format=json"
         else:
-            url = self.url + "/scientificmodelimage/?model_alias=" + alias + "&format=json"
+            url = self.url + "/images/?model_alias=" + alias + "&format=json"
         model_images_json = requests.get(url, auth=self.auth)
         if model_images_json.status_code != 200:
             raise Exception("Error in retrieving model images (figures). Response = " + str(model_images_json.content))
@@ -1891,10 +1891,10 @@ class ModelCatalog(BaseClient):
             raise Exception("Model ID needs to be provided for finding the model.")
             #raise Exception("Model ID or alias needs to be provided for finding the model.")
         elif model_id != "":
-            url = self.url + "/scientificmodelimage/?format=json"
+            url = self.url + "/images/?format=json"
         else:
             raise Exception("alias is not currently implemented for this feature.")
-            #url = self.url + "/scientificmodelimage/?alias=" + alias + "&format=json"
+            #url = self.url + "/images/?alias=" + alias + "&format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([image_data]),
                                  auth=self.auth, headers=headers)
@@ -1932,7 +1932,7 @@ class ModelCatalog(BaseClient):
         if image_id == "":
             raise Exception("Image ID needs to be provided for finding the image (figure).")
         else:
-            url = self.url + "/scientificmodelimage/?id=" + image_id + "&format=json"
+            url = self.url + "/images/?id=" + image_id + "&format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([image_data]), auth=self.auth, headers=headers)
         if response.status_code == 202:
