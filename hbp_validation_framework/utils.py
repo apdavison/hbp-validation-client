@@ -17,6 +17,10 @@ import os
 import json
 import webbrowser
 import argparse
+try:
+    raw_input
+except NameError:  # Python 3
+    raw_input = input
 import sciunit
 from datetime import datetime
 from . import TestLibrary, ModelCatalog
@@ -134,14 +138,14 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     # Check the model
     if not isinstance(model, sciunit.Model):
         raise TypeError("`model` is not a sciunit Model!")
-    print "----------------------------------------------"
-    print "Model name: ", model
-    print "Model type: ", type(model)
-    print "----------------------------------------------"
+    print("----------------------------------------------")
+    print("Model name: ", model)
+    print("Model type: ", type(model))
+    print("----------------------------------------------")
 
     if not hbp_username:
-        print "\n=============================================="
-        print "Please enter your HBP username."
+        print("\n==============================================")
+        print("Please enter your HBP username.")
         hbp_username = raw_input('HBP Username: ')
 
     # Load the test
@@ -152,26 +156,26 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     else:
         test = test_library.get_validation_test(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version, **test_kwargs)
 
-    print "----------------------------------------------"
-    print "Test name: ", test
-    print "Test type: ", type(test)
-    print "----------------------------------------------"
+    print("----------------------------------------------")
+    print("Test name: ", test)
+    print("Test type: ", type(test))
+    print("----------------------------------------------")
 
     # Run the test
     score = test.judge(model, deep_error=True)
-    print "----------------------------------------------"
-    print "Score: ", score
+    print("----------------------------------------------")
+    print("Score: ", score
     if "figures" in score.related_data:
-        print "Output files: "
+        print("Output files: ")
         for item in score.related_data["figures"]:
-            print item
-    print "----------------------------------------------"
+            print(item)
+    print("----------------------------------------------")
 
     if register_result:
         # Register the result with the HBP Validation service
         model_catalog = ModelCatalog(hbp_username, environment=environment)
         if not hasattr(score.model, 'instance_id') and not model_metadata:
-            print "Model = ", model, " => Results NOT saved on validation framework: no model.instance_id or model_metadata provided!"
+            print("Model = ", model, " => Results NOT saved on validation framework: no model.instance_id or model_metadata provided!")
         elif not hasattr(score.model, 'instance_id'):
             # If model instance_id not specified, register the model on the validation framework
             model_id = model_catalog.register_model(app_id=model_metadata["app_id"],
@@ -420,7 +424,7 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
         if only_combined:
             os.remove(str("./report/"+filename[:-4]+"_"+str(i)+".pdf"))
     merger.write(str("./report/"+filename))
-    print "Report generated at: ", os.path.abspath("./report/"+filename)
+    print("Report generated at: ", os.path.abspath("./report/"+filename))
     return valid_uuids
 
 
