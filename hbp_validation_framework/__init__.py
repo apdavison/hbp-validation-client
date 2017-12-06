@@ -85,12 +85,12 @@ class BaseClient(object):
                     if data and "access_token" in data:
                         self.token = data["access_token"]
                         if not self._check_token_valid():
-                            print "HBP authentication token is invalid or has expired. Will need to re-authenticate."
+                            print("HBP authentication token is invalid or has expired. Will need to re-authenticate.")
                             self.token = None
                     else:
-                        print "HBP authentication token file not having required JSON data."
+                        print("HBP authentication token file not having required JSON data.")
             else:
-                print "HBP authentication token file not found locally."
+                print("HBP authentication token file not found locally.")
 
             if self.token is None:
                 password = os.environ.get('HBP_PASS')
@@ -98,15 +98,15 @@ class BaseClient(object):
                     try:
                         self._hbp_auth(username, password)
                     except Exception:
-                        print "Authentication Failure. Possibly incorrect HBP password saved in environment variable 'HBP_PASS'."
+                        print("Authentication Failure. Possibly incorrect HBP password saved in environment variable 'HBP_PASS'.")
                 if not hasattr(self, 'config'):
                     try:
                         # prompt for password
-                        print "Please enter your HBP password: "
+                        print("Please enter your HBP password: ")
                         password = getpass.getpass()
                         self._hbp_auth(username, password)
                     except Exception:
-                        print "Authentication Failure! Password entered is possibly incorrect."
+                        print("Authentication Failure! Password entered is possibly incorrect.")
                         raise
                 with open(TOKENFILE, "w") as fp:
                     json.dump({username: self.config["auth"]["token"]}, fp)
@@ -115,7 +115,7 @@ class BaseClient(object):
             try:
                 self._hbp_auth(username, password)
             except Exception:
-                print "Authentication Failure! Password entered is possibly incorrect."
+                print("Authentication Failure! Password entered is possibly incorrect.")
                 raise
             with open(TOKENFILE, "w") as fp:
                 json.dump({username: self.config["auth"]["token"]}, fp)
@@ -1491,7 +1491,7 @@ class ModelCatalog(BaseClient):
             raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
         if species not in values["species"]:
             raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
-	if organization not in values["organization"]:
+        if organization not in values["organization"]:
             raise Exception("organization = '" +organization+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
 
         if private not in [True, False]:
