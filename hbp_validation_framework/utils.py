@@ -164,7 +164,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     # Run the test
     score = test.judge(model, deep_error=True)
     print("----------------------------------------------")
-    print("Score: ", score
+    print("Score: ", score)
     if "figures" in score.related_data:
         print("Output files: ")
         for item in score.related_data["figures"]:
