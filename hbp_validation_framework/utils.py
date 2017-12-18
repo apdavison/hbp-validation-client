@@ -206,7 +206,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
         #     print "(Leave empty for Model's host collab, i.e. ", model_host_collab_id, ")"
         #     score.related_data["project"] = raw_input('Collab ID: ')
 
-        collab_folder = "{}_{}".format(model_name, datetime.now().strftime("%Y%m%d-%H%M%S"))
+        collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name, datetime.now().strftime("%Y%m%d-%H%M%S"))
         collab_storage = CollabDataStore(collab_id=storage_collab_id,
                                          base_folder=collab_folder,
                                          auth=test_library.auth)
