@@ -178,9 +178,12 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
             print("Model = ", model, " => Results NOT saved on validation framework: no model.instance_id or model_metadata provided!")
         elif not hasattr(score.model, 'instance_id') or score.model.instance_id is None:
             # If model instance_id not specified, register the model on the validation framework
+            model_name = model_metadata["name"] if "name" in model_metadata else model.name
+            model_alias = model_metadata["alias"] if "alias" in model_metadata else model_name if ("alias_as_name" in model_metadata and model_metadata["alias_as_name"]) else None
+            print "model_alias = ", model_alias
             model_id = model_catalog.register_model(app_id=model_metadata["app_id"],
-                                                    name=model_metadata["name"] if "name" in model_metadata else model.name,
-                                                    alias=model_metadata["alias"] if "alias" in model_metadata else None,
+                                                    name=model_name,
+                                                    alias=model_alias,
                                                     author=model_metadata["author"],
                                                     organization=model_metadata["organization"],
                                                     private=model_metadata["private"],
