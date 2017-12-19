@@ -176,7 +176,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
         model_catalog = ModelCatalog(hbp_username, environment=environment)
         if not hasattr(score.model, 'instance_id') and not model_metadata:
             print("Model = ", model, " => Results NOT saved on validation framework: no model.instance_id or model_metadata provided!")
-        elif not hasattr(score.model, 'instance_id'):
+        elif not hasattr(score.model, 'instance_id') or score.model.instance_id is None:
             # If model instance_id not specified, register the model on the validation framework
             model_id = model_catalog.register_model(app_id=model_metadata["app_id"],
                                                     name=model_metadata["name"] if "name" in model_metadata else model.name,
@@ -213,6 +213,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
 
         response = test_library.register_result(test_result=score, data_store=collab_storage)
         # response = test_library.register_result(test_result=score)
+        score.model.instance_id = None # required if reusing model inside loop
         return response
 
 def generate_report(hbp_username="", environment="production", result_list=[], only_combined=True):
