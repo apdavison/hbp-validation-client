@@ -409,11 +409,31 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
 
             merger = PdfFileMerger()
             merger.append(str("./report/"+filename[:-4]+"_temp_"+str(result_ctr)+".pdf"))
+            temp_txt_files = []
+            print "file_list = ", file_list
             for datafile in file_list:
                 if datafile.endswith(".pdf"):
                     merger.append(PdfFileReader(file(datafile, 'rb')))
+                elif datafile.endswith((".txt", ".json")):
+                    txt_pdf = FPDF()
+                    txt_pdf.add_page()
+                    txt_pdf.set_font('Arial', 'BU', 14)
+                    txt_pdf.cell(0, 10, os.path.basename(datafile), 0, 1, 'C')
+                    txt_pdf.set_font('Courier', '', 8)
+                    with open(datafile, 'r') as txt_file:
+                        txt_content = txt_file.read().splitlines()
+                    for txt_line in txt_content:
+                        txt_pdf.cell(0,0, txt_line)
+                        txt_pdf.ln(5)
+                    savepath = os.path.join("./report", "temp_"+os.path.splitext(os.path.basename(datafile))[0]+"_"+str(result_ctr)+".pdf")
+                    temp_txt_files.append(savepath)
+                    txt_pdf.output(str(savepath), 'F')
+                    merger.append(PdfFileReader(file(savepath, 'rb')))
+
             merger.write(str("./report/"+filename[:-4]+"_"+str(result_ctr)+".pdf"))
             os.remove(str("./report/"+filename[:-4]+"_temp_"+str(result_ctr)+".pdf"))
+            for tempfile in temp_txt_files:
+                os.remove(tempfile)
             result_ctr = result_ctr + 1
 
     merger = PdfFileMerger()
