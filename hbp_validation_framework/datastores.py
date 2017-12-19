@@ -105,7 +105,7 @@ class CollabDataStore(object):
             folders = self.doc_client.list_folder_content(parent, entity_type="folder")["results"]
             folder_exists = False
             for f in folders:
-                if folder_path in f["name"]:
+                if folder_name in f["name"]:
                     child = f['uuid']
                     folder_exists = True
                     break

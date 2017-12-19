@@ -24,6 +24,8 @@ import ast
 import getpass
 import quantities
 import requests
+import tarfile
+import zipfile
 from requests.auth import AuthBase
 from .datastores import URI_SCHEME_MAP
 
@@ -470,7 +472,7 @@ class TestLibrary(BaseClient):
                         observations[key] = quantities.Quantity(number, units)
 
         # Create the :class:`sciunit.Test` instance
-        test_instance = test_cls(observation=observations, **params)
+        test_instance = test_cls(observation=observations, observation_dir=self.observation_dir, **params)
         test_instance.id = test_instance_json["id"]  # this is just the path part. Should be a full url
         return test_instance
 
@@ -945,10 +947,45 @@ class TestLibrary(BaseClient):
 
     def _load_reference_data(self, uri):
         # Load the reference data ("observations"). For now this is assumed
-        # to be in JSON format, but we should support other data formats.
+        # to be in JSON format or a compressed file format.
+        # We should support other data formats in future.
+        #
+        # Note: currently when using zip/tar files, the base directory must
+        # contain a JSON file with the same filename (exluding extension) as
+        # the zip/tar file. This is loaded as observation data and any other
+        # files or directories can be used by the test for plotting etc.
+        # These requirements may be relaxed in the future.
+
+        if not uri.lower().endswith(('.json', '.zip', '.tar.gz', '.tar')):
+            raise Exception("Currently only .json, .zip, .tar, .tar.gz files supported for observation data.")
+
         parse_result = urlparse(uri)
         datastore = URI_SCHEME_MAP[parse_result.scheme](auth=self.auth)
         observation_data = datastore.load_data(uri)
+
+        if uri.lower().endswith(('.zip', '.tar.gz', '.tar')):
+            filename = os.path.basename(uri)
+            obs_base_dir = os.path.abspath("./temp")
+            if not os.path.exists(obs_base_dir):
+                os.makedirs(obs_base_dir)
+            # presuming no query variables in the uri
+            with open(os.path.join(obs_base_dir, filename), "w+") as fileobj:
+                fileobj.write("%s" % observation_data)
+
+            filepath = os.path.join(obs_base_dir, filename)
+            if (uri.lower().endswith(".zip")):
+                file_ref = zipfile.ZipFile(filepath, 'r')
+            elif (uri.lower().endswith(".tar.gz")):
+                file_ref = tarfile.open(filepath, "r:gz")
+            elif (uri.lower().endswith(".tar")):
+                file_ref = tarfile.open(filepath, "r:")
+            file_ref.extractall(obs_base_dir)
+            file_ref.close()
+            self.observation_dir = os.path.join(obs_base_dir, os.path.splitext(filename)[0])
+
+            # load JSON from the zip/tar file_ref
+            with open(os.path.join(self.observation_dir, os.path.splitext(filename)[0]+".json")) as data_file:
+                observation_data = json.load(data_file)
         return observation_data
 
     def get_attribute_options(self, param=""):
