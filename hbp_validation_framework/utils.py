@@ -139,7 +139,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     if not isinstance(model, sciunit.Model):
         raise TypeError("`model` is not a sciunit Model!")
     print("----------------------------------------------")
-    print("Model name: ", model)
+    print("Model name: ", model.name)
     print("Model type: ", type(model))
     print("----------------------------------------------")
 
@@ -157,14 +157,14 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
         test = test_library.get_validation_test(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version, **test_kwargs)
 
     print("----------------------------------------------")
-    print("Test name: ", test)
+    print("Test name: ", test.name)
     print("Test type: ", type(test))
     print("----------------------------------------------")
 
     # Run the test
     score = test.judge(model, deep_error=True)
     print("----------------------------------------------")
-    print("Score: ", score)
+    print("Score: ", score.score)
     if "figures" in score.related_data:
         print("Output files: ")
         for item in score.related_data["figures"]:
