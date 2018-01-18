@@ -453,6 +453,8 @@ class TestLibrary(BaseClient):
 
         # Transform string representations of quantities, e.g. "-65 mV",
         # into :class:`quantities.Quantity` objects.
+
+        # note: we shouldn't really do this here; this should be done in the test classes
         observations = {}
         if type(observation_data.values()[0]) is dict:
             observations = observation_data
@@ -465,9 +467,13 @@ class TestLibrary(BaseClient):
                         observations[key] = float(val)
                     except ValueError:
                         quantity_parts = val.split(" ")
-                        number = float(quantity_parts[0])
-                        units = " ".join(quantity_parts[1:])
-                        observations[key] = quantities.Quantity(number, units)
+                        try:
+                            number = float(quantity_parts[0])
+                        except ValueError:
+                            observations[key] = val
+                        else:
+                            units = " ".join(quantity_parts[1:])
+                            observations[key] = quantities.Quantity(number, units)
 
         # Create the :class:`sciunit.Test` instance
         test_instance = test_cls(observation=observations, **params)
