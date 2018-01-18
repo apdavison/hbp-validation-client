@@ -151,6 +151,8 @@ class BaseClient(object):
                 url = rNMPI1.headers.get('location')
             else:
                 res = rNMPI1.content
+                if not isinstance(res, str):
+                    res = res.decode("ascii")
                 state = res[res.find("state")+6:res.find("&redirect_uri")]
                 url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, self.client_id)
             # get the exchange cookie
