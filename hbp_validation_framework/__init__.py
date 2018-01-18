@@ -263,6 +263,15 @@ class BaseClient(object):
                 raise Exception("Downloading of resources currently supported only for files and folders!")
         return files_downloaded
 
+    @classmethod
+    def from_existing(cls, client):
+        """Used to easily create a TestLibrary if you already have a ModelCatalog, or vice versa"""
+        obj = cls.__new__(cls)
+        for attrname in ("username", "url", "client_id", "token", "verify", "auth"):
+            setattr(obj, attrname, getattr(client, attrname))
+        return obj
+
+
 class TestLibrary(BaseClient):
     """Client for the HBP Validation Test library.
 
