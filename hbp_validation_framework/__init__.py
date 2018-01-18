@@ -1087,7 +1087,7 @@ class TestLibrary(BaseClient):
         result_json = result_json.json()
         return result_json
 
-    def register_result(self, test_result="", data_store=None):
+    def register_result(self, test_result, data_store=None):
         """Register test result with HBP Validation Results Service.
 
         The score of a test, along with related output data such as figures,
@@ -1126,6 +1126,28 @@ class TestLibrary(BaseClient):
         # depending on value of data_store,
         # upload data file to Collab storage,
         # or just store path if it is on HPAC machine
+
+        if not hasattr(test_result.model, "instance_id"):
+            # check that the model is registered with the model registry.
+            if not hasattr(test_result.model, "id"):
+                raise AttributeError("Model class does not have an 'id' attribute. "
+                                     "Please register it with the Validation Framework and add the id to the code.")
+            if not hasattr(test_result.model, "version"):
+                raise AttributeError("Model class does not have a 'version' attribute")
+            model_catalog = ModelCatalog.from_existing(self)
+            try:
+                model_instance_id = model_catalog.get_model_instance(model_id=test_result.model.id,
+                                                                     version=test_result.model.version)
+            except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
+                # so we create an new instance
+                response = model_catalog.add_model_instance(model_id=test_result.model.id,
+                                                            source=getattr(test_result.model, "remote_url", ""),
+                                                            version=test_result.version,
+                                                            parameters=getattr(test_result.model, "parameters", ""))
+                model_instance_id = response['uuid']
+        else:
+            model_instance_id = test_result.model.instance_id
+
         if data_store:
             if not data_store.authorized:
                 data_store.authorize(self.auth)  # relies on data store using HBP authorization
@@ -1137,11 +1159,9 @@ class TestLibrary(BaseClient):
         else:
             results_storage = ""
 
-        # check that the model is registered with the model registry.
-        # If not, offer to register it?
         url = self.url + "/results/?format=json"
         result_json = {
-                        "model_version_id": test_result.model.instance_id,
+                        "model_version_id": model_instance_id,
                         "test_code_id": test_result.test.id,
                         "results_storage": results_storage,
                         "score": test_result.score,
