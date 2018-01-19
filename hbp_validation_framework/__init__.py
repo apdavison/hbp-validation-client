@@ -1160,7 +1160,10 @@ class TestLibrary(BaseClient):
                                                  # the data store before passing to `register()`
             if data_store.collab_id is None:
                 data_store.collab_id = project
-            results_storage = data_store.upload_data(test_result.related_data["figures"])
+            if "figures" in test_result.related_data:
+                results_storage = data_store.upload_data(test_result.related_data["figures"])
+            else:
+                results_storage = ""
         else:
             results_storage = ""
 
@@ -1168,13 +1171,15 @@ class TestLibrary(BaseClient):
         result_json = {
                         "model_version_id": model_instance_id,
                         "test_code_id": test_result.test.uuid,
-                        "results_storage": results_storage,
+                        #"results_storage": results_storage,
                         "score": test_result.score,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
                         "platform": str(self._get_platform()), # database accepts a string
                         "project": project,
                         "normalized_score": test_result.score
                       }
+        if results_storage:
+            result_json["results_storage"] = results_storage
 
         # print(result_json)
         headers = {'Content-type': 'application/json'}
