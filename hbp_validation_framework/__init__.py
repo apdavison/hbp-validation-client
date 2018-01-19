@@ -1180,8 +1180,11 @@ class TestLibrary(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([result_json]),
                                  auth=self.auth, headers=headers)
-        print("Result registered successfully!")
-        return response.json()["uuid"][0]
+        if response.status_code == 201:
+            print("Result registered successfully!")
+            return response.json()["uuid"][0]
+        else:
+            raise Exception(response.content)
 
     def _get_platform(self):
         """
