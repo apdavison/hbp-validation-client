@@ -1160,7 +1160,16 @@ class TestLibrary(BaseClient):
                                                  # the data store before passing to `register()`
             if data_store.collab_id is None:
                 data_store.collab_id = project
-            results_storage = data_store.upload_data(test_result.related_data["figures"])
+            files_to_upload = []
+            if "figures" in test_result.related_data:
+                files_to_upload.extend(test_result.related_data["figures"])
+            if not files_to_upload:
+                # workaround for https://github.com/joffreygonin/hbp-validation-framework_dev/issues/136
+                if not os.path.exists("related_data.txt"):
+                    with open("related_data.txt", "w") as fp:
+                        fp.write("This validation test did not produce any additional data")
+                files_to_upload = ["related_data.txt"]
+            results_storage = data_store.upload_data(files_to_upload)
         else:
             results_storage = ""
 
