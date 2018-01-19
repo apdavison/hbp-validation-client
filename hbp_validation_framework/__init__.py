@@ -1172,7 +1172,7 @@ class TestLibrary(BaseClient):
                         "score": test_result.score,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
                         "platform": str(self._get_platform()), # database accepts a string
-                        "project": test_result.related_data["project"],
+                        "project": project,
                         "normalized_score": test_result.score
                       }
 
