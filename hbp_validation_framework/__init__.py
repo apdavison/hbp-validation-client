@@ -1087,7 +1087,7 @@ class TestLibrary(BaseClient):
         result_json = result_json.json()
         return result_json
 
-    def register_result(self, test_result, data_store=None):
+    def register_result(self, test_result, data_store=None, project=None):
         """Register test result with HBP Validation Results Service.
 
         The score of a test, along with related output data such as figures,
@@ -1126,6 +1126,11 @@ class TestLibrary(BaseClient):
         # depending on value of data_store,
         # upload data file to Collab storage,
         # or just store path if it is on HPAC machine
+
+        if project is None:
+            project = test_result.related_data.get("project", None)
+        if project is None:
+            raise Exception("Don't know where to register this result. Please specify the collab ID")
 
         if not hasattr(test_result.model, "instance_id"):
             # check that the model is registered with the model registry.
@@ -1167,7 +1172,7 @@ class TestLibrary(BaseClient):
                         "score": test_result.score,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
                         "platform": str(self._get_platform()), # database accepts a string
-                        "project": test_result.related_data["project"],
+                        "project": project,
                         "normalized_score": test_result.score
                       }
 
