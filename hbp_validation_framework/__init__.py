@@ -1142,7 +1142,7 @@ class TestLibrary(BaseClient):
             model_catalog = ModelCatalog.from_existing(self)
             try:
                 model_instance_id = model_catalog.get_model_instance(model_id=test_result.model.uuid,
-                                                                     version=test_result.model.version)
+                                                                     version=test_result.model.version)['id']
             except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
                 # so we create an new instance
                 response = model_catalog.add_model_instance(model_id=test_result.model.uuid,
@@ -1177,15 +1177,13 @@ class TestLibrary(BaseClient):
         result_json = {
                         "model_version_id": model_instance_id,
                         "test_code_id": test_result.test.uuid,
-                        #"results_storage": results_storage,
+                        "results_storage": results_storage,
                         "score": test_result.score,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
                         "platform": str(self._get_platform()), # database accepts a string
                         "project": project,
                         "normalized_score": test_result.score
                       }
-        if results_storage:
-            result_json["results_storage"] = results_storage
 
         # print(result_json)
         headers = {'Content-type': 'application/json'}
