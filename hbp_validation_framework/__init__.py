@@ -488,7 +488,7 @@ class TestLibrary(BaseClient):
 
         # Create the :class:`sciunit.Test` instance
         test_instance = test_cls(observation=observations, **params)
-        test_instance.id = test_instance_json["id"]  # this is just the path part. Should be a full url
+        test_instance.uuid = test_instance_json["id"]
         return test_instance
 
     def list_tests(self, **filters):
@@ -1134,9 +1134,9 @@ class TestLibrary(BaseClient):
 
         if not hasattr(test_result.model, "instance_id"):
             # check that the model is registered with the model registry.
-            if not hasattr(test_result.model, "id"):
-                raise AttributeError("Model class does not have an 'id' attribute. "
-                                     "Please register it with the Validation Framework and add the id to the code.")
+            if not hasattr(test_result.model, "uuid"):
+                raise AttributeError("Model class does not have a 'uuid' attribute. "
+                                     "Please register it with the Validation Framework and add the uuid to the code.")
             if not hasattr(test_result.model, "version"):
                 raise AttributeError("Model class does not have a 'version' attribute")
             model_catalog = ModelCatalog.from_existing(self)
@@ -1145,7 +1145,7 @@ class TestLibrary(BaseClient):
                                                                      version=test_result.model.version)['id']
             except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
                 # so we create an new instance
-                response = model_catalog.add_model_instance(model_id=test_result.model.id,
+                response = model_catalog.add_model_instance(model_id=test_result.model.uuid,
                                                             source=getattr(test_result.model, "remote_url", ""),
                                                             version=test_result.model.version,
                                                             parameters=getattr(test_result.model, "parameters", ""))
@@ -1176,7 +1176,7 @@ class TestLibrary(BaseClient):
         url = self.url + "/results/?format=json"
         result_json = {
                         "model_version_id": model_instance_id,
-                        "test_code_id": test_result.test.id,
+                        "test_code_id": test_result.test.uuid,
                         "results_storage": results_storage,
                         "score": test_result.score,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
