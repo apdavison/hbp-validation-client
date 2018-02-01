@@ -29,6 +29,12 @@ import zipfile
 from requests.auth import AuthBase
 from .datastores import URI_SCHEME_MAP
 
+try:
+    from jupyter_collab_storage import oauth_token_handler
+    have_collab_token_handler = True
+except ImportError:
+    have_collab_token_handler = False
+
 TOKENFILE = os.path.expanduser("~/.hbptoken")
 
 class HBPAuth(AuthBase):
@@ -50,7 +56,7 @@ class BaseClient(object):
     """
     # Note: Could possibly simplify the code later
 
-    def __init__(self, username,
+    def __init__(self, username=None,
                  password=None,
                  environment="production"):
 
@@ -78,9 +84,13 @@ class BaseClient(object):
         self.username = username
         self.verify = True
         if password is None:
-            # check for a stored token
             self.token = None
-            if os.path.exists(TOKENFILE):
+            if have_collab_token_handler:
+                    # if are we running in a Jupyter notebook within the Collaboratory
+                    # the token is already available
+                    self.token = oauth_token_handler.get_token()
+            elif os.path.exists(TOKENFILE):
+                # check for a stored token
                 with open(TOKENFILE) as fp:
                     # self.token = json.load(fp).get(username, None)["access_token"]
                     data = json.load(fp).get(username, None)
@@ -290,10 +300,11 @@ class TestLibrary(BaseClient):
     Parameters
     ----------
     username : string
-        Your HBP Collaboratory username.
+        Your HBP Collaboratory username. Not needed in Jupyter notebooks within the HBP Collaboratory.
     password : string, optional
         Your HBP Collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
+        Not needed in Jupyter notebooks within the HBP Collaboratory.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
@@ -1231,10 +1242,11 @@ class ModelCatalog(BaseClient):
     Parameters
     ----------
     username : string
-        Your HBP Collaboratory username.
+        Your HBP Collaboratory username. Not needed in Jupyter notebooks within the HBP Collaboratory.
     password : string, optional
         Your HBP Collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
+        Not needed in Jupyter notebooks within the HBP Collaboratory.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
