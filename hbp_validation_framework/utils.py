@@ -139,7 +139,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     if not isinstance(model, sciunit.Model):
         raise TypeError("`model` is not a sciunit Model!")
     print("----------------------------------------------")
-    print("Model name: ", model)
+    print("Model name: ", model.name)
     print("Model type: ", type(model))
     print("----------------------------------------------")
 
@@ -157,14 +157,14 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
         test = test_library.get_validation_test(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version, **test_kwargs)
 
     print("----------------------------------------------")
-    print("Test name: ", test)
+    print("Test name: ", test.name)
     print("Test type: ", type(test))
     print("----------------------------------------------")
 
     # Run the test
     score = test.judge(model, deep_error=True)
     print("----------------------------------------------")
-    print("Score: ", score)
+    print("Score: ", score.score)
     if "figures" in score.related_data:
         print("Output files: ")
         for item in score.related_data["figures"]:
@@ -176,11 +176,14 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
         model_catalog = ModelCatalog(hbp_username, environment=environment)
         if not hasattr(score.model, 'instance_id') and not model_metadata:
             print("Model = ", model, " => Results NOT saved on validation framework: no model.instance_id or model_metadata provided!")
-        elif not hasattr(score.model, 'instance_id'):
+        elif not hasattr(score.model, 'instance_id') or score.model.instance_id is None:
             # If model instance_id not specified, register the model on the validation framework
+            model_name = model_metadata["name"] if "name" in model_metadata else model.name
+            model_alias = model_metadata["alias"] if "alias" in model_metadata else model_name if ("use_name_as_alias" in model_metadata and model_metadata["use_name_as_alias"]) else None
+            print "model_alias = ", model_alias
             model_id = model_catalog.register_model(app_id=model_metadata["app_id"],
-                                                    name=model_metadata["name"] if "name" in model_metadata else model.name,
-                                                    alias=model_metadata["alias"] if "alias" in model_metadata else None,
+                                                    name=model_name,
+                                                    alias=model_alias,
                                                     author=model_metadata["author"],
                                                     organization=model_metadata["organization"],
                                                     private=model_metadata["private"],
@@ -213,6 +216,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
 
         response = test_library.register_result(test_result=score, data_store=collab_storage)
         # response = test_library.register_result(test_result=score)
+        score.model.instance_id = None # required if reusing model inside loop
         return response
 
 def generate_report(hbp_username="", environment="production", result_list=[], only_combined=True):
@@ -408,11 +412,31 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
 
             merger = PdfFileMerger()
             merger.append(str("./report/"+filename[:-4]+"_temp_"+str(result_ctr)+".pdf"))
+            temp_txt_files = []
+            print "file_list = ", file_list
             for datafile in file_list:
                 if datafile.endswith(".pdf"):
                     merger.append(PdfFileReader(file(datafile, 'rb')))
+                elif datafile.endswith((".txt", ".json")):
+                    txt_pdf = FPDF()
+                    txt_pdf.add_page()
+                    txt_pdf.set_font('Arial', 'BU', 14)
+                    txt_pdf.cell(0, 10, os.path.basename(datafile), 0, 1, 'C')
+                    txt_pdf.set_font('Courier', '', 8)
+                    with open(datafile, 'r') as txt_file:
+                        txt_content = txt_file.read().splitlines()
+                    for txt_line in txt_content:
+                        txt_pdf.cell(0,0, txt_line)
+                        txt_pdf.ln(5)
+                    savepath = os.path.join("./report", "temp_"+os.path.splitext(os.path.basename(datafile))[0]+"_"+str(result_ctr)+".pdf")
+                    temp_txt_files.append(savepath)
+                    txt_pdf.output(str(savepath), 'F')
+                    merger.append(PdfFileReader(file(savepath, 'rb')))
+
             merger.write(str("./report/"+filename[:-4]+"_"+str(result_ctr)+".pdf"))
             os.remove(str("./report/"+filename[:-4]+"_temp_"+str(result_ctr)+".pdf"))
+            for tempfile in temp_txt_files:
+                os.remove(tempfile)
             result_ctr = result_ctr + 1
 
     merger = PdfFileMerger()
