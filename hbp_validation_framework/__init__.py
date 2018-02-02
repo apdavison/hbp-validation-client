@@ -488,7 +488,7 @@ class TestLibrary(BaseClient):
 
         # Create the :class:`sciunit.Test` instance
         test_instance = test_cls(observation=observations, **params)
-        test_instance.id = test_instance_json["id"]  # this is just the path part. Should be a full url
+        test_instance.uuid = test_instance_json["id"]
         return test_instance
 
     def list_tests(self, **filters):
@@ -1132,26 +1132,26 @@ class TestLibrary(BaseClient):
         if project is None:
             raise Exception("Don't know where to register this result. Please specify the collab ID")
 
-        if not hasattr(test_result.model, "instance_id"):
+        if not hasattr(test_result.model, "model_instance_uuid"):
             # check that the model is registered with the model registry.
-            if not hasattr(test_result.model, "id"):
-                raise AttributeError("Model class does not have an 'id' attribute. "
-                                     "Please register it with the Validation Framework and add the id to the code.")
+            if not hasattr(test_result.model, "model_uuid"):
+                raise AttributeError("Model class does not have a 'model_uuid' attribute. "
+                                     "Please register it with the Validation Framework and add the 'model_uuid' to the code.")
             if not hasattr(test_result.model, "version"):
                 raise AttributeError("Model class does not have a 'version' attribute")
             model_catalog = ModelCatalog.from_existing(self)
             try:
-                model_instance_id = model_catalog.get_model_instance(model_id=test_result.model.uuid,
+                model_instance_uuid = model_catalog.get_model_instance(model_id=test_result.model.model_uuid,
                                                                      version=test_result.model.version)['id']
             except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
                 # so we create an new instance
-                response = model_catalog.add_model_instance(model_id=test_result.model.id,
-                                                            source=getattr(test_result.model, "remote_url", ""),
+                response = model_catalog.add_model_instance(model_id=test_result.model.model_uuid,
+                                                            source=getattr(test_result.model, "remote_url", "http://no.url"), # empty/blank source not permitted currently
                                                             version=test_result.model.version,
                                                             parameters=getattr(test_result.model, "parameters", ""))
-                model_instance_id = response['uuid']
+                model_instance_uuid = response['uuid'][0]
         else:
-            model_instance_id = test_result.model.instance_id
+            model_instance_uuid = test_result.model.model_instance_uuid
 
         if data_store:
             if not data_store.authorized:
@@ -1175,8 +1175,8 @@ class TestLibrary(BaseClient):
 
         url = self.url + "/results/?format=json"
         result_json = {
-                        "model_version_id": model_instance_id,
-                        "test_code_id": test_result.test.id,
+                        "model_version_id": model_instance_uuid,
+                        "test_code_id": test_result.test.uuid,
                         "results_storage": results_storage,
                         "score": test_result.score,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
@@ -1642,7 +1642,7 @@ class ModelCatalog(BaseClient):
 
         Examples
         --------
-        >>> model_instance = model_catalog.get_model_instance(model_id="a035f2b2-fe2e-42fd-82e2-4173a304263b")
+        >>> model_instance = model_catalog.get_model_instance(instance_id="a035f2b2-fe2e-42fd-82e2-4173a304263b")
         """
 
         if instance_path == "" and instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
