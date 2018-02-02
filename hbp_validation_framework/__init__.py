@@ -1137,19 +1137,19 @@ class TestLibrary(BaseClient):
             if not hasattr(test_result.model, "model_uuid"):
                 raise AttributeError("Model class does not have a 'model_uuid' attribute. "
                                      "Please register it with the Validation Framework and add the 'model_uuid' to the code.")
-            if not hasattr(test_result.model, "model_version"):
-                raise AttributeError("Model class does not have a 'model_version' attribute")
+            if not hasattr(test_result.model, "version"):
+                raise AttributeError("Model class does not have a 'version' attribute")
             model_catalog = ModelCatalog.from_existing(self)
             try:
                 model_instance_uuid = model_catalog.get_model_instance(model_id=test_result.model.model_uuid,
-                                                                     version=test_result.model.model_version)['id']
+                                                                     version=test_result.model.version)['id']
             except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
                 # so we create an new instance
                 response = model_catalog.add_model_instance(model_id=test_result.model.model_uuid,
                                                             source=getattr(test_result.model, "remote_url", "http://no.url"), # empty/blank source not permitted currently
-                                                            version=test_result.model.model_version,
+                                                            version=test_result.model.version,
                                                             parameters=getattr(test_result.model, "parameters", ""))
-                model_instance_uuid = response['uuid']
+                model_instance_uuid = response['uuid'][0]
         else:
             model_instance_uuid = test_result.model.model_instance_uuid
 
