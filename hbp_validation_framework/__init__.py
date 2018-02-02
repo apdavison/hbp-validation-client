@@ -1176,7 +1176,7 @@ class TestLibrary(BaseClient):
         url = self.url + "/results/?format=json"
         result_json = {
                         "model_version_id": model_instance_uuid,
-                        "test_code_id": test_result.test.id,
+                        "test_code_id": test_result.test.uuid,
                         "results_storage": results_storage,
                         "score": test_result.score,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
