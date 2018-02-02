@@ -35,7 +35,7 @@ class FileSystemDataStore(object):
     A class for interacting with the local file system
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         pass
 
     def load_data(self, local_path):
@@ -48,7 +48,7 @@ class CollabDataStore(object):
     A class for uploading data to HBP Collaboratory storage.
     """
 
-    def __init__(self, collab_id=None, base_folder=None, auth=None):
+    def __init__(self, collab_id=None, base_folder=None, auth=None, **kwargs):
         self.collab_id = collab_id
         self.base_folder = base_folder
         self._auth = auth  # we defer authorization until needed
@@ -152,6 +152,9 @@ class HTTPDataStore(object):
     """
     A class for downloading data from the web.
     """
+
+    def __init__(self, **kwargs):
+        pass
 
     def upload_data(self, file_paths):
         raise NotImplementedError("The HTTPDataStore does not support uploading data.")

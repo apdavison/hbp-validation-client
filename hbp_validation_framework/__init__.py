@@ -163,6 +163,8 @@ class BaseClient(object):
                 url = rNMPI1.headers.get('location')
             else:
                 res = rNMPI1.content
+                if not isinstance(res, str):
+                    res = res.decode("ascii")
                 state = res[res.find("state")+6:res.find("&redirect_uri")]
                 url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, self.client_id)
             # get the exchange cookie
@@ -272,6 +274,15 @@ class BaseClient(object):
             else:
                 raise Exception("Downloading of resources currently supported only for files and folders!")
         return files_downloaded
+
+    @classmethod
+    def from_existing(cls, client):
+        """Used to easily create a TestLibrary if you already have a ModelCatalog, or vice versa"""
+        obj = cls.__new__(cls)
+        for attrname in ("username", "url", "client_id", "token", "verify", "auth"):
+            setattr(obj, attrname, getattr(client, attrname))
+        return obj
+
 
 class TestLibrary(BaseClient):
     """Client for the HBP Validation Test library.
@@ -466,6 +477,8 @@ class TestLibrary(BaseClient):
 
         # Transform string representations of quantities, e.g. "-65 mV",
         # into :class:`quantities.Quantity` objects.
+
+        # note: we shouldn't really do this here; this should be done in the test classes
         observations = {}
         if type(observation_data.values()[0]) is dict:
             observations = observation_data
@@ -478,13 +491,17 @@ class TestLibrary(BaseClient):
                         observations[key] = float(val)
                     except ValueError:
                         quantity_parts = val.split(" ")
-                        number = float(quantity_parts[0])
-                        units = " ".join(quantity_parts[1:])
-                        observations[key] = quantities.Quantity(number, units)
+                        try:
+                            number = float(quantity_parts[0])
+                        except ValueError:
+                            observations[key] = val
+                        else:
+                            units = " ".join(quantity_parts[1:])
+                            observations[key] = quantities.Quantity(number, units)
 
         # Create the :class:`sciunit.Test` instance
         test_instance = test_cls(observation=observations, observation_dir=self.observation_dir, **params)
-        test_instance.id = test_instance_json["id"]  # this is just the path part. Should be a full url
+        test_instance.uuid = test_instance_json["id"]
         return test_instance
 
     def list_tests(self, **filters):
@@ -1118,7 +1135,7 @@ class TestLibrary(BaseClient):
         result_json = result_json.json()
         return result_json
 
-    def register_result(self, test_result="", data_store=None):
+    def register_result(self, test_result, data_store=None, project=None):
         """Register test result with HBP Validation Results Service.
 
         The score of a test, along with related output data such as figures,
@@ -1157,6 +1174,33 @@ class TestLibrary(BaseClient):
         # depending on value of data_store,
         # upload data file to Collab storage,
         # or just store path if it is on HPAC machine
+
+        if project is None:
+            project = test_result.related_data.get("project", None)
+        if project is None:
+            raise Exception("Don't know where to register this result. Please specify the collab ID")
+
+        if not hasattr(test_result.model, "model_instance_uuid"):
+            # check that the model is registered with the model registry.
+            if not hasattr(test_result.model, "model_uuid"):
+                raise AttributeError("Model class does not have a 'model_uuid' attribute. "
+                                     "Please register it with the Validation Framework and add the 'model_uuid' to the code.")
+            if not hasattr(test_result.model, "version"):
+                raise AttributeError("Model class does not have a 'version' attribute")
+            model_catalog = ModelCatalog.from_existing(self)
+            try:
+                model_instance_uuid = model_catalog.get_model_instance(model_id=test_result.model.model_uuid,
+                                                                     version=test_result.model.version)['id']
+            except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
+                # so we create an new instance
+                response = model_catalog.add_model_instance(model_id=test_result.model.model_uuid,
+                                                            source=getattr(test_result.model, "remote_url", "http://no.url"), # empty/blank source not permitted currently
+                                                            version=test_result.model.version,
+                                                            parameters=getattr(test_result.model, "parameters", ""))
+                model_instance_uuid = response['uuid'][0]
+        else:
+            model_instance_uuid = test_result.model.model_instance_uuid
+
         if data_store:
             if not data_store.authorized:
                 data_store.authorize(self.auth)  # relies on data store using HBP authorization
@@ -1164,21 +1208,28 @@ class TestLibrary(BaseClient):
                                                  # the data store before passing to `register()`
             if data_store.collab_id is None:
                 data_store.collab_id = project
-            results_storage = data_store.upload_data(test_result.related_data["figures"])
+            files_to_upload = []
+            if "figures" in test_result.related_data:
+                files_to_upload.extend(test_result.related_data["figures"])
+            if not files_to_upload:
+                # workaround for https://github.com/joffreygonin/hbp-validation-framework_dev/issues/136
+                if not os.path.exists("related_data.txt"):
+                    with open("related_data.txt", "w") as fp:
+                        fp.write("This validation test did not produce any additional data")
+                files_to_upload = ["related_data.txt"]
+            results_storage = data_store.upload_data(files_to_upload)
         else:
             results_storage = ""
 
-        # check that the model is registered with the model registry.
-        # If not, offer to register it?
         url = self.url + "/results/?format=json"
         result_json = {
-                        "model_version_id": test_result.model.instance_id,
-                        "test_code_id": test_result.test.id,
+                        "model_version_id": model_instance_uuid,
+                        "test_code_id": test_result.test.uuid,
                         "results_storage": results_storage,
                         "score": test_result.score,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
                         "platform": str(self._get_platform()), # database accepts a string
-                        "project": test_result.related_data["project"],
+                        "project": project,
                         "normalized_score": test_result.score
                       }
 
@@ -1186,8 +1237,11 @@ class TestLibrary(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([result_json]),
                                  auth=self.auth, headers=headers)
-        print("Result registered successfully!")
-        return response.json()["uuid"][0]
+        if response.status_code == 201:
+            print("Result registered successfully!")
+            return response.json()["uuid"][0]
+        else:
+            raise Exception(response.content)
 
     def _get_platform(self):
         """
@@ -1637,7 +1691,7 @@ class ModelCatalog(BaseClient):
 
         Examples
         --------
-        >>> model_instance = model_catalog.get_model_instance(model_id="a035f2b2-fe2e-42fd-82e2-4173a304263b")
+        >>> model_instance = model_catalog.get_model_instance(instance_id="a035f2b2-fe2e-42fd-82e2-4173a304263b")
         """
 
         if instance_path == "" and instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
