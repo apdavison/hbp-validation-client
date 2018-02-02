@@ -1642,7 +1642,7 @@ class ModelCatalog(BaseClient):
 
         Examples
         --------
-        >>> model_instance = model_catalog.get_model_instance(model_id="a035f2b2-fe2e-42fd-82e2-4173a304263b")
+        >>> model_instance = model_catalog.get_model_instance(instance_id="a035f2b2-fe2e-42fd-82e2-4173a304263b")
         """
 
         if instance_path == "" and instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
