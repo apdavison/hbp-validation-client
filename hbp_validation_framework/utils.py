@@ -194,9 +194,9 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
                                                     description=model_metadata["description"],
                                                     instances=model_metadata["instances"])
             model_instance_id = model_catalog.get_model_instance(model_id=model_id["uuid"], version=model_metadata["instances"][0]["version"])
-            score.model.instance_id = model_instance_id["id"]
+            score.model.model_instance_uuid = model_instance_id["id"]
 
-        model_instance_json = model_catalog.get_model_instance(instance_id=score.model.instance_id)
+        model_instance_json = model_catalog.get_model_instance(instance_id=score.model.model_instance_uuid)
         model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
         model_host_collab_id = model_json["app"]["collab_id"]
         model_name = model_json["name"]
