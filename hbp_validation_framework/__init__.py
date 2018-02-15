@@ -1459,8 +1459,8 @@ class ModelCatalog(BaseClient):
 
         Returns
         -------
-        UUID
-            (Verify!) UUID of the model description that has been created.
+        dict
+            dict with key "uuid" containing UUID of the model description that has been created.
 
         Examples
         --------
@@ -1761,10 +1761,10 @@ class ModelCatalog(BaseClient):
         model_instances_json = model_instances_json.json()
         return model_instances_json["instances"]
 
-    def add_model_instance(self, model_id="", alias="", source="", version="", parameters=""):
+    def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters=""):
         """Register a new model instance.
 
-        This allows to add a new instance of an existing model in the model catalog.
+        This allows to add a new instance(s) of an existing model in the model catalog.
         The `model_id` needs to be specified as input parameter.
 
         Parameters
@@ -1777,13 +1777,15 @@ class ModelCatalog(BaseClient):
             Path to model source code repository (e.g. github).
         version : string
             User-assigned identifier (unique for each model) associated with model instance.
-        parameters : string
-            Any additional parameters to be submitted to model at runtime.
+        description : string, optional
+            Text describing this specific model instance.
+        parameters : string, optional
+            Any additional parameters to be submitted to model, or used by it, at runtime.
 
         Returns
         -------
-        UUID
-            UUID of the model instance that has been created.
+        dict
+            dict with key "uuid" containing list of UUIDs of new model instances that have been created.
 
         Note
         ----
@@ -1795,6 +1797,7 @@ class ModelCatalog(BaseClient):
         >>> instance_id = model_catalog.add_model_instance(model_id="196b89a3-e672-4b96-8739-748ba3850254",
                                                   source="https://www.abcde.com",
                                                   version="1.0",
+                                                  description="",
                                                   parameters="")
         """
 
@@ -1817,7 +1820,7 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model instance. Response = " + str(response.json()))
 
-    def edit_model_instance(self, instance_id="", model_id="", alias="", source="", version="", parameters=""):
+    def edit_model_instance(self, instance_id="", model_id="", alias="", source="", version="", description="", parameters=""):
         """Edit an existing model instance.
 
         This allows to edit an instance of an existing model in the model catalog.
@@ -1843,8 +1846,10 @@ class ModelCatalog(BaseClient):
             Path to model source code repository (e.g. github).
         version : string
             User-assigned identifier (unique for each model) associated with model instance.
-        parameters : string
-            Any additional parameters to be submitted to model at runtime.
+        description : string, optional
+            Text describing this specific model instance.
+        parameters : string, optional
+            Any additional parameters to be submitted to model, or used by it, at runtime.
 
         Returns
         -------
@@ -1857,6 +1862,7 @@ class ModelCatalog(BaseClient):
                                                 model_id="196b89a3-e672-4b96-8739-748ba3850254",
                                                 source="https://www.abcde.com",
                                                 version="10.0",
+                                                description="",
                                                 parameters="")
         """
 
