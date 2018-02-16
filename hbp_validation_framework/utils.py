@@ -288,8 +288,9 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
 
     Returns
     -------
-    list
-        List of valid UUIDs for which the PDF report was generated.
+    list, path
+        List of valid UUIDs for which the PDF report was generated, and
+        the absolute path of the generated report.
 
     Examples
     --------
@@ -480,8 +481,9 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
         if only_combined:
             os.remove(str("./report/"+filename[:-4]+"_"+str(i)+".pdf"))
     merger.write(str("./report/"+filename))
-    print("Report generated at: ", os.path.abspath("./report/"+filename))
-    return valid_uuids
+    report_path = os.path.abspath("./report/"+filename)
+    print("Report generated at: ", report_path)
+    return valid_uuids, report_path
 
 
 class PDF(FPDF):
