@@ -482,7 +482,7 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
             os.remove(str("./report/"+filename[:-4]+"_"+str(i)+".pdf"))
     merger.write(str("./report/"+filename))
     report_path = os.path.abspath("./report/"+filename)
-    print("Report generated at: ", report_path)
+    print("Report generated at: {}".format(report_path))
     return valid_uuids, report_path
 
 
