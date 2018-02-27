@@ -72,7 +72,7 @@ def _make_js_file(data):
         json.dump(data, outfile)
         outfile.write("'")
 
-def run_test(hbp_username="", environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, model_metadata="", **test_kwargs):
+def run_test(hbp_username="", environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, model_metadata="", client_obj=None, **test_kwargs):
     """Run validation test and register result
 
     This method will accept a model, located locally, run the specified
@@ -114,6 +114,11 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
         code by setting `model.instance_id`. Otherwise, the model is registered using info from
         `model_metadata`. If `id` and `model_metadata` are both absent, then the results
         will not be saved on the validation framework (even if `register_result` = True).
+    client_obj : ModelCatalog/TestLibrary object
+        Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
+        Avoids need for repeated authentications; improves performance. Also, helps minimize
+        being blocked out by the authentication server for repeated authentication requests
+        (applicable when running several tests in quick succession, e.g. in a loop).
     **test_kwargs : list
         Keyword arguments to be passed to the Test constructor.
 
@@ -149,7 +154,10 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
         hbp_username = raw_input('HBP Username: ')
 
     # Load the test
-    test_library = TestLibrary(hbp_username, environment=environment)
+    if client_obj:
+        test_library = TestLibrary.from_existing(client_obj)
+    else:
+        test_library = TestLibrary(hbp_username, environment=environment)
 
     if test_instance_id == "" and (test_id == "" or test_version == "") and (test_alias == "" or test_version == ""):
         raise Exception("test_instance_id or (test_id, test_version) or (test_alias, test_version) needs to be provided for finding test.")
@@ -172,31 +180,52 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     print("----------------------------------------------")
 
     if register_result:
-        # Register the result with the HBP Validation service
-        model_catalog = ModelCatalog(hbp_username, environment=environment)
-        if not hasattr(score.model, 'instance_id') and not model_metadata:
-            print("Model = ", model, " => Results NOT saved on validation framework: no model.instance_id or model_metadata provided!")
-        elif not hasattr(score.model, 'instance_id') or score.model.instance_id is None:
-            # If model instance_id not specified, register the model on the validation framework
-            model_name = model_metadata["name"] if "name" in model_metadata else model.name
-            model_alias = model_metadata["alias"] if "alias" in model_metadata else model_name if ("use_name_as_alias" in model_metadata and model_metadata["use_name_as_alias"]) else None
-            print "model_alias = ", model_alias
-            model_id = model_catalog.register_model(app_id=model_metadata["app_id"],
-                                                    name=model_name,
-                                                    alias=model_alias,
-                                                    author=model_metadata["author"],
-                                                    organization=model_metadata["organization"],
-                                                    private=model_metadata["private"],
-                                                    cell_type=model_metadata["cell_type"],
-                                                    model_type=model_metadata["model_type"],
-                                                    brain_region=model_metadata["brain_region"],
-                                                    species=model_metadata["species"],
-                                                    description=model_metadata["description"],
-                                                    instances=model_metadata["instances"])
-            model_instance_id = model_catalog.get_model_instance(model_id=model_id["uuid"], version=model_metadata["instances"][0]["version"])
-            score.model.instance_id = model_instance_id["id"]
+        # Register the result with the HBP validation service
+        model_catalog = ModelCatalog.from_existing(test_library)
+        if not getattr(score.model, 'model_instance_uuid', False):
+            # no `score.model.model_instance_uuid`
+            model_instance_uuid = None
+            if getattr(score.model, 'model_uuid', False):
+                # no `score.model.model_instance_uuid` but `score.model.model_uuid` present
+                model_instances = model_catalog.list_model_instances(model_id=score.model.model_uuid)
+                if len(model_instances) > 0:
+                    for m_inst in model_instances:
+                        if m_inst["description"] == score.model.model_hash:
+                            model_instance_uuid = m_inst["id"]
+                if not model_instance_uuid:
+                    # NEEDS TO BE GENERALIZED; CURRENTLY FOR BASALUNIT
+                    m_new_inst = model_catalog.add_model_instance(model_id=score.model.model_uuid,
+                                                     source="https://NotYet.online",
+                                                     version=score.model.instance_name,
+                                                     description=score.model.model_hash,
+                                                     parameters=json.dumps(score.model.params))
+                    model_instance_uuid = m_new_inst["uuid"][0]
+            elif not model_metadata:
+                # no `score.model.model_instance_uuid` and no `model_metadata`
+                raise ValueError ("Model = {} => Results NOT saved on validation framework: no model.model_instance_uuid or model_metadata provided!".format(model))
+            else:
+                # no `score.model.model_instance_uuid` but with `model_metadata`: register the model on the validation framework
+                model_name = model_metadata["name"] if "name" in model_metadata else model.name
+                model_alias = model_metadata["alias"] if "alias" in model_metadata else model_name if ("use_name_as_alias" in model_metadata and model_metadata["use_name_as_alias"]) else None
+                print "model_alias = ", model_alias
+                model_id = model_catalog.register_model(app_id=model_metadata["app_id"],
+                                                        name=model_name,
+                                                        alias=model_alias,
+                                                        author=model_metadata["author"],
+                                                        organization=model_metadata["organization"],
+                                                        private=model_metadata["private"],
+                                                        cell_type=model_metadata["cell_type"],
+                                                        model_type=model_metadata["model_type"],
+                                                        brain_region=model_metadata["brain_region"],
+                                                        species=model_metadata["species"],
+                                                        description=model_metadata["description"],
+                                                        instances=model_metadata["instances"])
+                model_instance_id = model_catalog.get_model_instance(model_id=model_id["uuid"], version=model_metadata["instances"][0]["version"])
+                model_instance_uuid = model_instance_id["id"]
 
-        model_instance_json = model_catalog.get_model_instance(instance_id=score.model.instance_id)
+            score.model.model_instance_uuid = model_instance_uuid
+
+        model_instance_json = model_catalog.get_model_instance(instance_id=score.model.model_instance_uuid)
         model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
         model_host_collab_id = model_json["app"]["collab_id"]
         model_name = model_json["name"]
@@ -216,7 +245,10 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
 
         response = test_library.register_result(test_result=score, data_store=collab_storage)
         # response = test_library.register_result(test_result=score)
-        score.model.instance_id = None # required if reusing model inside loop
+        if 'model_instance_uuid' in locals():   # if this was set here, then the original model didn't specify it
+            # required if reusing model inside loop; avoids re-use of generated model_instance_uuid
+            delattr(score.model, 'model_instance_uuid')
+            #score.model.model_instance_uuid = None
         return response
 
 def generate_report(hbp_username="", environment="production", result_list=[], only_combined=True):
@@ -256,8 +288,9 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
 
     Returns
     -------
-    list
-        List of valid UUIDs for which the PDF report was generated.
+    list, path
+        List of valid UUIDs for which the PDF report was generated, and
+        the absolute path of the generated report.
 
     Examples
     --------
@@ -267,7 +300,7 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
     # This method can be significantly improved in future.
 
     model_catalog = ModelCatalog(hbp_username, environment=environment)
-    test_library = TestLibrary(hbp_username, environment=environment)
+    test_library = TestLibrary.from_existing(model_catalog)
     result_data = {}
     valid_uuids = []
 
@@ -448,8 +481,9 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
         if only_combined:
             os.remove(str("./report/"+filename[:-4]+"_"+str(i)+".pdf"))
     merger.write(str("./report/"+filename))
-    print("Report generated at: ", os.path.abspath("./report/"+filename))
-    return valid_uuids
+    report_path = os.path.abspath("./report/"+filename)
+    print("Report generated at: {}".format(report_path))
+    return valid_uuids, report_path
 
 
 class PDF(FPDF):

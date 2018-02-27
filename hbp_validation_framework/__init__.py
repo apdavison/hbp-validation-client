@@ -596,7 +596,7 @@ class TestLibrary(BaseClient):
         Returns
         -------
         UUID
-            (Verify!) UUID of the test instance that has been created.
+            UUID of the test instance that has been created.
 
         Examples
         --------
@@ -642,7 +642,7 @@ class TestLibrary(BaseClient):
         response = requests.post(url, data=json.dumps(test_json),
                                  auth=self.auth, headers=headers)
         if response.status_code == 201:
-            return response.json()
+            return response.json()["uuid"]
         else:
             raise Exception("Error in adding test. Response = " + str(response.json()))
 
@@ -741,7 +741,7 @@ class TestLibrary(BaseClient):
         response = requests.put(url, data=json.dumps(test_json),
                                 auth=self.auth, headers=headers)
         if response.status_code == 202:
-            return response.json()
+            return response.json()["uuid"]
         else:
             raise Exception("Error in editing test. Response = " + str(response.json()))
 
@@ -906,7 +906,7 @@ class TestLibrary(BaseClient):
         response = requests.post(url, data=json.dumps([instance_data]),
                                  auth=self.auth, headers=headers)
         if response.status_code == 201:
-            return response.content
+            return response.json()["uuid"][0]
         else:
             raise Exception("Error in adding test instance. Response = " + str(response))
 
@@ -969,7 +969,7 @@ class TestLibrary(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
         if response.status_code == 202:
-            return response.content
+            return response.json()["uuid"][0]
         else:
             raise Exception("Error in editing test instance. Response = " + str(response.content))
 
@@ -1460,7 +1460,7 @@ class ModelCatalog(BaseClient):
         Returns
         -------
         UUID
-            (Verify!) UUID of the model description that has been created.
+            UUID of the model description that has been created.
 
         Examples
         --------
@@ -1521,7 +1521,7 @@ class ModelCatalog(BaseClient):
         response = requests.post(url, data=json.dumps(model_json),
                                  auth=self.auth, headers=headers)
         if response.status_code == 201:
-            return response.json()
+            return response.json()["uuid"]
         else:
             raise Exception("Error in adding model. Response = " + str(response.json()))
 
@@ -1572,7 +1572,7 @@ class ModelCatalog(BaseClient):
         Returns
         -------
         UUID
-            (Verify!) UUID of the model description that has been edited.
+            UUID of the model description that has been edited.
 
         Examples
         --------
@@ -1615,7 +1615,7 @@ class ModelCatalog(BaseClient):
         response = requests.put(url, data=json.dumps(model_json),
                                  auth=self.auth, headers=headers)
         if response.status_code == 202:
-            return response.json()
+            return response.json()["uuid"]
         else:
             raise Exception("Error in updating model. Response = " + str(response.json()))
 
@@ -1761,7 +1761,7 @@ class ModelCatalog(BaseClient):
         model_instances_json = model_instances_json.json()
         return model_instances_json["instances"]
 
-    def add_model_instance(self, model_id="", alias="", source="", version="", parameters=""):
+    def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters=""):
         """Register a new model instance.
 
         This allows to add a new instance of an existing model in the model catalog.
@@ -1777,8 +1777,10 @@ class ModelCatalog(BaseClient):
             Path to model source code repository (e.g. github).
         version : string
             User-assigned identifier (unique for each model) associated with model instance.
-        parameters : string
-            Any additional parameters to be submitted to model at runtime.
+        description : string, optional
+            Text describing this specific model instance.
+        parameters : string, optional
+            Any additional parameters to be submitted to model, or used by it, at runtime.
 
         Returns
         -------
@@ -1795,6 +1797,7 @@ class ModelCatalog(BaseClient):
         >>> instance_id = model_catalog.add_model_instance(model_id="196b89a3-e672-4b96-8739-748ba3850254",
                                                   source="https://www.abcde.com",
                                                   version="1.0",
+                                                  description="",
                                                   parameters="")
         """
 
@@ -1813,11 +1816,11 @@ class ModelCatalog(BaseClient):
         response = requests.post(url, data=json.dumps([instance_data]),
                                  auth=self.auth, headers=headers)
         if response.status_code == 201:
-            return response.json()
+            return response.json()["uuid"][0]
         else:
             raise Exception("Error in adding model instance. Response = " + str(response.json()))
 
-    def edit_model_instance(self, instance_id="", model_id="", alias="", source="", version="", parameters=""):
+    def edit_model_instance(self, instance_id="", model_id="", alias="", source="", version="", description="", parameters=""):
         """Edit an existing model instance.
 
         This allows to edit an instance of an existing model in the model catalog.
@@ -1843,13 +1846,15 @@ class ModelCatalog(BaseClient):
             Path to model source code repository (e.g. github).
         version : string
             User-assigned identifier (unique for each model) associated with model instance.
-        parameters : string
-            Any additional parameters to be submitted to model at runtime.
+        description : string, optional
+            Text describing this specific model instance.
+        parameters : string, optional
+            Any additional parameters to be submitted to model, or used by it, at runtime.
 
         Returns
         -------
         UUID
-            UUID of the model instance that has been created.
+            UUID of the model instance that has been edited.
 
         Examples
         --------
@@ -1857,6 +1862,7 @@ class ModelCatalog(BaseClient):
                                                 model_id="196b89a3-e672-4b96-8739-748ba3850254",
                                                 source="https://www.abcde.com",
                                                 version="10.0",
+                                                description="",
                                                 parameters="")
         """
 
@@ -1876,7 +1882,7 @@ class ModelCatalog(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
         if response.status_code == 202:
-            return response.json()
+            return response.json()["uuid"][0]
         else:
             raise Exception("Error in editing model instance. Response = " + str(response.json()))
 
@@ -2002,7 +2008,7 @@ class ModelCatalog(BaseClient):
         response = requests.post(url, data=json.dumps([image_data]),
                                  auth=self.auth, headers=headers)
         if response.status_code == 201:
-            return response.json()
+            return response.json()["uuid"][0]
         else:
             raise Exception("Error in adding image (figure). Response = " + str(response.json()))
 
@@ -2039,7 +2045,7 @@ class ModelCatalog(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([image_data]), auth=self.auth, headers=headers)
         if response.status_code == 202:
-            return response.json()
+            return response.json()["uuid"][0]
         else:
             raise Exception("Error in adding image (figure). Response = " + str(response.json()))
 
