@@ -596,7 +596,7 @@ class TestLibrary(BaseClient):
         Returns
         -------
         UUID
-            (Verify!) UUID of the test instance that has been created.
+            UUID of the test instance that has been created.
 
         Examples
         --------
@@ -642,7 +642,7 @@ class TestLibrary(BaseClient):
         response = requests.post(url, data=json.dumps(test_json),
                                  auth=self.auth, headers=headers)
         if response.status_code == 201:
-            return response.json()
+            return response.json()["uuid"]
         else:
             raise Exception("Error in adding test. Response = " + str(response.json()))
 
@@ -741,7 +741,7 @@ class TestLibrary(BaseClient):
         response = requests.put(url, data=json.dumps(test_json),
                                 auth=self.auth, headers=headers)
         if response.status_code == 202:
-            return response.json()
+            return response.json()["uuid"]
         else:
             raise Exception("Error in editing test. Response = " + str(response.json()))
 
@@ -906,7 +906,7 @@ class TestLibrary(BaseClient):
         response = requests.post(url, data=json.dumps([instance_data]),
                                  auth=self.auth, headers=headers)
         if response.status_code == 201:
-            return response.content
+            return response.json()["uuid"][0]
         else:
             raise Exception("Error in adding test instance. Response = " + str(response))
 
@@ -969,7 +969,7 @@ class TestLibrary(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
         if response.status_code == 202:
-            return response.content
+            return response.json()["uuid"][0]
         else:
             raise Exception("Error in editing test instance. Response = " + str(response.content))
 
@@ -1459,8 +1459,8 @@ class ModelCatalog(BaseClient):
 
         Returns
         -------
-        dict
-            dict with key "uuid" containing UUID of the model description that has been created.
+        UUID
+            UUID of the model description that has been created.
 
         Examples
         --------
@@ -1521,7 +1521,7 @@ class ModelCatalog(BaseClient):
         response = requests.post(url, data=json.dumps(model_json),
                                  auth=self.auth, headers=headers)
         if response.status_code == 201:
-            return response.json()
+            return response.json()["uuid"]
         else:
             raise Exception("Error in adding model. Response = " + str(response.json()))
 
@@ -1572,7 +1572,7 @@ class ModelCatalog(BaseClient):
         Returns
         -------
         UUID
-            (Verify!) UUID of the model description that has been edited.
+            UUID of the model description that has been edited.
 
         Examples
         --------
@@ -1615,7 +1615,7 @@ class ModelCatalog(BaseClient):
         response = requests.put(url, data=json.dumps(model_json),
                                  auth=self.auth, headers=headers)
         if response.status_code == 202:
-            return response.json()
+            return response.json()["uuid"]
         else:
             raise Exception("Error in updating model. Response = " + str(response.json()))
 
@@ -1764,7 +1764,7 @@ class ModelCatalog(BaseClient):
     def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters=""):
         """Register a new model instance.
 
-        This allows to add a new instance(s) of an existing model in the model catalog.
+        This allows to add a new instance of an existing model in the model catalog.
         The `model_id` needs to be specified as input parameter.
 
         Parameters
@@ -1784,8 +1784,8 @@ class ModelCatalog(BaseClient):
 
         Returns
         -------
-        dict
-            dict with key "uuid" containing list of UUIDs of new model instances that have been created.
+        UUID
+            UUID of the model instance that has been created.
 
         Note
         ----
@@ -1816,7 +1816,7 @@ class ModelCatalog(BaseClient):
         response = requests.post(url, data=json.dumps([instance_data]),
                                  auth=self.auth, headers=headers)
         if response.status_code == 201:
-            return response.json()
+            return response.json()["uuid"][0]
         else:
             raise Exception("Error in adding model instance. Response = " + str(response.json()))
 
@@ -1854,7 +1854,7 @@ class ModelCatalog(BaseClient):
         Returns
         -------
         UUID
-            UUID of the model instance that has been created.
+            UUID of the model instance that has been edited.
 
         Examples
         --------
@@ -1882,7 +1882,7 @@ class ModelCatalog(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
         if response.status_code == 202:
-            return response.json()
+            return response.json()["uuid"][0]
         else:
             raise Exception("Error in editing model instance. Response = " + str(response.json()))
 
@@ -2008,7 +2008,7 @@ class ModelCatalog(BaseClient):
         response = requests.post(url, data=json.dumps([image_data]),
                                  auth=self.auth, headers=headers)
         if response.status_code == 201:
-            return response.json()
+            return response.json()["uuid"][0]
         else:
             raise Exception("Error in adding image (figure). Response = " + str(response.json()))
 
@@ -2045,7 +2045,7 @@ class ModelCatalog(BaseClient):
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([image_data]), auth=self.auth, headers=headers)
         if response.status_code == 202:
-            return response.json()
+            return response.json()["uuid"][0]
         else:
             raise Exception("Error in adding image (figure). Response = " + str(response.json()))
 
