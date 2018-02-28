@@ -194,12 +194,11 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
                             model_instance_uuid = m_inst["id"]
                 if not model_instance_uuid:
                     # NEEDS TO BE GENERALIZED; CURRENTLY FOR BASALUNIT
-                    m_new_inst = model_catalog.add_model_instance(model_id=score.model.model_uuid,
+                    model_instance_uuid = model_catalog.add_model_instance(model_id=score.model.model_uuid,
                                                      source="https://NotYet.online",
                                                      version=score.model.instance_name,
                                                      description=score.model.model_hash,
                                                      parameters=json.dumps(score.model.params))
-                    model_instance_uuid = m_new_inst["uuid"][0]
             elif not model_metadata:
                 # no `score.model.model_instance_uuid` and no `model_metadata`
                 raise ValueError ("Model = {} => Results NOT saved on validation framework: no model.model_instance_uuid or model_metadata provided!".format(model))
@@ -220,7 +219,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
                                                         species=model_metadata["species"],
                                                         description=model_metadata["description"],
                                                         instances=model_metadata["instances"])
-                model_instance_id = model_catalog.get_model_instance(model_id=model_id["uuid"], version=model_metadata["instances"][0]["version"])
+                model_instance_id = model_catalog.get_model_instance(model_id=model_id, version=model_metadata["instances"][0]["version"])
                 model_instance_uuid = model_instance_id["id"]
 
             score.model.model_instance_uuid = model_instance_uuid
