@@ -148,11 +148,6 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     print("Model type: ", type(model))
     print("----------------------------------------------")
 
-    if not hbp_username:
-        print("\n==============================================")
-        print("Please enter your HBP username.")
-        hbp_username = raw_input('HBP Username: ')
-
     # Load the test
     if client_obj:
         test_library = TestLibrary.from_existing(client_obj)

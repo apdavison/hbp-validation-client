@@ -105,6 +105,11 @@ class BaseClient(object):
                 print("HBP authentication token file not found locally.")
 
             if self.token is None:
+                if not username:
+                    print("\n==============================================")
+                    print("Please enter your HBP username.")
+                    username = raw_input('HBP Username: ')
+
                 password = os.environ.get('HBP_PASS')
                 if password is not None:
                     try:
