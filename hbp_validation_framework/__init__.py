@@ -59,25 +59,13 @@ class BaseClient(object):
     def __init__(self, username=None,
                  password=None,
                  environment="production"):
-
+        self.environment = environment
         if environment == "production":
             self.url = "https://validation-v1.brainsimulation.eu"
             self.client_id = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
-            if isinstance(self, ModelCatalog):
-                self.app_id = 357
-                self.app_name = "Model Catalog"
-            elif isinstance(self, TestLibrary):
-                self.app_id = 360
-                self.app_name = "Validation Framework"
         elif environment == "dev":
             self.url = "https://validation-dev.brainsimulation.eu"
             self.client_id = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
-            if isinstance(self, ModelCatalog):
-                self.app_id = 348
-                self.app_name = "Model Catalog (dev)"
-            elif isinstance(self, TestLibrary):
-                self.app_id = 349
-                self.app_name = "Validation Framework (dev)"
         else:
             if os.path.isfile('config.json') and os.access('config.json', os.R_OK):
                 with open('config.json') as config_file:
@@ -331,8 +319,9 @@ class BaseClient(object):
     def from_existing(cls, client):
         """Used to easily create a TestLibrary if you already have a ModelCatalog, or vice versa"""
         obj = cls.__new__(cls)
-        for attrname in ("username", "url", "client_id", "token", "verify", "auth"):
+        for attrname in ("username", "url", "client_id", "token", "verify", "auth", "environment"):
             setattr(obj, attrname, getattr(client, attrname))
+        obj._set_app_info()
         return obj
 
 
@@ -394,6 +383,18 @@ class TestLibrary(BaseClient):
 
     >>> test_library = TestLibrary(hbp_username)
     """
+
+    def __init__(self, username=None, password=None, environment="production"):
+        super(TestLibrary, self).__init__(username, password, environment)
+        self._set_app_info()
+
+    def _set_app_info(self):
+        if self.environment == "production":
+            self.app_id = 360
+            self.app_name = "Validation Framework"
+        elif self.environment == "dev":
+            self.app_id = 349
+            self.app_name = "Validation Framework (dev)"
 
     def get_test_definition(self, test_path="", test_id = "", alias=""):
         """Retrieve a specific test definition.
@@ -1379,6 +1380,18 @@ class ModelCatalog(BaseClient):
 
     >>> model_catalog = ModelCatalog(hbp_username)
     """
+
+    def __init__(self, username=None, password=None, environment="production"):
+        super(ModelCatalog, self).__init__(username, password, environment)
+        self._set_app_info()
+
+    def _set_app_info(self):
+        if self.environment == "production":
+            self.app_id = 357
+            self.app_name = "Model Catalog"
+        elif self.environment == "dev":
+            self.app_id = 348
+            self.app_name = "Model Catalog (dev)"
 
     def get_model(self, model_id="", alias="", instances=True, images=True):
         """Retrieve a specific model description by its model_id or alias.
