@@ -186,6 +186,30 @@ class BaseClient(object):
             print ("New {} app created in this Collab. App nav ID: {}".format(self.app_name,app_nav_id))
         return app_nav_id
 
+    def _configure_app_collab(self, config_data):
+        """
+        Used to configure the apps inside a Collab
+        """
+        if not config_data["config"]["collab_id"]:
+            raise ValueError("`collab_id` cannot be empty!")
+        if not config_data["config"]["app_id"]:
+            raise ValueError("`app_id` cannot be empty!")
+        # check if the app has previously been configured: decide POST or PUT
+        response = requests.get(config_data["url"]+"?app_id="+str(config_data["config"]["app_id"]), auth=self.auth)
+        headers = {'Content-type': 'application/json'}
+        config_data["config"]["id"] = config_data["config"]["app_id"]
+        app_id = config_data["config"].pop("app_id")
+        print "response.json() = ", response.json()
+        if not response.json()["param"]:
+            response = requests.post(config_data["url"], data=json.dumps(config_data["config"]),
+                                     auth=self.auth, headers=headers)
+        else:
+            response = requests.put(config_data["url"], data=json.dumps(config_data["config"]),
+                                     auth=self.auth, headers=headers)
+        print "response.json() = ", response.content
+        if response.json()["uuid"] == str(config_data["config"]["id"]):
+            print("App has beeen sucessfully configured!")
+
     def _hbp_auth(self, username, password):
         """
         HBP authentication
@@ -395,6 +419,15 @@ class TestLibrary(BaseClient):
         elif self.environment == "dev":
             self.app_id = 349
             self.app_name = "Validation Framework (dev)"
+
+    def set_collab_config(self, collab_id="", app_id="", data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
+        inputArgs = locals()
+        params = {}
+        params["url"] = self.url + "/parametersconfiguration-validation-app/parametersconfigurationrest/"
+        params["config"] = inputArgs
+        params["config"].pop("self")
+        params["config"]["app_type"] = "validation_app"
+        self._configure_app_collab(params)
 
     def get_test_definition(self, test_path="", test_id = "", alias=""):
         """Retrieve a specific test definition.
@@ -1395,6 +1428,15 @@ class ModelCatalog(BaseClient):
         elif self.environment == "dev":
             self.app_id = 348
             self.app_name = "Model Catalog (dev)"
+
+    def set_collab_config(self, collab_id="", app_id="", data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
+        inputArgs = locals()
+        params = {}
+        params["url"] = self.url + "/parametersconfiguration-model-catalog/parametersconfigurationrest/"
+        params["config"] = inputArgs
+        params["config"].pop("self")
+        params["config"]["app_type"] = "model_catalog"
+        self._configure_app_collab(params)
 
     def get_model(self, model_id="", alias="", instances=True, images=True):
         """Retrieve a specific model description by its model_id or alias.
