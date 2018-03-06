@@ -226,7 +226,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
 
         if not storage_collab_id:
             storage_collab_id = model_host_collab_id
-            score.related_data["project"] = storage_collab_id
+        score.related_data["project"] = storage_collab_id
         #     print "=============================================="
         #     print "Enter Collab ID for Data Storage (if applicable)"
         #     print "(Leave empty for Model's host collab, i.e. ", model_host_collab_id, ")"
