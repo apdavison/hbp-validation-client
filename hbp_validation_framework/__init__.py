@@ -63,9 +63,21 @@ class BaseClient(object):
         if environment == "production":
             self.url = "https://validation-v1.brainsimulation.eu"
             self.client_id = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
+            if isinstance(self, ModelCatalog):
+                self.app_id = 357
+                self.app_name = "Model Catalog"
+            elif isinstance(self, TestLibrary):
+                self.app_id = 360
+                self.app_name = "Validation Framework"
         elif environment == "dev":
             self.url = "https://validation-dev.brainsimulation.eu"
             self.client_id = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
+            if isinstance(self, ModelCatalog):
+                self.app_id = 348
+                self.app_name = "Model Catalog (dev)"
+            elif isinstance(self, TestLibrary):
+                self.app_id = 349
+                self.app_name = "Validation Framework (dev)"
         else:
             if os.path.isfile('config.json') and os.access('config.json', os.R_OK):
                 with open('config.json') as config_file:
@@ -150,6 +162,41 @@ class BaseClient(object):
             return True
         else:
             return False
+
+    def exists_in_collab_else_create(self, collab_id):
+        """
+        Checks with the hbp-collab-service if the Model Catalog / Validation Framework app
+        exists inside the current collab (if run inside the Collaboratory), or collab ID
+        specified by the user (when run externally).
+        """
+        try:
+            url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/all/"
+            response = requests.get(url, auth=HBPAuth(self.token))
+        except ValueError:
+            print("Error contacting hbp-collab-service for collab info. Possibly invalid Collab ID: {}".format(collab_id))
+
+        for app_item in response.json():
+            if app_item["app_id"] == str(self.app_id):
+                app_nav_id = app_item["id"]
+                print ("Using existing {} app in this Collab. App nav ID: {}".format(self.app_name,app_nav_id))
+                break
+        else:
+            url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/root/"
+            collab_root = requests.get(url, auth=HBPAuth(self.token)).json()["id"]
+            import uuid
+            app_info = {"app_id": self.app_id,
+                        "context": str(uuid.uuid4()),
+                        "name": self.app_name,
+                        "order_index": "-1",
+                        "parent": collab_root,
+                        "type": "IT"}
+            url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/"
+            headers = {'Content-type': 'application/json'}
+            response = requests.post(url, data=json.dumps(app_info),
+                                     auth=HBPAuth(self.token), headers=headers)
+            app_nav_id = response.json()["id"]
+            print ("New {} app created in this Collab. App nav ID: {}".format(self.app_name,app_nav_id))
+        return app_nav_id
 
     def _hbp_auth(self, username, password):
         """
