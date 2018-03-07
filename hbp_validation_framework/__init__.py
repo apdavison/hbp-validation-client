@@ -199,14 +199,12 @@ class BaseClient(object):
         headers = {'Content-type': 'application/json'}
         config_data["config"]["id"] = config_data["config"]["app_id"]
         app_id = config_data["config"].pop("app_id")
-        print "response.json() = ", response.json()
         if not response.json()["param"]:
             response = requests.post(config_data["url"], data=json.dumps(config_data["config"]),
                                      auth=self.auth, headers=headers)
         else:
             response = requests.put(config_data["url"], data=json.dumps(config_data["config"]),
                                      auth=self.auth, headers=headers)
-        print "response.json() = ", response.content
         if response.json()["uuid"] == str(config_data["config"]["id"]):
             print("App has beeen sucessfully configured!")
 
