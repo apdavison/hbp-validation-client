@@ -225,8 +225,6 @@ class BaseClient(object):
                 response = requests.put(config_data["url"], data=json.dumps(config_data["config"]),
                                          auth=self.auth, headers=headers)
                 print("Existing app has beeen sucessfully reconfigured!")
-            else:
-                print("An app already exists inside this Collab; configuration is unchanged!")
 
     def _hbp_auth(self, username, password):
         """
