@@ -188,7 +188,23 @@ class BaseClient(object):
 
     def _configure_app_collab(self, config_data):
         """
-        Used to configure the apps inside a Collab
+        Used to configure the apps inside a Collab. Example `config_data`:
+            {
+               "config":{
+                  "app_id":68489,
+                  "app_type":"model_catalog",
+                  "brain_region":"",
+                  "cell_type":"",
+                  "collab_id":8123,
+                  "data_modalities":"",
+                  "model_type":"",
+                  "organization":"",
+                  "species":"",
+                  "test_type":""
+               },
+               "only_if_new":"False",
+               "url":"https://validation-v1.brainsimulation.eu/parametersconfiguration-model-catalog/parametersconfigurationrest/"
+            }
         """
         if not config_data["config"]["collab_id"]:
             raise ValueError("`collab_id` cannot be empty!")
@@ -202,11 +218,15 @@ class BaseClient(object):
         if not response.json()["param"]:
             response = requests.post(config_data["url"], data=json.dumps(config_data["config"]),
                                      auth=self.auth, headers=headers)
+            if response.json()["uuid"] == str(config_data["config"]["id"]):
+                print("New app has beeen created and sucessfully configured!")
         else:
-            response = requests.put(config_data["url"], data=json.dumps(config_data["config"]),
-                                     auth=self.auth, headers=headers)
-        if response.json()["uuid"] == str(config_data["config"]["id"]):
-            print("App has beeen sucessfully configured!")
+            if not config_data["only_if_new"]:
+                response = requests.put(config_data["url"], data=json.dumps(config_data["config"]),
+                                         auth=self.auth, headers=headers)
+                print("Existing app has beeen sucessfully reconfigured!")
+            else:
+                print("An app already exists inside this Collab; configuration is unchanged!")
 
     def _hbp_auth(self, username, password):
         """
@@ -418,12 +438,14 @@ class TestLibrary(BaseClient):
             self.app_id = 349
             self.app_name = "Validation Framework (dev)"
 
-    def set_collab_config(self, collab_id="", app_id="", data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
+    def set_collab_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
         inputArgs = locals()
         params = {}
         params["url"] = self.url + "/parametersconfiguration-validation-app/parametersconfigurationrest/"
+        params["only_if_new"] = only_if_new
         params["config"] = inputArgs
         params["config"].pop("self")
+        params["config"].pop("only_if_new")
         params["config"]["app_type"] = "validation_app"
         self._configure_app_collab(params)
 
@@ -1427,12 +1449,14 @@ class ModelCatalog(BaseClient):
             self.app_id = 348
             self.app_name = "Model Catalog (dev)"
 
-    def set_collab_config(self, collab_id="", app_id="", data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
+    def set_collab_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
         inputArgs = locals()
         params = {}
         params["url"] = self.url + "/parametersconfiguration-model-catalog/parametersconfigurationrest/"
+        params["only_if_new"] = only_if_new
         params["config"] = inputArgs
         params["config"].pop("self")
+        params["config"].pop("only_if_new")
         params["config"]["app_type"] = "model_catalog"
         self._configure_app_collab(params)
 
