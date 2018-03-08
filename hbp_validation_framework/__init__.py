@@ -1629,8 +1629,9 @@ class ModelCatalog(BaseClient):
             raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
         if species not in values["species"]:
             raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
+        values["organization"].append("")   # allow blank organization field
         if organization not in values["organization"]:
-            raise Exception("organization = '" +organization+"' is invalid.\nValue has to be one of these: " + str(values["organization"]+[""]))
+            raise Exception("organization = '" +organization+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
 
         if private not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
@@ -1724,6 +1725,7 @@ class ModelCatalog(BaseClient):
             raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
         if species not in values["species"]:
             raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
+        values["organization"].append("")   # allow blank organization field
         if organization not in values["organization"]:
             raise Exception("organization = '" +organization+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
 
