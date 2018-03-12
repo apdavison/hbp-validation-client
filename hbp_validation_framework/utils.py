@@ -182,11 +182,14 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
             model_instance_uuid = None
             if getattr(score.model, 'model_uuid', False):
                 # no `score.model.model_instance_uuid` but `score.model.model_uuid` present
-                model_instances = model_catalog.list_model_instances(model_id=score.model.model_uuid)
-                if len(model_instances) > 0:
-                    for m_inst in model_instances:
-                        if m_inst["description"] == score.model.model_hash:
-                            model_instance_uuid = m_inst["id"]
+                if getattr(score.model, 'model_hash', False):
+                    # check to find if a model instance with same hash value exists
+                    # if yes then use its model_instance_uuid
+                    model_instances = model_catalog.list_model_instances(model_id=score.model.model_uuid)
+                    if len(model_instances) > 0:
+                        for m_inst in model_instances:
+                            if m_inst["description"] == score.model.model_hash:
+                                model_instance_uuid = m_inst["id"]
                 if not model_instance_uuid:
                     if not getattr(score.model, 'source', False):
                         score.model.source = "https://NotYet.online"
