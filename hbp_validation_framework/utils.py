@@ -188,11 +188,21 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
                         if m_inst["description"] == score.model.model_hash:
                             model_instance_uuid = m_inst["id"]
                 if not model_instance_uuid:
-                    # NEEDS TO BE GENERALIZED; CURRENTLY FOR BASALUNIT
+                    if not getattr(score.model, 'source', False):
+                        score.model.source = "https://NotYet.online"
+                    if not getattr(score.model, 'description', False):
+                        if getattr(score.model, 'model_hash', False):
+                            score.model.description = score.model.model_hash
+                        else:
+                            score.model.description = ""
+                    print score.model
+                    print score.model.version
+                    if not getattr(score.model, 'version', False):
+                        raise NameError("You need to specify a value for model version.")
                     model_instance_uuid = model_catalog.add_model_instance(model_id=score.model.model_uuid,
-                                                     source="https://NotYet.online",
-                                                     version=score.model.instance_name,
-                                                     description=score.model.model_hash,
+                                                     source=score.model.source,
+                                                     version=score.model.version,
+                                                     description=score.model.description,
                                                      parameters=json.dumps(score.model.params))
             elif not model_metadata:
                 # no `score.model.model_instance_uuid` and no `model_metadata`
