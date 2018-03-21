@@ -90,7 +90,7 @@ class CollabDataStore(object):
             name = ""
             if folder_path:  # if there are subdirectories...
                 for subdir in folder_path.split("/"):
-                    name  = name + subdir
+                    name  = name + subdir + "_"
                 """
                 if folder_path in cached_folders:
                     parent = cached_folders[folder_path]
