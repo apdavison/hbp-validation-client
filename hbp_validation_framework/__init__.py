@@ -151,14 +151,14 @@ class BaseClient(object):
     def exists_in_collab_else_create(self, collab_id):
         """
         Checks with the hbp-collab-service if the Model Catalog / Validation Framework app
-        exists inside the current collab (if run inside the Collaboratory), or collab ID
+        exists inside the current collab (if run inside the Collaboratory), or Collab ID
         specified by the user (when run externally).
         """
         try:
             url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/all/"
             response = requests.get(url, auth=HBPAuth(self.token))
         except ValueError:
-            print("Error contacting hbp-collab-service for collab info. Possibly invalid Collab ID: {}".format(collab_id))
+            print("Error contacting hbp-collab-service for Collab info. Possibly invalid Collab ID: {}".format(collab_id))
 
         for app_item in response.json():
             if app_item["app_id"] == str(self.app_id):
@@ -301,7 +301,7 @@ class BaseClient(object):
     def _translate_URL_to_UUID(self, path):
         """
         Can take a path such as `collab:///5165/hippoCircuit_20171027-142713`
-        with 5165 being the collab ID and the latter part being the target folder
+        with 5165 being the Collab ID and the latter part being the target folder
         name, and translate this to the UUID on the HBP Collaboratory storage.
         The target can be a file or folder.
         """
@@ -1230,7 +1230,7 @@ class TestLibrary(BaseClient):
         if project is None:
             project = test_result.related_data.get("project", None)
         if project is None:
-            raise Exception("Don't know where to register this result. Please specify the collab ID")
+            raise Exception("Don't know where to register this result. Please specify the Collab ID")
 
         if not hasattr(test_result.model, "model_instance_uuid"):
             # check that the model is registered with the model registry.

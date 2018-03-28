@@ -86,7 +86,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     Parameters
     ----------
     hbp_username : string
-        Your HBP collaboratory username.
+        Your HBP Collaboratory username.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
@@ -104,7 +104,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     test_version : string
         User-assigned identifier (unique for each test) associated with test instance.
     storage_collab_id : string
-        Collab ID where output files should be stored; if empty, stored in model's host collab.
+        Collab ID where output files should be stored; if empty, stored in model's host Collab.
     register_result : boolean
         Specify whether the test results are to be scored on the validation framework.
         Default is set as True.
