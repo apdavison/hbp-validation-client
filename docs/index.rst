@@ -82,28 +82,28 @@ General Info
   For more information, please visit: https://services.humanbrainproject.eu/oidc/account/request
 
 * Collabs on the HBP Collaboratory can be either public or private. Public
-  collabs can be accessed by all registered users, whereas private collabs
+  Collabs can be accessed by all registered users, whereas private Collabs
   require the user to be granted permission for access.
 
 * The *Model Catalog* and the *Validation Framework* apps can be added to any
-  collab. A collab may have multiple instances of these apps. The apps require
+  Collab. A Collab may have multiple instances of these apps. The apps require
   to be *configured* by setting the provided filters appropriately before they
   can be used. These filters restrict the type of data displayed in that particular
   instance of the app.
 
 * All tests are public, i.e. every test registered on the *Validation Framework*
-  can can be seen by all users.
+  can be seen by all users.
 
-* Models are created inside specific collab instances of the *Model Catalog* app.
+* Models are created inside specific Collab instances of the *Model Catalog* app.
   The particular app inside which a model was created is termed its *host app*.
-  Similarly, the collab containing the *host app* is termed the *host collab*.
+  Similarly, the Collab containing the *host app* is termed the *host Collab*.
 
 * Models can be set as public/private. If public, the model and its associated
   results are available to all users. If private, it can only be seen by users who
-  have access to the *host collab*.
+  have access to the *host Collab*.
 
-* No information can be deleted from the *Model Catalog* and *Validation Framework* 
-  apps. In future, an option to *hide* data would be implemented. This would offer 
+* No information can be deleted from the *Model Catalog* and *Validation Framework*
+  apps. In future, an option to *hide* data would be implemented. This would offer
   users functionality similar to deleting, but with the data being retained in the
   database back-end.
 

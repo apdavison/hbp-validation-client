@@ -148,11 +148,6 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     print("Model type: ", type(model))
     print("----------------------------------------------")
 
-    if not hbp_username:
-        print("\n==============================================")
-        print("Please enter your HBP username.")
-        hbp_username = raw_input('HBP Username: ')
-
     # Load the test
     if client_obj:
         test_library = TestLibrary.from_existing(client_obj)
@@ -189,17 +184,36 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
                 # no `score.model.model_instance_uuid` but `score.model.model_uuid` present
                 model_instances = model_catalog.list_model_instances(model_id=score.model.model_uuid)
                 if len(model_instances) > 0:
-                    for m_inst in model_instances:
-                        if m_inst["description"] == score.model.model_hash:
-                            model_instance_uuid = m_inst["id"]
+                    if getattr(score.model, 'version', False):
+                        # check to find if a model instance with same version exists
+                        # if yes then use its model_instance_uuid
+                        for m_inst in model_instances:
+                            if m_inst["version"] == score.model.version:
+                                model_instance_uuid = m_inst["id"]
+                    if not model_instance_uuid and getattr(score.model, 'model_hash', False):
+                        # if no matching model instance was found using version, then:
+                        # check to find if a model instance with same hash value exists
+                        # if yes then use its model_instance_uuid
+                        for m_inst in model_instances:
+                            if m_inst["description"] == score.model.model_hash:
+                                model_instance_uuid = m_inst["id"]
                 if not model_instance_uuid:
-                    # NEEDS TO BE GENERALIZED; CURRENTLY FOR BASALUNIT
-                    m_new_inst = model_catalog.add_model_instance(model_id=score.model.model_uuid,
-                                                     source="https://NotYet.online",
-                                                     version=score.model.instance_name,
-                                                     description=score.model.model_hash,
+                    if not getattr(score.model, 'source', False):
+                        score.model.source = "https://NotYet.online"
+                    if not getattr(score.model, 'description', False):
+                        if getattr(score.model, 'model_hash', False):
+                            score.model.description = score.model.model_hash
+                        else:
+                            score.model.description = ""
+                    print score.model
+                    print score.model.version
+                    if not getattr(score.model, 'version', False):
+                        raise NameError("You need to specify a value for model version.")
+                    model_instance_uuid = model_catalog.add_model_instance(model_id=score.model.model_uuid,
+                                                     source=score.model.source,
+                                                     version=score.model.version,
+                                                     description=score.model.description,
                                                      parameters=json.dumps(score.model.params))
-                    model_instance_uuid = m_new_inst["uuid"][0]
             elif not model_metadata:
                 # no `score.model.model_instance_uuid` and no `model_metadata`
                 raise ValueError ("Model = {} => Results NOT saved on validation framework: no model.model_instance_uuid or model_metadata provided!".format(model))
@@ -220,7 +234,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
                                                         species=model_metadata["species"],
                                                         description=model_metadata["description"],
                                                         instances=model_metadata["instances"])
-                model_instance_id = model_catalog.get_model_instance(model_id=model_id["uuid"], version=model_metadata["instances"][0]["version"])
+                model_instance_id = model_catalog.get_model_instance(model_id=model_id, version=model_metadata["instances"][0]["version"])
                 model_instance_uuid = model_instance_id["id"]
 
             score.model.model_instance_uuid = model_instance_uuid
@@ -232,7 +246,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
 
         if not storage_collab_id:
             storage_collab_id = model_host_collab_id
-            score.related_data["project"] = storage_collab_id
+        score.related_data["project"] = storage_collab_id
         #     print "=============================================="
         #     print "Enter Collab ID for Data Storage (if applicable)"
         #     print "(Leave empty for Model's host collab, i.e. ", model_host_collab_id, ")"
@@ -288,9 +302,10 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
 
     Returns
     -------
-    list, path
-        List of valid UUIDs for which the PDF report was generated, and
-        the absolute path of the generated report.
+    list
+        List of valid UUIDs for which the PDF report was generated
+    path
+        The absolute path of the generated report
 
     Examples
     --------

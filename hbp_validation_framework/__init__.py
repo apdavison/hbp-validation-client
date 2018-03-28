@@ -22,10 +22,7 @@ import socket
 import json
 import ast
 import getpass
-import quantities
 import requests
-import tarfile
-import zipfile
 from requests.auth import AuthBase
 from .datastores import URI_SCHEME_MAP
 
@@ -59,7 +56,7 @@ class BaseClient(object):
     def __init__(self, username=None,
                  password=None,
                  environment="production"):
-
+        self.environment = environment
         if environment == "production":
             self.url = "https://validation-v1.brainsimulation.eu"
             self.client_id = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
@@ -105,6 +102,11 @@ class BaseClient(object):
                 print("HBP authentication token file not found locally.")
 
             if self.token is None:
+                if not username:
+                    print("\n==============================================")
+                    print("Please enter your HBP username.")
+                    username = raw_input('HBP Username: ')
+
                 password = os.environ.get('HBP_PASS')
                 if password is not None:
                     try:
@@ -145,6 +147,81 @@ class BaseClient(object):
             return True
         else:
             return False
+
+    def exists_in_collab_else_create(self, collab_id):
+        """
+        Checks with the hbp-collab-service if the Model Catalog / Validation Framework app
+        exists inside the current collab (if run inside the Collaboratory), or collab ID
+        specified by the user (when run externally).
+        """
+        try:
+            url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/all/"
+            response = requests.get(url, auth=HBPAuth(self.token))
+        except ValueError:
+            print("Error contacting hbp-collab-service for collab info. Possibly invalid Collab ID: {}".format(collab_id))
+
+        for app_item in response.json():
+            if app_item["app_id"] == str(self.app_id):
+                app_nav_id = app_item["id"]
+                print ("Using existing {} app in this Collab. App nav ID: {}".format(self.app_name,app_nav_id))
+                break
+        else:
+            url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/root/"
+            collab_root = requests.get(url, auth=HBPAuth(self.token)).json()["id"]
+            import uuid
+            app_info = {"app_id": self.app_id,
+                        "context": str(uuid.uuid4()),
+                        "name": self.app_name,
+                        "order_index": "-1",
+                        "parent": collab_root,
+                        "type": "IT"}
+            url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/"
+            headers = {'Content-type': 'application/json'}
+            response = requests.post(url, data=json.dumps(app_info),
+                                     auth=HBPAuth(self.token), headers=headers)
+            app_nav_id = response.json()["id"]
+            print ("New {} app created in this Collab. App nav ID: {}".format(self.app_name,app_nav_id))
+        return app_nav_id
+
+    def _configure_app_collab(self, config_data):
+        """
+        Used to configure the apps inside a Collab. Example `config_data`:
+            {
+               "config":{
+                  "app_id":68489,
+                  "app_type":"model_catalog",
+                  "brain_region":"",
+                  "cell_type":"",
+                  "collab_id":8123,
+                  "data_modalities":"",
+                  "model_type":"",
+                  "organization":"",
+                  "species":"",
+                  "test_type":""
+               },
+               "only_if_new":"False",
+               "url":"https://validation-v1.brainsimulation.eu/parametersconfiguration-model-catalog/parametersconfigurationrest/"
+            }
+        """
+        if not config_data["config"]["collab_id"]:
+            raise ValueError("`collab_id` cannot be empty!")
+        if not config_data["config"]["app_id"]:
+            raise ValueError("`app_id` cannot be empty!")
+        # check if the app has previously been configured: decide POST or PUT
+        response = requests.get(config_data["url"]+"?app_id="+str(config_data["config"]["app_id"]), auth=self.auth)
+        headers = {'Content-type': 'application/json'}
+        config_data["config"]["id"] = config_data["config"]["app_id"]
+        app_id = config_data["config"].pop("app_id")
+        if not response.json()["param"]:
+            response = requests.post(config_data["url"], data=json.dumps(config_data["config"]),
+                                     auth=self.auth, headers=headers)
+            if response.json()["uuid"] == str(config_data["config"]["id"]):
+                print("New app has beeen created and sucessfully configured!")
+        else:
+            if not config_data["only_if_new"]:
+                response = requests.put(config_data["url"], data=json.dumps(config_data["config"]),
+                                         auth=self.auth, headers=headers)
+                print("Existing app has beeen sucessfully reconfigured!")
 
     def _hbp_auth(self, username, password):
         """
@@ -279,8 +356,9 @@ class BaseClient(object):
     def from_existing(cls, client):
         """Used to easily create a TestLibrary if you already have a ModelCatalog, or vice versa"""
         obj = cls.__new__(cls)
-        for attrname in ("username", "url", "client_id", "token", "verify", "auth"):
+        for attrname in ("username", "url", "client_id", "token", "verify", "auth", "environment"):
             setattr(obj, attrname, getattr(client, attrname))
+        obj._set_app_info()
         return obj
 
 
@@ -342,6 +420,29 @@ class TestLibrary(BaseClient):
 
     >>> test_library = TestLibrary(hbp_username)
     """
+
+    def __init__(self, username=None, password=None, environment="production"):
+        super(TestLibrary, self).__init__(username, password, environment)
+        self._set_app_info()
+
+    def _set_app_info(self):
+        if self.environment == "production":
+            self.app_id = 360
+            self.app_name = "Validation Framework"
+        elif self.environment == "dev":
+            self.app_id = 349
+            self.app_name = "Validation Framework (dev)"
+
+    def set_collab_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
+        inputArgs = locals()
+        params = {}
+        params["url"] = self.url + "/parametersconfiguration-validation-app/parametersconfigurationrest/"
+        params["only_if_new"] = only_if_new
+        params["config"] = inputArgs
+        params["config"].pop("self")
+        params["config"].pop("only_if_new")
+        params["config"]["app_type"] = "validation_app"
+        self._configure_app_collab(params)
 
     def get_test_definition(self, test_path="", test_id = "", alias=""):
         """Retrieve a specific test definition.
@@ -475,32 +576,8 @@ class TestLibrary(BaseClient):
         # Load the reference data ("observations")
         observation_data = self._load_reference_data(test_json["data_location"])
 
-        # Transform string representations of quantities, e.g. "-65 mV",
-        # into :class:`quantities.Quantity` objects.
-
-        # note: we shouldn't really do this here; this should be done in the test classes
-        observations = {}
-        if type(observation_data.values()[0]) is dict:
-            observations = observation_data
-        else:
-            for key, val in observation_data.items():
-                try:
-                    observations[key] = int(val)
-                except ValueError:
-                    try:
-                        observations[key] = float(val)
-                    except ValueError:
-                        quantity_parts = val.split(" ")
-                        try:
-                            number = float(quantity_parts[0])
-                        except ValueError:
-                            observations[key] = val
-                        else:
-                            units = " ".join(quantity_parts[1:])
-                            observations[key] = quantities.Quantity(number, units)
-
         # Create the :class:`sciunit.Test` instance
-        test_instance = test_cls(observation=observations, observation_dir=self.observation_dir, **params)
+        test_instance = test_cls(observation=observation_data, **params)
         test_instance.uuid = test_instance_json["id"]
         return test_instance
 
@@ -983,37 +1060,9 @@ class TestLibrary(BaseClient):
         # the zip/tar file. This is loaded as observation data and any other
         # files or directories can be used by the test for plotting etc.
         # These requirements may be relaxed in the future.
-
-        if not uri.lower().endswith(('.json', '.zip', '.tar.gz', '.tar')):
-            raise Exception("Currently only .json, .zip, .tar, .tar.gz files supported for observation data.")
-
         parse_result = urlparse(uri)
         datastore = URI_SCHEME_MAP[parse_result.scheme](auth=self.auth)
         observation_data = datastore.load_data(uri)
-
-        if uri.lower().endswith(('.zip', '.tar.gz', '.tar')):
-            filename = os.path.basename(uri)
-            obs_base_dir = os.path.abspath("./temp")
-            if not os.path.exists(obs_base_dir):
-                os.makedirs(obs_base_dir)
-            # presuming no query variables in the uri
-            with open(os.path.join(obs_base_dir, filename), "w+") as fileobj:
-                fileobj.write("%s" % observation_data)
-
-            filepath = os.path.join(obs_base_dir, filename)
-            if (uri.lower().endswith(".zip")):
-                file_ref = zipfile.ZipFile(filepath, 'r')
-            elif (uri.lower().endswith(".tar.gz")):
-                file_ref = tarfile.open(filepath, "r:gz")
-            elif (uri.lower().endswith(".tar")):
-                file_ref = tarfile.open(filepath, "r:")
-            file_ref.extractall(obs_base_dir)
-            file_ref.close()
-            self.observation_dir = os.path.join(obs_base_dir, os.path.splitext(filename)[0])
-
-            # load JSON from the zip/tar file_ref
-            with open(os.path.join(self.observation_dir, os.path.splitext(filename)[0]+".json")) as data_file:
-                observation_data = json.load(data_file)
         return observation_data
 
     def get_attribute_options(self, param=""):
@@ -1147,6 +1196,9 @@ class TestLibrary(BaseClient):
             a :class:`sciunit.Score` instance returned by `test.judge(model)`
         data_store : :class:`DataStore`
             a :class:`DataStore` instance, for uploading related data generated by the test run, e.g. figures.
+        project : int
+            Numeric input specifying the Collab ID, e.g. 8123.
+            This is used to indicate the Collab where results should be saved.
 
         Note
         ----
@@ -1328,6 +1380,29 @@ class ModelCatalog(BaseClient):
     >>> model_catalog = ModelCatalog(hbp_username)
     """
 
+    def __init__(self, username=None, password=None, environment="production"):
+        super(ModelCatalog, self).__init__(username, password, environment)
+        self._set_app_info()
+
+    def _set_app_info(self):
+        if self.environment == "production":
+            self.app_id = 357
+            self.app_name = "Model Catalog"
+        elif self.environment == "dev":
+            self.app_id = 348
+            self.app_name = "Model Catalog (dev)"
+
+    def set_collab_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
+        inputArgs = locals()
+        params = {}
+        params["url"] = self.url + "/parametersconfiguration-model-catalog/parametersconfigurationrest/"
+        params["only_if_new"] = only_if_new
+        params["config"] = inputArgs
+        params["config"].pop("self")
+        params["config"].pop("only_if_new")
+        params["config"]["app_type"] = "model_catalog"
+        self._configure_app_collab(params)
+
     def get_model(self, model_id="", alias="", instances=True, images=True):
         """Retrieve a specific model description by its model_id or alias.
 
@@ -1499,8 +1574,9 @@ class ModelCatalog(BaseClient):
             raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
         if species not in values["species"]:
             raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
+        values["organization"].append("")   # allow blank organization field
         if organization not in values["organization"]:
-            raise Exception("organization = '" +organization+"' is invalid.\nValue has to be one of these: " + str(values["organization"]+[""]))
+            raise Exception("organization = '" +organization+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
 
         if private not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
@@ -1594,6 +1670,7 @@ class ModelCatalog(BaseClient):
             raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
         if species not in values["species"]:
             raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
+        values["organization"].append("")   # allow blank organization field
         if organization not in values["organization"]:
             raise Exception("organization = '" +organization+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
 

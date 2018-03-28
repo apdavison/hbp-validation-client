@@ -74,25 +74,32 @@ class CollabDataStore(object):
         base_folder_id = self._make_folders(self.base_folder, parent=project_id)
 
         if len(file_paths) > 1:
-            common_prefix = os.path.commonprefix(file_paths)
-            assert common_prefix[-1] == "/"
+            common_base_dir = os.path.dirname(os.path.commonprefix(file_paths))
         else:
-            common_prefix = os.path.dirname(file_paths[0])
-        relative_paths = [os.path.relpath(p, common_prefix) for p in file_paths]
+            common_base_dir = os.path.dirname(file_paths[0])
+        relative_paths = [os.path.relpath(p, common_base_dir) for p in file_paths]
 
-        cached_folders = {}  # avoid unecessary network calls
+        cached_folders = {}  # avoid unnecessary network calls
         for local_path, relative_path in zip(file_paths, relative_paths):
 
             parent = base_folder_id
             folder_path = os.path.dirname(relative_path)
+
+            # temporary fix: all files in a single directory in Collab storage
+            # if subdirs, then saved filename = `subdir1_subdir2_....subdirN_filename`
+            name = ""
             if folder_path:  # if there are subdirectories...
+                for subdir in folder_path.split("/"):
+                    name  = name + subdir + "_"
+                """
                 if folder_path in cached_folders:
                     parent = cached_folders[folder_path]
                 else:
                     parent = self._make_folders(folder_path, parent=parent)
                     cached_folders[folder_path] = parent
+                """
 
-            name = os.path.basename(relative_path)
+            name = name + os.path.basename(relative_path)
             content_type = mimetypes.guess_type(local_path)[0]
             file_entity = self.doc_client.create_file(name, content_type, parent)
             etag = self.doc_client.upload_file_content(file_entity['uuid'],
