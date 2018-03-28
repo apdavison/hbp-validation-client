@@ -86,7 +86,7 @@ class CollabDataStore(object):
             folder_path = os.path.dirname(relative_path)
 
             # temporary fix: all files in a single directory in Collab storage
-            # if subdirs, then saved filename = `subdir1_subdir2_....subdirN_filename"
+            # if subdirs, then saved filename = `subdir1_subdir2_....subdirN_filename`
             name = ""
             if folder_path:  # if there are subdirectories...
                 for subdir in folder_path.split("/"):

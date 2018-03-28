@@ -302,9 +302,10 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
 
     Returns
     -------
-    list, path
-        List of valid UUIDs for which the PDF report was generated, and
-        the absolute path of the generated report.
+    list
+        List of valid UUIDs for which the PDF report was generated
+    path
+        The absolute path of the generated report
 
     Examples
     --------
