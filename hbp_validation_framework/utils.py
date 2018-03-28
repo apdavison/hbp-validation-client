@@ -25,8 +25,6 @@ import sciunit
 from datetime import datetime
 from . import TestLibrary, ModelCatalog
 from .datastores import CollabDataStore
-from fpdf import FPDF
-from PyPDF2 import PdfFileMerger, PdfFileReader
 
 def view_json_tree(data):
     """Displays the JSON tree structure inside the web browser
@@ -314,6 +312,40 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
     """
     # This method can be significantly improved in future.
 
+    try:
+        from fpdf import FPDF
+    except ImportError:
+        print("Please install the following package: fpdf")
+        return
+    try:
+        from PyPDF2 import PdfFileMerger, PdfFileReader
+    except ImportError:
+        print("Please install the following package: PyPDF2")
+        return
+
+    class PDF(FPDF):
+        def header(self):
+            # Logo
+            self.image('https://i.imgur.com/sHi1OSs.png', 80, 8, 50)
+            # Arial bold 15
+            self.set_font('Arial', 'B', 18)
+            # Move to the right
+            self.ln(15)
+            self.cell(45)
+            # Title
+            self.cell(100, 10, 'Validation Framework Report', 1, 0, 'C')
+            # Line break
+            self.ln(20)
+
+        # # Page footer
+        # def footer(self):
+        #     # Position at 1.5 cm from bottom
+        #     self.set_y(-15)
+        #     # Arial italic 8
+        #     self.set_font('Arial', 'I', 8)
+        #     # Page number
+        #     self.cell(0, 10, 'Page ' + str(self.page_no()) + '/{nb}', 0, 0, 'C')
+
     model_catalog = ModelCatalog(hbp_username, environment=environment)
     test_library = TestLibrary.from_existing(model_catalog)
     result_data = {}
@@ -499,27 +531,3 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
     report_path = os.path.abspath("./report/"+filename)
     print("Report generated at: {}".format(report_path))
     return valid_uuids, report_path
-
-
-class PDF(FPDF):
-    def header(self):
-        # Logo
-        self.image('https://i.imgur.com/sHi1OSs.png', 80, 8, 50)
-        # Arial bold 15
-        self.set_font('Arial', 'B', 18)
-        # Move to the right
-        self.ln(15)
-        self.cell(45)
-        # Title
-        self.cell(100, 10, 'Validation Framework Report', 1, 0, 'C')
-        # Line break
-        self.ln(20)
-
-    # # Page footer
-    # def footer(self):
-    #     # Position at 1.5 cm from bottom
-    #     self.set_y(-15)
-    #     # Arial italic 8
-    #     self.set_font('Arial', 'I', 8)
-    #     # Page number
-    #     self.cell(0, 10, 'Page ' + str(self.page_no()) + '/{nb}', 0, 0, 'C')
