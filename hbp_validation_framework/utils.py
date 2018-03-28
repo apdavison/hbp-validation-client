@@ -310,7 +310,7 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
     Examples
     --------
     >>> result_list = ["a618a6b1-e92e-4ac6-955a-7b8c6859285a", "793e5852-761b-4801-84cb-53af6f6c1acf"]
-    >>> valid_uuids = utils.generate_report(hbp_username="shailesh", result_list=result_list)
+    >>> valid_uuids, report_path = utils.generate_report(hbp_username="shailesh", result_list=result_list)
     """
     # This method can be significantly improved in future.
 
