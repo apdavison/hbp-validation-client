@@ -199,7 +199,7 @@ class BaseClient(object):
                   "species":"",
                   "test_type":""
                },
-               "only_if_new":"False",
+               "only_if_new":False,
                "url":"https://validation-v1.brainsimulation.eu/parametersconfiguration-model-catalog/parametersconfigurationrest/"
             }
         """
@@ -1543,7 +1543,7 @@ class ModelCatalog(BaseClient):
 
         >>> model = model_catalog.register_model(app_id="39968", name="Test Model - B2",
                         alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
-                        private="False", cell_type="Granule Cell", model_type="Single Cell",
+                        private=False, cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
                         description="This is a test entry")
 
@@ -1601,7 +1601,7 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model. Response = " + str(response.json()))
 
-    def edit_model(self, model_id="", app_id="", name="", alias=None, author="", organization="", private="False",
+    def edit_model(self, model_id="", app_id="", name="", alias=None, author="", organization="", private=False,
                    cell_type="", model_type="", brain_region="", species="", description=""):
         """Edit an existing model on the model catalog.
 
