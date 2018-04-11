@@ -706,7 +706,7 @@ class TestLibrary(BaseClient):
         test_data = locals()
         test_data.pop("self")
         code_data = {}
-        for key in ["version", "repository", "path"]:
+        for key in ["version", "repository", "path", "values"]:
             code_data[key] = test_data.pop(key)
 
         url = self.url + "/tests/?format=json"
@@ -808,7 +808,7 @@ class TestLibrary(BaseClient):
 
         id = test_id   # as needed by API
         test_data = locals()
-        for key in ["self", "test_id"]:
+        for key in ["self", "test_id", "values"]:
             test_data.pop(key)
 
         url = self.url + "/tests/?format=json"
@@ -1584,7 +1584,7 @@ class ModelCatalog(BaseClient):
             private = str(private)
 
         model_data = locals()
-        for key in ["self", "app_id", "instances", "images"]:
+        for key in ["self", "app_id", "instances", "images", "values"]:
             model_data.pop(key)
 
         url = self.url + "/models/?app_id="+app_id+"&format=json"
@@ -1681,7 +1681,7 @@ class ModelCatalog(BaseClient):
 
         id = model_id   # as needed by API
         model_data = locals()
-        for key in ["self", "app_id", "model_id"]:
+        for key in ["self", "app_id", "model_id", "values"]:
             model_data.pop(key)
 
         url = self.url + "/models/?app_id="+app_id+"&format=json"
