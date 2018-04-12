@@ -199,7 +199,7 @@ class BaseClient(object):
                   "species":"",
                   "test_type":""
                },
-               "only_if_new":"False",
+               "only_if_new":False,
                "url":"https://validation-v1.brainsimulation.eu/parametersconfiguration-model-catalog/parametersconfigurationrest/"
             }
         """
@@ -706,7 +706,7 @@ class TestLibrary(BaseClient):
         test_data = locals()
         test_data.pop("self")
         code_data = {}
-        for key in ["version", "repository", "path"]:
+        for key in ["version", "repository", "path", "values"]:
             code_data[key] = test_data.pop(key)
 
         url = self.url + "/tests/?format=json"
@@ -808,7 +808,7 @@ class TestLibrary(BaseClient):
 
         id = test_id   # as needed by API
         test_data = locals()
-        for key in ["self", "test_id"]:
+        for key in ["self", "test_id", "values"]:
             test_data.pop(key)
 
         url = self.url + "/tests/?format=json"
@@ -1543,7 +1543,7 @@ class ModelCatalog(BaseClient):
 
         >>> model = model_catalog.register_model(app_id="39968", name="Test Model - B2",
                         alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
-                        private="False", cell_type="Granule Cell", model_type="Single Cell",
+                        private=False, cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
                         description="This is a test entry")
 
@@ -1584,7 +1584,7 @@ class ModelCatalog(BaseClient):
             private = str(private)
 
         model_data = locals()
-        for key in ["self", "app_id", "instances", "images"]:
+        for key in ["self", "app_id", "instances", "images", "values"]:
             model_data.pop(key)
 
         url = self.url + "/models/?app_id="+app_id+"&format=json"
@@ -1601,7 +1601,7 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model. Response = " + str(response.json()))
 
-    def edit_model(self, model_id="", app_id="", name="", alias=None, author="", organization="", private="False",
+    def edit_model(self, model_id="", app_id="", name="", alias=None, author="", organization="", private=False,
                    cell_type="", model_type="", brain_region="", species="", description=""):
         """Edit an existing model on the model catalog.
 
@@ -1681,7 +1681,7 @@ class ModelCatalog(BaseClient):
 
         id = model_id   # as needed by API
         model_data = locals()
-        for key in ["self", "app_id", "model_id"]:
+        for key in ["self", "app_id", "model_id", "values"]:
             model_data.pop(key)
 
         url = self.url + "/models/?app_id="+app_id+"&format=json"
