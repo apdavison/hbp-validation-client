@@ -2118,7 +2118,7 @@ class ModelCatalog(BaseClient):
         if image_id == "":
             raise Exception("Image ID needs to be provided for finding the image (figure).")
         else:
-            url = self.url + "/images/?id=" + image_id + "&format=json"
+            url = self.url + "/images/?format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([image_data]), auth=self.auth, headers=headers)
         if response.status_code == 202:
