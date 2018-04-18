@@ -178,7 +178,8 @@ class BaseClient(object):
             url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/"
             headers = {'Content-type': 'application/json'}
             response = requests.post(url, data=json.dumps(app_info),
-                                     auth=HBPAuth(self.token), headers=headers)
+                                     auth=HBPAuth(self.token), headers=headers,
+                                     verify=self.verify)
             app_nav_id = response.json()["id"]
             print ("New {} app created in this Collab. App nav ID: {}".format(self.app_name,app_nav_id))
         return app_nav_id
@@ -214,13 +215,15 @@ class BaseClient(object):
         app_id = config_data["config"].pop("app_id")
         if not response.json()["param"]:
             response = requests.post(config_data["url"], data=json.dumps(config_data["config"]),
-                                     auth=self.auth, headers=headers)
+                                     auth=self.auth, headers=headers,
+                                     verify=self.verify)
             if response.json()["uuid"] == str(config_data["config"]["id"]):
                 print("New app has beeen created and sucessfully configured!")
         else:
             if not config_data["only_if_new"]:
                 response = requests.put(config_data["url"], data=json.dumps(config_data["config"]),
-                                         auth=self.auth, headers=headers)
+                                        auth=self.auth, headers=headers,
+                                        verify=self.verify)
                 print("Existing app has beeen sucessfully reconfigured!")
 
     def _hbp_auth(self, username, password):
@@ -403,16 +406,17 @@ class TestLibrary(BaseClient):
 
         .. code-block:: JSON
 
-            {
-                "prod": {
-                    "url": "https://validation-v1.brainsimulation.eu",
-                    "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
-                },
-                "dev_test": {
-                    "url": "https://validation-dev.brainsimulation.eu",
-                    "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b"
-                }
+        {
+            "prod": {
+                "url": "https://validation-v1.brainsimulation.eu",
+                "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
+            },
+            "dev_test": {
+                "url": "https://localhost:8000",
+                "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
+                "verify_ssl": false
             }
+        }
 
     Examples
     --------
@@ -717,7 +721,8 @@ class TestLibrary(BaseClient):
 
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps(test_json),
-                                 auth=self.auth, headers=headers)
+                                 auth=self.auth, headers=headers,
+                                 verify=self.verify)
         if response.status_code == 201:
             return response.json()["uuid"]
         else:
@@ -816,7 +821,8 @@ class TestLibrary(BaseClient):
 
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps(test_json),
-                                auth=self.auth, headers=headers)
+                                auth=self.auth, headers=headers,
+                                verify=self.verify)
         if response.status_code == 202:
             return response.json()["uuid"]
         else:
@@ -981,7 +987,8 @@ class TestLibrary(BaseClient):
             #url = self.url + "/test-instances/?alias=" + alias + "&format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([instance_data]),
-                                 auth=self.auth, headers=headers)
+                                 auth=self.auth, headers=headers,
+                                 verify=self.verify)
         if response.status_code == 201:
             return response.json()["uuid"][0]
         else:
@@ -1044,7 +1051,8 @@ class TestLibrary(BaseClient):
             url = self.url + "/test-instances/?format=json"
 
         headers = {'Content-type': 'application/json'}
-        response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
+        response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers,
+                                verify=self.verify)
         if response.status_code == 202:
             return response.json()["uuid"][0]
         else:
@@ -1288,7 +1296,8 @@ class TestLibrary(BaseClient):
         # print(result_json)
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([result_json]),
-                                 auth=self.auth, headers=headers)
+                                 auth=self.auth, headers=headers,
+                                 verify=self.verify)
         if response.status_code == 201:
             print("Result registered successfully!")
             return response.json()["uuid"][0]
@@ -1362,16 +1371,17 @@ class ModelCatalog(BaseClient):
 
         .. code-block:: JSON
 
-            {
-                "prod": {
-                    "url": "https://validation-v1.brainsimulation.eu",
-                    "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
-                },
-                "dev_test": {
-                    "url": "https://validation-dev.brainsimulation.eu",
-                    "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b"
-                }
-            }
+    {
+        "prod": {
+            "url": "https://validation-v1.brainsimulation.eu",
+            "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
+        },
+        "dev_test": {
+            "url": "https://localhost:8000",
+            "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
+            "verify_ssl": false
+        }
+    }
 
     Examples
     --------
@@ -1595,7 +1605,8 @@ class ModelCatalog(BaseClient):
                      }
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps(model_json),
-                                 auth=self.auth, headers=headers)
+                                 auth=self.auth, headers=headers,
+                                 verify=self.verify)
         if response.status_code == 201:
             return response.json()["uuid"]
         else:
@@ -1690,7 +1701,8 @@ class ModelCatalog(BaseClient):
                      }
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps(model_json),
-                                 auth=self.auth, headers=headers)
+                                auth=self.auth, headers=headers,
+                                verify=self.verify)
         if response.status_code == 202:
             return response.json()["uuid"]
         else:
@@ -1891,7 +1903,8 @@ class ModelCatalog(BaseClient):
             #url = self.url + "/model-instances/?alias=" + alias + "&format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([instance_data]),
-                                 auth=self.auth, headers=headers)
+                                 auth=self.auth, headers=headers,
+                                 verify=self.verify)
         if response.status_code == 201:
             return response.json()["uuid"][0]
         else:
@@ -1957,7 +1970,8 @@ class ModelCatalog(BaseClient):
             url = self.url + "/model-instances/?format=json"
 
         headers = {'Content-type': 'application/json'}
-        response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers)
+        response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers,
+                                verify=self.verify)
         if response.status_code == 202:
             return response.json()["uuid"][0]
         else:
@@ -2083,7 +2097,8 @@ class ModelCatalog(BaseClient):
             #url = self.url + "/images/?alias=" + alias + "&format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([image_data]),
-                                 auth=self.auth, headers=headers)
+                                 auth=self.auth, headers=headers,
+                                 verify=self.verify)
         if response.status_code == 201:
             return response.json()["uuid"][0]
         else:
@@ -2120,7 +2135,8 @@ class ModelCatalog(BaseClient):
         else:
             url = self.url + "/images/?format=json"
         headers = {'Content-type': 'application/json'}
-        response = requests.put(url, data=json.dumps([image_data]), auth=self.auth, headers=headers)
+        response = requests.put(url, data=json.dumps([image_data]), auth=self.auth, headers=headers,
+                                verify=self.verify)
         if response.status_code == 202:
             return response.json()["uuid"][0]
         else:
