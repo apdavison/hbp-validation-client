@@ -1,5 +1,5 @@
 import os
-from distutils.core import setup
+from setuptools import setup
 
 def package_files(base_dir, directory):
     pwd = os.getcwd()
@@ -22,5 +22,8 @@ setup(
     license='BSD',
     author='Andrew Davison and Shailesh Appukuttan',
     author_email='andrew.davison@unic.cnrs-gif.fr, shailesh.appukuttan@unic.cnrs-gif.fr',
-    description='Python client for the HBP Validation Framework web services'
+    description='Python client for the HBP Validation Framework web services',
+    install_requires=['hbp-service-client', 'requests'],
+    extras_require={'reports': ['fpdf', 'PyPDF2'],
+                    'utils': ['sciunit']}
 )
