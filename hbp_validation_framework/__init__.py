@@ -56,6 +56,8 @@ class BaseClient(object):
     def __init__(self, username=None,
                  password=None,
                  environment="production"):
+        self.username = username
+        self.verify = True
         self.environment = environment
         if environment == "production":
             self.url = "https://validation-v1.brainsimulation.eu"
@@ -71,15 +73,13 @@ class BaseClient(object):
                         if "url" in config[environment] and "client_id" in config[environment]:
                             self.url = config[environment]["url"]
                             self.client_id = config[environment]["client_id"]
+                            self.verify = config[environment].get("verify_ssl", True)
                         else:
                             raise KeyError("Cannot load environment info: config.json does not contain sufficient info for environment = {}".format(environment))
                     else:
                         raise KeyError("Cannot load environment info: config.json does not contain environment = {}".format(environment))
             else:
                 raise IOError("Cannot load environment info: config.json not found in the current directory.")
-
-        self.username = username
-        self.verify = True
         if password is None:
             self.token = None
             if have_collab_token_handler:
@@ -142,7 +142,7 @@ class BaseClient(object):
         See if this can be tweaked to improve performance.
         """
         url = "https://services.humanbrainproject.eu/collab/v0/collab/"
-        data = requests.get(url, auth=HBPAuth(self.token))
+        data = requests.get(url, auth=HBPAuth(self.token), verify=self.verify)
         if data.status_code == 200:
             return True
         else:
@@ -156,7 +156,7 @@ class BaseClient(object):
         """
         try:
             url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/all/"
-            response = requests.get(url, auth=HBPAuth(self.token))
+            response = requests.get(url, auth=HBPAuth(self.token), verify=self.verify)
         except ValueError:
             print("Error contacting hbp-collab-service for Collab info. Possibly invalid Collab ID: {}".format(collab_id))
 
@@ -167,7 +167,7 @@ class BaseClient(object):
                 break
         else:
             url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/root/"
-            collab_root = requests.get(url, auth=HBPAuth(self.token)).json()["id"]
+            collab_root = requests.get(url, auth=HBPAuth(self.token), verify=self.verify).json()["id"]
             import uuid
             app_info = {"app_id": self.app_id,
                         "context": str(uuid.uuid4()),
@@ -208,7 +208,7 @@ class BaseClient(object):
         if not config_data["config"]["app_id"]:
             raise ValueError("`app_id` cannot be empty!")
         # check if the app has previously been configured: decide POST or PUT
-        response = requests.get(config_data["url"]+"?app_id="+str(config_data["config"]["app_id"]), auth=self.auth)
+        response = requests.get(config_data["url"]+"?app_id="+str(config_data["config"]["app_id"]), auth=self.auth, verify=self.verify)
         headers = {'Content-type': 'application/json'}
         config_data["config"]["id"] = config_data["config"]["app_id"]
         app_id = config_data["config"].pop("app_id")
@@ -309,7 +309,7 @@ class BaseClient(object):
         if path.startswith("collab://"):
             path = path[len("collab://"):]
         url = base_url + "?path=" + path
-        data = requests.get(url, auth=self.auth)
+        data = requests.get(url, auth=self.auth, verify=self.verify)
         if data.status_code == 200:
             return data.json()["uuid"]
         else:
@@ -325,7 +325,7 @@ class BaseClient(object):
 
         base_url = "https://services.humanbrainproject.eu/storage/v1/api/entity/"
         url = base_url + "?uuid=" + uuid
-        data = requests.get(url, auth=self.auth)
+        data = requests.get(url, auth=self.auth, verify=self.verify)
         if data.status_code != 200:
             raise Exception("The provided 'uuid' is invalid!")
         else:
@@ -336,7 +336,7 @@ class BaseClient(object):
                 os.chdir(data["name"])
                 base_url = "https://services.humanbrainproject.eu/storage/v1/api/folder/"
                 url = base_url + uuid + "/children/"
-                folder_data = requests.get(url, auth=self.auth)
+                folder_data = requests.get(url, auth=self.auth, verify=self.verify)
                 folder_sublist = folder_data.json()["results"]
                 for entity in folder_sublist:
                     files_downloaded.extend(self._download_resource(entity["uuid"]))
@@ -344,7 +344,7 @@ class BaseClient(object):
             elif data["entity_type"] == "file":
                 base_url = "https://services.humanbrainproject.eu/storage/v1/api/file/"
                 url = base_url + uuid + "/content/"
-                file_data = requests.get(url, auth=self.auth)
+                file_data = requests.get(url, auth=self.auth, verify=self.verify)
                 with open(data["name"], "w") as filename:
                     filename.write("%s" % file_data.content)
                     files_downloaded.append(os.path.realpath(filename.name))
@@ -493,7 +493,7 @@ class TestLibrary(BaseClient):
                 url = self.url + "/tests/?id=" + test_id + "&format=json"
             else:
                 url = self.url + "/tests/?alias=" + alias + "&format=json"
-            test_json = requests.get(url, auth=self.auth)
+            test_json = requests.get(url, auth=self.auth, verify=self.verify)
 
         if test_json.status_code != 200:
             raise Exception("Error in retrieving test. Response = " + str(test_json.content))
@@ -621,7 +621,7 @@ class TestLibrary(BaseClient):
 
         params = locals()["filters"]
         url = self.url + "/tests/?"+urlencode(params)+"&format=json"
-        tests = requests.get(url, auth=self.auth).json()
+        tests = requests.get(url, auth=self.auth, verify=self.verify).json()
         return tests["tests"]
 
     def add_test(self, name="", alias=None, version="", author="", species="",
@@ -872,7 +872,7 @@ class TestLibrary(BaseClient):
                 url = self.url + "/test-instances/?test_definition_id=" + test_id + "&version=" + version + "&format=json"
             else:
                 url = self.url + "/test-instances/?test_alias=" + alias + "&version=" + version + "&format=json"
-            test_instance_json = requests.get(url, auth=self.auth)
+            test_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
 
         if test_instance_json.status_code != 200:
             raise Exception("Error in retrieving test instance. Response = " + str(test_instance_json.content))
@@ -921,7 +921,7 @@ class TestLibrary(BaseClient):
                 url = self.url + "/test-instances/?test_definition_id=" + test_id + "&format=json"
             else:
                 url = self.url + "/test-instances/?test_alias=" + alias + "&format=json"
-            test_instances_json = requests.get(url, auth=self.auth)
+            test_instances_json = requests.get(url, auth=self.auth, verify=self.verify)
 
         if test_instances_json.status_code != 200:
             raise Exception("Error in retrieving test instances. Response = " + str(test_instances_json))
@@ -1104,7 +1104,7 @@ class TestLibrary(BaseClient):
             url = self.url + "/authorizedcollabparameterrest/?python_client=true&parameters="+param+"&format=json"
         else:
             raise Exception("Attribute, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_type, data_modalities, species, all]")
-        data = requests.get(url, auth=self.auth).json()
+        data = requests.get(url, auth=self.auth, verify=self.verify).json()
         return ast.literal_eval(json.dumps(data))
 
     def get_result(self, result_id="", order=""):
@@ -1138,7 +1138,7 @@ class TestLibrary(BaseClient):
             raise Exception("order needs to be specified as 'test', 'model' or ''.")
         else:
             url = self.url + "/results/?id=" + result_id + "&order=" + order + "&format=json"
-        result_json = requests.get(url, auth=self.auth)
+        result_json = requests.get(url, auth=self.auth, verify=self.verify)
         if result_json.status_code != 200:
             raise Exception("Error in retrieving result. Response = " + str(result_json) + ".\nContent = " + result_json.content)
         result_json = result_json.json()
@@ -1178,7 +1178,7 @@ class TestLibrary(BaseClient):
         else:
             params = locals()["filters"]
             url = self.url + "/results/?" + "order=" + order + "&" + urlencode(params) + "&format=json"
-        result_json = requests.get(url, auth=self.auth)
+        result_json = requests.get(url, auth=self.auth, verify=self.verify)
         if result_json.status_code != 200:
             raise Exception("Error in retrieving results. Response = " + str(result_json) + ".\nContent = " + result_json.content)
         result_json = result_json.json()
@@ -1441,7 +1441,7 @@ class ModelCatalog(BaseClient):
         else:
             url = self.url + "/models/?alias=" + alias + "&format=json"
 
-        model_json = requests.get(url, auth=self.auth)
+        model_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_json.status_code != 200:
             raise Exception("Error in retrieving model. Response = " + str(model_json))
         model_json = model_json.json()
@@ -1490,7 +1490,7 @@ class ModelCatalog(BaseClient):
 
         params = locals()["filters"]
         url = self.url + "/models/?"+urlencode(params)+"&format=json"
-        models = requests.get(url, auth=self.auth).json()
+        models = requests.get(url, auth=self.auth, verify=self.verify).json()
         return models["models"]
 
     def register_model(self, app_id="", name="", alias=None, author="", organization="", private=False,
@@ -1734,7 +1734,7 @@ class ModelCatalog(BaseClient):
             url = self.url + "/authorizedcollabparameterrest/?python_client=true&parameters="+param+"&format=json"
         else:
             raise Exception("Attribute, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_type, data_modalities, species, all]")
-        data = requests.get(url, auth=self.auth).json()
+        data = requests.get(url, auth=self.auth, verify=self.verify).json()
         return ast.literal_eval(json.dumps(data))
 
     def get_model_instance(self, instance_path="", instance_id="", model_id="", alias="", version=""):
@@ -1784,7 +1784,7 @@ class ModelCatalog(BaseClient):
                 url = self.url + "/model-instances/?model_id=" + model_id + "&version=" + version + "&format=json"
             else:
                 url = self.url + "/model-instances/?model_alias=" + alias + "&version=" + version + "&format=json"
-            model_instance_json = requests.get(url, auth=self.auth)
+            model_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_instance_json.status_code != 200:
             raise Exception("Error in retrieving model instance. Response = " + str(model_instance_json))
         model_instance_json = model_instance_json.json()
@@ -1832,7 +1832,7 @@ class ModelCatalog(BaseClient):
                 url = self.url + "/model-instances/?model_id=" + model_id + "&format=json"
             else:
                 url = self.url + "/model-instances/?model_alias=" + alias + "&format=json"
-            model_instances_json = requests.get(url, auth=self.auth)
+            model_instances_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_instances_json.status_code != 200:
             raise Exception("Error in retrieving model instances. Response = " + str(model_instances_json))
         model_instances_json = model_instances_json.json()
@@ -1988,7 +1988,7 @@ class ModelCatalog(BaseClient):
             raise Exception("image_id needs to be provided for finding a specific model image (figure).")
         else:
             url = self.url + "/images/?id=" + image_id + "&format=json"
-        model_image_json = requests.get(url, auth=self.auth)
+        model_image_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_image_json.status_code != 200:
             raise Exception("Error in retrieving model images (figures). Response = " + str(model_image_json))
         model_image_json = model_image_json.json()
@@ -2028,7 +2028,7 @@ class ModelCatalog(BaseClient):
             url = self.url + "/images/?model_id=" + model_id + "&format=json"
         else:
             url = self.url + "/images/?model_alias=" + alias + "&format=json"
-        model_images_json = requests.get(url, auth=self.auth)
+        model_images_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_images_json.status_code != 200:
             raise Exception("Error in retrieving model images (figures). Response = " + str(model_images_json.content))
         model_images_json = model_images_json.json()
