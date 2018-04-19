@@ -1685,8 +1685,10 @@ class ModelCatalog(BaseClient):
         model_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_json.status_code != 200:
             raise Exception("Error in retrieving model. Response = " + str(model_json))
-        model_json = model_json.json()["models"][0]
-
+        model_json = model_json.json()
+        if len(model_json["models"]) == 0:
+            raise Exception("Error in retrieving model description. Possibly invalid input data.")
+        model_json = model_json["models"][0]
         for key in model_data:
             if model_data[key] is None:
                 model_data[key] = model_json[key]
@@ -1924,7 +1926,7 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model instance. Response = " + str(response.json()))
 
-    def edit_model_instance(self, instance_id="", model_id="", alias="", source="", version="", description="", parameters=""):
+    def edit_model_instance(self, instance_id=None, model_id=None, alias=None, source=None, version=None, description=None, parameters=None):
         """Edit an existing model instance.
 
         This allows to edit an instance of an existing model in the model catalog.
@@ -1934,7 +1936,8 @@ class ModelCatalog(BaseClient):
         2. specify `model_id` and `version`
         3. specify `alias` (of the model) and `version`
 
-        You cannot edit the model `version` in the latter two cases. To do so,
+        Only the parameters being updated need to be specified. You cannot
+        edit the model `version` in the latter two cases. To do so,
         you must employ the first option above. You can retrieve the `instance_id`
         via :meth:`get_model_instance`
 
@@ -1970,6 +1973,9 @@ class ModelCatalog(BaseClient):
                                                 parameters="")
         """
 
+        if instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
+            raise Exception("instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.")
+
         if instance_id:
             id = instance_id    # as needed by API
         if alias:
@@ -1978,11 +1984,25 @@ class ModelCatalog(BaseClient):
         for key in ["self", "instance_id", "alias"]:
             instance_data.pop(key)
 
-        if instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
-            raise Exception("instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.")
+        # assign existing values for parameters not specified
+        if instance_id:
+            url = self.url + "/model-instances/?id=" + instance_id + "&format=json"
+        elif model_id and version:
+            url = self.url + "/model-instances/?model_id=" + model_id + "&version=" + version + "&format=json"
         else:
-            url = self.url + "/model-instances/?format=json"
+            url = self.url + "/model-instances/?model_alias=" + alias + "&version=" + version + "&format=json"
+        model_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
+        if model_instance_json.status_code != 200:
+            raise Exception("Error in retrieving model instance. Response = " + str(model_instance_json))
+        model_instance_json = model_instance_json.json()
+        if len(model_instance_json["instances"]) == 0:
+            raise Exception("Error in retrieving model instance. Possibly invalid input data.")
+        model_instance_json = model_instance_json["instances"][0]
+        for key in instance_data:
+            if instance_data[key] is None:
+                instance_data[key] = model_instance_json[key]
 
+        url = self.url + "/model-instances/?format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers,
                                 verify=self.verify)
