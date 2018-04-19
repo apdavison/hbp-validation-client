@@ -1705,6 +1705,8 @@ class ModelCatalog(BaseClient):
                 model_data[key] = model_json[key]
         if app_id is None:
             app_id = model_json["app"]["id"]
+        if model_data["alias"] == "":
+            model_data["alias"] = None
 
         values = self.get_attribute_options()
 
