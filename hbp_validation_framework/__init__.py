@@ -728,14 +728,15 @@ class TestLibrary(BaseClient):
         else:
             raise Exception("Error in adding test. Response = " + str(response.json()))
 
-    def edit_test(self, name="", test_id="", alias=None, version="", author="",
-                  species="", age="", brain_region="", cell_type="", data_modality="",
-                  test_type="", score_type="", protocol="", data_location="",
-                  data_type="", publication="", repository="", path=""):
+    def edit_test(self, name=None, test_id="", alias=None, author=None,
+                  species=None, age=None, brain_region=None, cell_type=None, data_modality=None,
+                  test_type=None, score_type=None, protocol=None, data_location=None,
+                  data_type=None, publication=None):
         """Edit an existing test in the test library.
 
         To update an existing test, the `test_id` must be provided. Any of the
         other parameters may be updated.
+        Only the parameters being updated need to be specified.
 
         Parameters
         ----------
@@ -745,8 +746,6 @@ class TestLibrary(BaseClient):
             System generated unique identifier associated with test definition.
         alias : string, optional
             User-assigned unique identifier to be associated with test definition.
-        version : string
-            User-assigned identifier (unique for each test) associated with test instance.
         author : string
             Name of person who created the test.
         species : string
@@ -771,10 +770,6 @@ class TestLibrary(BaseClient):
             The type of reference data (observation).
         publication : string
             Publication or comment (e.g. "Unpublished") to be associated with observation.
-        repository : string
-            URL of Python package repository (e.g. github).
-        path : string
-            Python path (not filesystem path) to test source code within Python package.
 
         Note
         ----
@@ -793,28 +788,44 @@ class TestLibrary(BaseClient):
                                       test_type="network structure", score_type="Other", protocol="To be filled sometime later", data_location="collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json", data_type="Mean, SD")
         """
 
-        values = self.get_attribute_options()
-
-        if species not in values["species"]:
-            raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
-        if brain_region not in values["brain_region"]:
-            raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
-        if cell_type not in values["cell_type"]:
-            raise Exception("cell_type = '" +cell_type+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if data_modality not in values["data_modalities"]:
-            raise Exception("data_modality = '" +data_modality+"' is invalid.\nValue has to be one of these: " + str(values["data_modality"]))
-        if test_type not in values["test_type"]:
-            raise Exception("test_type = '" +test_type+"' is invalid.\nValue has to be one of these: " + str(values["test_type"]))
-        if score_type not in values["score_type"]:
-            raise Exception("score_type = '" +score_type+"' is invalid.\nValue has to be one of these: " + str(values["score_type"]))
-
-        if alias == "":
-            alias = None
+        if test_id == "":
+            raise Exception("Test ID needs to be provided for editing a test.")
 
         id = test_id   # as needed by API
         test_data = locals()
-        for key in ["self", "test_id", "values"]:
+        for key in ["self", "test_id"]:
             test_data.pop(key)
+
+        # assign existing values for parameters not specified
+        url = self.url + "/tests/?id=" + test_id + "&format=json"
+        test_json = requests.get(url, auth=self.auth, verify=self.verify)
+        if test_json.status_code != 200:
+            raise Exception("Error in retrieving test. Response = " + str(test_json))
+        test_json = test_json.json()
+        if len(test_json["tests"]) == 0:
+            raise Exception("Error in retrieving test definition. Possibly invalid input data.")
+        test_json = test_json["tests"][0]
+        test_json["score_type"] = "Other"
+        for key in test_data:
+            if test_data[key] is None:
+                test_data[key] = test_json[key]
+        if test_data["alias"] == "":
+            test_data["alias"] = None
+
+        values = self.get_attribute_options()
+
+        if test_data["species"] not in values["species"]:
+            raise Exception("species = '" +test_data["species"]+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
+        if test_data["brain_region"] not in values["brain_region"]:
+            raise Exception("brain_region = '" +test_data["brain_region"]+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
+        if test_data["cell_type"] not in values["cell_type"]:
+            raise Exception("cell_type = '" +test_data["cell_type"]+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
+        if test_data["data_modality"] not in values["data_modalities"]:
+            raise Exception("data_modality = '" +test_data["data_modality"]+"' is invalid.\nValue has to be one of these: " + str(values["data_modality"]))
+        if test_data["test_type"] not in values["test_type"]:
+            raise Exception("test_type = '" +test_data["test_type"]+"' is invalid.\nValue has to be one of these: " + str(values["test_type"]))
+        if test_data["score_type"] not in values["score_type"]:
+            raise Exception("score_type = '" +test_data["score_type"]+"' is invalid.\nValue has to be one of these: " + str(values["score_type"]))
 
         url = self.url + "/tests/?format=json"
         test_json = test_data   # retaining similar structure as other methods
@@ -1654,8 +1665,8 @@ class ModelCatalog(BaseClient):
 
         Note
         ----
-        Does not allow editing details of model instances and images (figures).
-        Will be implemented later, if required.
+        Model instances and images (figures) cannot be edited here.
+        This has to be done using :meth:`edit_model_instance` and :meth:`edit_model_image`
 
         Returns
         -------
