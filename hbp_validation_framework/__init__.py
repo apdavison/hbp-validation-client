@@ -2138,11 +2138,12 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding image (figure). Response = " + str(response.json()))
 
-    def edit_model_image(self, image_id="", url="", caption=""):
+    def edit_model_image(self, image_id="", url=None, caption=None):
         """Edit an existing image (figure) metadata.
 
         This allows to edit the metadata of an image (figure) in the model catalog.
         The `image_id` needs to be specified as input parameter.
+        Only the parameters being updated need to be specified.
 
         Parameters
         ----------
@@ -2159,22 +2160,35 @@ class ModelCatalog(BaseClient):
         >>> image_id = model_catalog.edit_model_image(image_id="2b45e7d4-a7a1-4a31-a287-aee7072e3e75", caption = "Some Logo", url="http://www.somesite.com/logo.png")
         """
 
+        if image_id == "":
+            raise Exception("Image ID needs to be provided for finding the image (figure).")
+
         id = image_id
         image_data = locals()
         for key in ["self", "image_id"]:
             image_data.pop(key)
 
-        if image_id == "":
-            raise Exception("Image ID needs to be provided for finding the image (figure).")
-        else:
-            url = self.url + "/images/?format=json"
+        # assign existing values for parameters not specified
+        url = self.url + "/images/?id=" + image_id + "&format=json"
+        model_image_json = requests.get(url, auth=self.auth, verify=self.verify)
+        if model_image_json.status_code != 200:
+            raise Exception("Error in retrieving model images (figures). Response = " + str(model_image_json))
+        model_image_json = model_image_json.json()
+        if len(model_image_json["images"]) == 0:
+            raise Exception("Error in retrieving model image. Possibly invalid input data.")
+        model_image_json = model_image_json["images"][0]
+        for key in image_data:
+            if image_data[key] is None:
+                image_data[key] = model_image_json[key]
+
+        url = self.url + "/images/?format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([image_data]), auth=self.auth, headers=headers,
                                 verify=self.verify)
         if response.status_code == 202:
             return response.json()["uuid"][0]
         else:
-            raise Exception("Error in adding image (figure). Response = " + str(response.json()))
+            raise Exception("Error in editing image (figure). Response = " + str(response.json()))
 
 
 def _have_internet_connection():
