@@ -500,7 +500,7 @@ class TestLibrary(BaseClient):
             test_json = requests.get(url, auth=self.auth, verify=self.verify)
 
         if test_json.status_code != 200:
-            raise Exception("Error in retrieving test. Response = " + str(test_json.content))
+            raise Exception("Error in retrieving test. Response = " + str(test_json))
         test_json = test_json.json()
         if len(test_json["tests"]) == 1:
             return test_json["tests"][0]
@@ -1005,7 +1005,7 @@ class TestLibrary(BaseClient):
         else:
             raise Exception("Error in adding test instance. Response = " + str(response))
 
-    def edit_test_instance(self, instance_id="", test_id="", alias="", repository="", path="", version=""):
+    def edit_test_instance(self, instance_id="", test_id="", alias="", repository=None, path=None, version=None):
         """Edit an existing test instance.
 
         This allows to edit an instance of an existing test in the test library.
@@ -1015,7 +1015,8 @@ class TestLibrary(BaseClient):
         2. specify `test_id` and `version`
         3. specify `alias` (of the test) and `version`
 
-        You cannot edit the test `version` in the latter two cases. To do so,
+        Only the parameters being updated need to be specified. You cannot
+        edit the test `version` in the latter two cases. To do so,
         you must employ the first option above. You can retrieve the `instance_id`
         via :meth:`get_test_instance`
 
@@ -1046,6 +1047,10 @@ class TestLibrary(BaseClient):
                                         path="morphounit.tests.CellDensityTest",
                                         version="4.0")
         """
+
+        if instance_id == "" and (test_id == "" or version == "") and (alias == "" or version == ""):
+            raise Exception("instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance.")
+
         if instance_id:
             id = instance_id    # as needed by API
         if test_id:
@@ -1056,11 +1061,25 @@ class TestLibrary(BaseClient):
         for key in ["self", "test_id", "alias"]:
             instance_data.pop(key)
 
-        if instance_id == "" and (test_id == "" or version == "") and (alias == "" or version == ""):
-            raise Exception("instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance.")
+        # assign existing values for parameters not specified
+        if instance_id:
+            url = self.url + "/test-instances/?id=" + instance_id + "&format=json"
+        elif test_id and version:
+            url = self.url + "/test-instances/?test_definition_id=" + test_id + "&version=" + version + "&format=json"
         else:
-            url = self.url + "/test-instances/?format=json"
+            url = self.url + "/test-instances/?test_alias=" + alias + "&version=" + version + "&format=json"
+        test_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
+        if test_instance_json.status_code != 200:
+            raise Exception("Error in retrieving test instance. Response = " + str(test_instance_json))
+        test_instance_json = test_instance_json.json()
+        if len(test_instance_json["test_codes"]) == 0:
+            raise Exception("Error in retrieving test instance. Possibly invalid input data.")
+        test_instance_json = test_instance_json["test_codes"][0]
+        for key in instance_data:
+            if instance_data[key] is None:
+                instance_data[key] = test_instance_json[key]
 
+        url = self.url + "/test-instances/?format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers,
                                 verify=self.verify)
