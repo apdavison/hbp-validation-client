@@ -1612,12 +1612,13 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model. Response = " + str(response.json()))
 
-    def edit_model(self, model_id="", app_id="", name="", alias=None, author="", organization="", private=False,
-                   cell_type="", model_type="", brain_region="", species="", description=""):
+    def edit_model(self, model_id="", app_id=None, name=None, alias=None, author=None, organization=None, private=None,
+                   cell_type=None, model_type=None, brain_region=None, species=None, description=None):
         """Edit an existing model on the model catalog.
 
         This allows you to edit an new model to the model catalog.
         The `model_id` must be provided. Any of the other parameters maybe updated.
+        Only the parameters being updated need to be specified.
 
         Parameters
         ----------
@@ -1671,29 +1672,42 @@ class ModelCatalog(BaseClient):
                         description="This is a test entry")
         """
 
-        values = self.get_attribute_options()
-
-        if cell_type not in values["cell_type"]:
-            raise Exception("cell_type = '" +cell_type+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if model_type not in values["model_type"]:
-            raise Exception("model_type = '" +model_type+"' is invalid.\nValue has to be one of these: " + str(values["model_type"]))
-        if brain_region not in values["brain_region"]:
-            raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
-        if species not in values["species"]:
-            raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
-        values["organization"].append("")   # allow blank organization field
-        if organization not in values["organization"]:
-            raise Exception("organization = '" +organization+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
-
-        if private not in [True, False]:
-            raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
-        else:
-            private = str(private)
+        if model_id == "":
+            raise Exception("Model ID needs to be provided for editing a model.")
 
         id = model_id   # as needed by API
         model_data = locals()
-        for key in ["self", "app_id", "model_id", "values"]:
+        for key in ["self", "app_id", "model_id"]:
             model_data.pop(key)
+
+        # assign existing values for parameters not specified
+        url = self.url + "/models/?id=" + model_id + "&format=json"
+        model_json = requests.get(url, auth=self.auth, verify=self.verify)
+        if model_json.status_code != 200:
+            raise Exception("Error in retrieving model. Response = " + str(model_json))
+        model_json = model_json.json()["models"][0]
+
+        for key in model_data:
+            if model_data[key] is None:
+                model_data[key] = model_json[key]
+        if app_id is None:
+            app_id = model_json["app"]["id"]
+
+        values = self.get_attribute_options()
+
+        if model_data["cell_type"] not in values["cell_type"]:
+            raise Exception("cell_type = '" +model_data["cell_type"]+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
+        if model_data["model_type"] not in values["model_type"]:
+            raise Exception("model_type = '" +model_data["model_type"]+"' is invalid.\nValue has to be one of these: " + str(values["model_type"]))
+        if model_data["brain_region"] not in values["brain_region"]:
+            raise Exception("brain_region = '" +model_data["brain_region"]+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
+        if model_data["species"] not in values["species"]:
+            raise Exception("species = '" +model_data["species"]+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
+        values["organization"].append("")   # allow blank organization field
+        if model_data["organization"] not in values["organization"]:
+            raise Exception("organization = '" +model_data["organization"]+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
+        if model_data["private"] not in [True, False]:
+            raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
 
         url = self.url + "/models/?app_id="+app_id+"&format=json"
         model_json = {
