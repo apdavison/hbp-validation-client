@@ -1958,7 +1958,7 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model instance. Response = " + str(response.json()))
 
-    def edit_model_instance(self, instance_id=None, model_id=None, alias=None, source=None, version=None, description=None, parameters=None):
+    def edit_model_instance(self, instance_id="", model_id="", alias="", source=None, version=None, description=None, parameters=None):
         """Edit an existing model instance.
 
         This allows to edit an instance of an existing model in the model catalog.
