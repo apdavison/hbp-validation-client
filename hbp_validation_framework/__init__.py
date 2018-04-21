@@ -500,7 +500,7 @@ class TestLibrary(BaseClient):
             test_json = requests.get(url, auth=self.auth, verify=self.verify)
 
         if test_json.status_code != 200:
-            raise Exception("Error in retrieving test. Response = " + str(test_json.content))
+            raise Exception("Error in retrieving test. Response = " + str(test_json))
         test_json = test_json.json()
         if len(test_json["tests"]) == 1:
             return test_json["tests"][0]
@@ -728,14 +728,15 @@ class TestLibrary(BaseClient):
         else:
             raise Exception("Error in adding test. Response = " + str(response.json()))
 
-    def edit_test(self, name="", test_id="", alias=None, version="", author="",
-                  species="", age="", brain_region="", cell_type="", data_modality="",
-                  test_type="", score_type="", protocol="", data_location="",
-                  data_type="", publication="", repository="", path=""):
+    def edit_test(self, name=None, test_id="", alias=None, author=None,
+                  species=None, age=None, brain_region=None, cell_type=None, data_modality=None,
+                  test_type=None, score_type=None, protocol=None, data_location=None,
+                  data_type=None, publication=None):
         """Edit an existing test in the test library.
 
         To update an existing test, the `test_id` must be provided. Any of the
         other parameters may be updated.
+        Only the parameters being updated need to be specified.
 
         Parameters
         ----------
@@ -745,8 +746,6 @@ class TestLibrary(BaseClient):
             System generated unique identifier associated with test definition.
         alias : string, optional
             User-assigned unique identifier to be associated with test definition.
-        version : string
-            User-assigned identifier (unique for each test) associated with test instance.
         author : string
             Name of person who created the test.
         species : string
@@ -771,10 +770,6 @@ class TestLibrary(BaseClient):
             The type of reference data (observation).
         publication : string
             Publication or comment (e.g. "Unpublished") to be associated with observation.
-        repository : string
-            URL of Python package repository (e.g. github).
-        path : string
-            Python path (not filesystem path) to test source code within Python package.
 
         Note
         ----
@@ -793,28 +788,44 @@ class TestLibrary(BaseClient):
                                       test_type="network structure", score_type="Other", protocol="To be filled sometime later", data_location="collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json", data_type="Mean, SD")
         """
 
-        values = self.get_attribute_options()
-
-        if species not in values["species"]:
-            raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
-        if brain_region not in values["brain_region"]:
-            raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
-        if cell_type not in values["cell_type"]:
-            raise Exception("cell_type = '" +cell_type+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if data_modality not in values["data_modalities"]:
-            raise Exception("data_modality = '" +data_modality+"' is invalid.\nValue has to be one of these: " + str(values["data_modality"]))
-        if test_type not in values["test_type"]:
-            raise Exception("test_type = '" +test_type+"' is invalid.\nValue has to be one of these: " + str(values["test_type"]))
-        if score_type not in values["score_type"]:
-            raise Exception("score_type = '" +score_type+"' is invalid.\nValue has to be one of these: " + str(values["score_type"]))
-
-        if alias == "":
-            alias = None
+        if test_id == "":
+            raise Exception("Test ID needs to be provided for editing a test.")
 
         id = test_id   # as needed by API
         test_data = locals()
-        for key in ["self", "test_id", "values"]:
+        for key in ["self", "test_id"]:
             test_data.pop(key)
+
+        # assign existing values for parameters not specified
+        url = self.url + "/tests/?id=" + test_id + "&format=json"
+        test_json = requests.get(url, auth=self.auth, verify=self.verify)
+        if test_json.status_code != 200:
+            raise Exception("Error in retrieving test. Response = " + str(test_json))
+        test_json = test_json.json()
+        if len(test_json["tests"]) == 0:
+            raise Exception("Error in retrieving test definition. Possibly invalid input data.")
+        test_json = test_json["tests"][0]
+        test_json["score_type"] = "Other"
+        for key in test_data:
+            if test_data[key] is None:
+                test_data[key] = test_json[key]
+        if test_data["alias"] == "":
+            test_data["alias"] = None
+
+        values = self.get_attribute_options()
+
+        if test_data["species"] not in values["species"]:
+            raise Exception("species = '" +test_data["species"]+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
+        if test_data["brain_region"] not in values["brain_region"]:
+            raise Exception("brain_region = '" +test_data["brain_region"]+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
+        if test_data["cell_type"] not in values["cell_type"]:
+            raise Exception("cell_type = '" +test_data["cell_type"]+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
+        if test_data["data_modality"] not in values["data_modalities"]:
+            raise Exception("data_modality = '" +test_data["data_modality"]+"' is invalid.\nValue has to be one of these: " + str(values["data_modality"]))
+        if test_data["test_type"] not in values["test_type"]:
+            raise Exception("test_type = '" +test_data["test_type"]+"' is invalid.\nValue has to be one of these: " + str(values["test_type"]))
+        if test_data["score_type"] not in values["score_type"]:
+            raise Exception("score_type = '" +test_data["score_type"]+"' is invalid.\nValue has to be one of these: " + str(values["score_type"]))
 
         url = self.url + "/tests/?format=json"
         test_json = test_data   # retaining similar structure as other methods
@@ -994,7 +1005,7 @@ class TestLibrary(BaseClient):
         else:
             raise Exception("Error in adding test instance. Response = " + str(response))
 
-    def edit_test_instance(self, instance_id="", test_id="", alias="", repository="", path="", version=""):
+    def edit_test_instance(self, instance_id="", test_id="", alias="", repository=None, path=None, version=None):
         """Edit an existing test instance.
 
         This allows to edit an instance of an existing test in the test library.
@@ -1004,7 +1015,8 @@ class TestLibrary(BaseClient):
         2. specify `test_id` and `version`
         3. specify `alias` (of the test) and `version`
 
-        You cannot edit the test `version` in the latter two cases. To do so,
+        Only the parameters being updated need to be specified. You cannot
+        edit the test `version` in the latter two cases. To do so,
         you must employ the first option above. You can retrieve the `instance_id`
         via :meth:`get_test_instance`
 
@@ -1035,6 +1047,10 @@ class TestLibrary(BaseClient):
                                         path="morphounit.tests.CellDensityTest",
                                         version="4.0")
         """
+
+        if instance_id == "" and (test_id == "" or version == "") and (alias == "" or version == ""):
+            raise Exception("instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance.")
+
         if instance_id:
             id = instance_id    # as needed by API
         if test_id:
@@ -1045,11 +1061,25 @@ class TestLibrary(BaseClient):
         for key in ["self", "test_id", "alias"]:
             instance_data.pop(key)
 
-        if instance_id == "" and (test_id == "" or version == "") and (alias == "" or version == ""):
-            raise Exception("instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance.")
+        # assign existing values for parameters not specified
+        if instance_id:
+            url = self.url + "/test-instances/?id=" + instance_id + "&format=json"
+        elif test_id and version:
+            url = self.url + "/test-instances/?test_definition_id=" + test_id + "&version=" + version + "&format=json"
         else:
-            url = self.url + "/test-instances/?format=json"
+            url = self.url + "/test-instances/?test_alias=" + alias + "&version=" + version + "&format=json"
+        test_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
+        if test_instance_json.status_code != 200:
+            raise Exception("Error in retrieving test instance. Response = " + str(test_instance_json))
+        test_instance_json = test_instance_json.json()
+        if len(test_instance_json["test_codes"]) == 0:
+            raise Exception("Error in retrieving test instance. Possibly invalid input data.")
+        test_instance_json = test_instance_json["test_codes"][0]
+        for key in instance_data:
+            if instance_data[key] is None:
+                instance_data[key] = test_instance_json[key]
 
+        url = self.url + "/test-instances/?format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers,
                                 verify=self.verify)
@@ -1612,12 +1642,13 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model. Response = " + str(response.json()))
 
-    def edit_model(self, model_id="", app_id="", name="", alias=None, author="", organization="", private=False,
-                   cell_type="", model_type="", brain_region="", species="", description=""):
+    def edit_model(self, model_id="", app_id=None, name=None, alias=None, author=None, organization=None, private=None,
+                   cell_type=None, model_type=None, brain_region=None, species=None, description=None):
         """Edit an existing model on the model catalog.
 
         This allows you to edit an new model to the model catalog.
         The `model_id` must be provided. Any of the other parameters maybe updated.
+        Only the parameters being updated need to be specified.
 
         Parameters
         ----------
@@ -1653,8 +1684,8 @@ class ModelCatalog(BaseClient):
 
         Note
         ----
-        Does not allow editing details of model instances and images (figures).
-        Will be implemented later, if required.
+        Model instances and images (figures) cannot be edited here.
+        This has to be done using :meth:`edit_model_instance` and :meth:`edit_model_image`
 
         Returns
         -------
@@ -1671,29 +1702,46 @@ class ModelCatalog(BaseClient):
                         description="This is a test entry")
         """
 
-        values = self.get_attribute_options()
-
-        if cell_type not in values["cell_type"]:
-            raise Exception("cell_type = '" +cell_type+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if model_type not in values["model_type"]:
-            raise Exception("model_type = '" +model_type+"' is invalid.\nValue has to be one of these: " + str(values["model_type"]))
-        if brain_region not in values["brain_region"]:
-            raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
-        if species not in values["species"]:
-            raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
-        values["organization"].append("")   # allow blank organization field
-        if organization not in values["organization"]:
-            raise Exception("organization = '" +organization+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
-
-        if private not in [True, False]:
-            raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
-        else:
-            private = str(private)
+        if model_id == "":
+            raise Exception("Model ID needs to be provided for editing a model.")
 
         id = model_id   # as needed by API
         model_data = locals()
-        for key in ["self", "app_id", "model_id", "values"]:
+        for key in ["self", "app_id", "model_id"]:
             model_data.pop(key)
+
+        # assign existing values for parameters not specified
+        url = self.url + "/models/?id=" + model_id + "&format=json"
+        model_json = requests.get(url, auth=self.auth, verify=self.verify)
+        if model_json.status_code != 200:
+            raise Exception("Error in retrieving model. Response = " + str(model_json))
+        model_json = model_json.json()
+        if len(model_json["models"]) == 0:
+            raise Exception("Error in retrieving model description. Possibly invalid input data.")
+        model_json = model_json["models"][0]
+        for key in model_data:
+            if model_data[key] is None:
+                model_data[key] = model_json[key]
+        if app_id is None:
+            app_id = model_json["app"]["id"]
+        if model_data["alias"] == "":
+            model_data["alias"] = None
+
+        values = self.get_attribute_options()
+
+        if model_data["cell_type"] not in values["cell_type"]:
+            raise Exception("cell_type = '" +model_data["cell_type"]+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
+        if model_data["model_type"] not in values["model_type"]:
+            raise Exception("model_type = '" +model_data["model_type"]+"' is invalid.\nValue has to be one of these: " + str(values["model_type"]))
+        if model_data["brain_region"] not in values["brain_region"]:
+            raise Exception("brain_region = '" +model_data["brain_region"]+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
+        if model_data["species"] not in values["species"]:
+            raise Exception("species = '" +model_data["species"]+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
+        values["organization"].append("")   # allow blank organization field
+        if model_data["organization"] not in values["organization"]:
+            raise Exception("organization = '" +model_data["organization"]+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
+        if model_data["private"] not in [True, False]:
+            raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
 
         url = self.url + "/models/?app_id="+app_id+"&format=json"
         model_json = {
@@ -1910,7 +1958,7 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model instance. Response = " + str(response.json()))
 
-    def edit_model_instance(self, instance_id="", model_id="", alias="", source="", version="", description="", parameters=""):
+    def edit_model_instance(self, instance_id="", model_id="", alias="", source=None, version=None, description=None, parameters=None):
         """Edit an existing model instance.
 
         This allows to edit an instance of an existing model in the model catalog.
@@ -1920,7 +1968,8 @@ class ModelCatalog(BaseClient):
         2. specify `model_id` and `version`
         3. specify `alias` (of the model) and `version`
 
-        You cannot edit the model `version` in the latter two cases. To do so,
+        Only the parameters being updated need to be specified. You cannot
+        edit the model `version` in the latter two cases. To do so,
         you must employ the first option above. You can retrieve the `instance_id`
         via :meth:`get_model_instance`
 
@@ -1956,6 +2005,9 @@ class ModelCatalog(BaseClient):
                                                 parameters="")
         """
 
+        if instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
+            raise Exception("instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.")
+
         if instance_id:
             id = instance_id    # as needed by API
         if alias:
@@ -1964,11 +2016,25 @@ class ModelCatalog(BaseClient):
         for key in ["self", "instance_id", "alias"]:
             instance_data.pop(key)
 
-        if instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
-            raise Exception("instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.")
+        # assign existing values for parameters not specified
+        if instance_id:
+            url = self.url + "/model-instances/?id=" + instance_id + "&format=json"
+        elif model_id and version:
+            url = self.url + "/model-instances/?model_id=" + model_id + "&version=" + version + "&format=json"
         else:
-            url = self.url + "/model-instances/?format=json"
+            url = self.url + "/model-instances/?model_alias=" + alias + "&version=" + version + "&format=json"
+        model_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
+        if model_instance_json.status_code != 200:
+            raise Exception("Error in retrieving model instance. Response = " + str(model_instance_json))
+        model_instance_json = model_instance_json.json()
+        if len(model_instance_json["instances"]) == 0:
+            raise Exception("Error in retrieving model instance. Possibly invalid input data.")
+        model_instance_json = model_instance_json["instances"][0]
+        for key in instance_data:
+            if instance_data[key] is None:
+                instance_data[key] = model_instance_json[key]
 
+        url = self.url + "/model-instances/?format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers,
                                 verify=self.verify)
@@ -2104,11 +2170,12 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding image (figure). Response = " + str(response.json()))
 
-    def edit_model_image(self, image_id="", url="", caption=""):
+    def edit_model_image(self, image_id="", url=None, caption=None):
         """Edit an existing image (figure) metadata.
 
         This allows to edit the metadata of an image (figure) in the model catalog.
         The `image_id` needs to be specified as input parameter.
+        Only the parameters being updated need to be specified.
 
         Parameters
         ----------
@@ -2125,22 +2192,35 @@ class ModelCatalog(BaseClient):
         >>> image_id = model_catalog.edit_model_image(image_id="2b45e7d4-a7a1-4a31-a287-aee7072e3e75", caption = "Some Logo", url="http://www.somesite.com/logo.png")
         """
 
+        if image_id == "":
+            raise Exception("Image ID needs to be provided for finding the image (figure).")
+
         id = image_id
         image_data = locals()
         for key in ["self", "image_id"]:
             image_data.pop(key)
 
-        if image_id == "":
-            raise Exception("Image ID needs to be provided for finding the image (figure).")
-        else:
-            url = self.url + "/images/?format=json"
+        # assign existing values for parameters not specified
+        url = self.url + "/images/?id=" + image_id + "&format=json"
+        model_image_json = requests.get(url, auth=self.auth, verify=self.verify)
+        if model_image_json.status_code != 200:
+            raise Exception("Error in retrieving model images (figures). Response = " + str(model_image_json))
+        model_image_json = model_image_json.json()
+        if len(model_image_json["images"]) == 0:
+            raise Exception("Error in retrieving model image. Possibly invalid input data.")
+        model_image_json = model_image_json["images"][0]
+        for key in image_data:
+            if image_data[key] is None:
+                image_data[key] = model_image_json[key]
+
+        url = self.url + "/images/?format=json"
         headers = {'Content-type': 'application/json'}
         response = requests.put(url, data=json.dumps([image_data]), auth=self.auth, headers=headers,
                                 verify=self.verify)
         if response.status_code == 202:
             return response.json()["uuid"][0]
         else:
-            raise Exception("Error in adding image (figure). Response = " + str(response.json()))
+            raise Exception("Error in editing image (figure). Response = " + str(response.json()))
 
 
 def _have_internet_connection():
