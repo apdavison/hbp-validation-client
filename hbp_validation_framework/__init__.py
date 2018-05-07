@@ -217,14 +217,19 @@ class BaseClient(object):
             response = requests.post(config_data["url"], data=json.dumps(config_data["config"]),
                                      auth=self.auth, headers=headers,
                                      verify=self.verify)
-            if response.json()["uuid"] == str(config_data["config"]["id"]):
+            if response.status_code == 201:
                 print("New app has beeen created and sucessfully configured!")
+            else:
+                print("Error! App could not be configured. Response = " + str(response.content))
         else:
             if not config_data["only_if_new"]:
                 response = requests.put(config_data["url"], data=json.dumps(config_data["config"]),
                                         auth=self.auth, headers=headers,
                                         verify=self.verify)
-                print("Existing app has beeen sucessfully reconfigured!")
+                if response.status_code == 202:
+                    print("Existing app has beeen sucessfully reconfigured!")
+                else:
+                    print("Error! App could not be reconfigured. Response = " + str(response.content))
 
     def _hbp_auth(self, username, password):
         """
@@ -437,7 +442,7 @@ class TestLibrary(BaseClient):
             self.app_id = 349
             self.app_name = "Validation Framework (dev)"
 
-    def set_collab_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
+    def set_app_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
         inputArgs = locals()
         params = {}
         params["url"] = self.url + "/parametersconfiguration-validation-app/parametersconfigurationrest/"
@@ -1432,7 +1437,7 @@ class ModelCatalog(BaseClient):
             self.app_id = 348
             self.app_name = "Model Catalog (dev)"
 
-    def set_collab_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
+    def set_app_config(self, collab_id="", app_id="", only_if_new=False, species="", brain_region="", cell_type="", model_type="", organization=""):
         inputArgs = locals()
         params = {}
         params["url"] = self.url + "/parametersconfiguration-model-catalog/parametersconfigurationrest/"
@@ -1440,6 +1445,44 @@ class ModelCatalog(BaseClient):
         params["config"] = inputArgs
         params["config"].pop("self")
         params["config"].pop("only_if_new")
+        params["config"]["app_type"] = "model_catalog"
+        self._configure_app_collab(params)
+
+    def set_app_config_minimal(self, collab_id="", app_id="", only_if_new=False):
+        inputArgs = locals()
+        species = []
+        brain_region = []
+        cell_type = []
+        model_type = []
+        organization = []
+
+        models = self.list_models(app_id=app_id)
+        if len(models) == 0:
+            print("There are currently no models associated with this Model Catalog app.\nConfiguring filters to show all accessible data.")
+
+        for model in models:
+            if model["species"] not in species:
+                species.append(model["species"])
+            if model["brain_region"] not in brain_region:
+                brain_region.append(model["brain_region"])
+            if model["cell_type"] not in cell_type:
+                cell_type.append(model["cell_type"])
+            if model["model_type"] not in model_type:
+                model_type.append(model["model_type"])
+            if model["organization"] not in organization:
+                organization.append(model["organization"])
+
+        filters = {}
+        for key in ["collab_id", "app_id", "species", "brain_region", "cell_type", "model_type", "organization"]:
+            if isinstance(locals()[key], list):
+                filters[key] = ",".join(locals()[key])
+            else:
+                filters[key] = locals()[key]
+
+        params = {}
+        params["url"] = self.url + "/parametersconfiguration-model-catalog/parametersconfigurationrest/"
+        params["only_if_new"] = only_if_new
+        params["config"] = filters
         params["config"]["app_type"] = "model_catalog"
         self._configure_app_collab(params)
 
