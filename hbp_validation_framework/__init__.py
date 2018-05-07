@@ -1553,6 +1553,9 @@ class ModelCatalog(BaseClient):
         * brain_region
         * cell_type
         * model_type
+        * owner
+        * project
+        * license
 
         Parameters
         ----------
@@ -1577,8 +1580,8 @@ class ModelCatalog(BaseClient):
         return models["models"]
 
     def register_model(self, app_id="", name="", alias=None, author="", organization="", private=False,
-                       species="", brain_region="", cell_type="", model_type="", description="",
-                       instances=[], images=[]):
+                       species="", brain_region="", cell_type="", model_type="", owner="", project="",
+                       license="", description="", instances=[], images=[]):
         """Register a new model in the model catalog.
 
         This allows you to add a new model to the model catalog. Model instances
@@ -1608,6 +1611,12 @@ class ModelCatalog(BaseClient):
             The type of cell for which the model is developed.
         model_type : string
             Specifies the type of the model.
+        owner : string
+            Specifies the owner of the model. Need not necessarily be the same as the author.
+        project : string
+            Can be used to indicate the project to which the model belongs.
+        license : string
+            Indicates the license applicable for this model.
         description : string
             Provides a description of the model.
         instances : list, optional
@@ -1625,17 +1634,19 @@ class ModelCatalog(BaseClient):
         (without instances and images)
 
         >>> model = model_catalog.register_model(app_id="39968", name="Test Model - B2",
-                        alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
+                        alias="Model vB2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
+                        owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
                         description="This is a test entry")
 
         (with instances and images)
 
-        >>> model = model_catalog.register_model(app_id="39968", name="Client Test - C2",
-                        alias="C2", author="Shailesh Appukuttan", organization="HBP-SP6",
+        >>> model = model_catalog.register_model(app_id="39968", name="Test Model - C2",
+                        alias="Model vC2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
+                        owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
                         description="This is a test entry! Please ignore.",
                         instances=[{"source":"https://www.abcde.com",
                                     "version":"1.0", "parameters":""},
@@ -1685,11 +1696,11 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model. Response = " + str(response.json()))
 
-    def edit_model(self, model_id="", app_id=None, name=None, alias=None, author=None, organization=None, private=None,
-                   cell_type=None, model_type=None, brain_region=None, species=None, description=None):
+    def edit_model(self, model_id="", app_id=None, name=None, alias=None, author=None, organization=None, private=None, cell_type=None,
+                   model_type=None, brain_region=None, species=None, owner="", project="", license="", description=None):
         """Edit an existing model on the model catalog.
 
-        This allows you to edit an new model to the model catalog.
+        This allows you to edit a new model to the model catalog.
         The `model_id` must be provided. Any of the other parameters maybe updated.
         Only the parameters being updated need to be specified.
 
@@ -1718,12 +1729,14 @@ class ModelCatalog(BaseClient):
             The type of cell for which the model is developed.
         model_type : string
             Specifies the type of the model.
+        owner : string
+            Specifies the owner of the model. Need not necessarily be the same as the author.
+        project : string
+            Can be used to indicate the project to which the model belongs.
+        license : string
+            Indicates the license applicable for this model.
         description : string
             Provides a description of the model.
-        instances : list, optional
-            Specify a list of instances (versions) of the model.
-        images : list, optional
-            Specify a list of images (figures) to be linked to the model.
 
         Note
         ----
@@ -1742,6 +1755,7 @@ class ModelCatalog(BaseClient):
                         alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
+                        owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
                         description="This is a test entry")
         """
 
