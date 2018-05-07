@@ -197,7 +197,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
                                 model_instance_uuid = m_inst["id"]
                 if not model_instance_uuid:
                     if not getattr(score.model, 'source', False):
-                        score.model.source = "https://NotYet.online"
+                        score.model.source = ""
                     if not getattr(score.model, 'description', False):
                         if getattr(score.model, 'model_hash', False):
                             score.model.description = score.model.model_hash

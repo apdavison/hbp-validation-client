@@ -1287,9 +1287,9 @@ class TestLibrary(BaseClient):
                 model_instance_uuid = model_catalog.get_model_instance(model_id=test_result.model.model_uuid,
                                                                      version=test_result.model.version)['id']
             except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
-                # so we create an new instance
+                # so we create a new instance
                 response = model_catalog.add_model_instance(model_id=test_result.model.model_uuid,
-                                                            source=getattr(test_result.model, "remote_url", "http://no.url"), # empty/blank source not permitted currently
+                                                            source=getattr(test_result.model, "remote_url", ""),
                                                             version=test_result.model.version,
                                                             parameters=getattr(test_result.model, "parameters", ""))
                 model_instance_uuid = response['uuid'][0]
