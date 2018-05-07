@@ -1935,7 +1935,7 @@ class ModelCatalog(BaseClient):
 
         Examples
         --------
-        >>> model_instances = model_catalog.list_model_instances(alias="alias2")
+        >>> model_instances = model_catalog.list_model_instances(alias="Model vB2")
         """
 
         if instance_path == "" and model_id == "" and alias == "":
@@ -1955,7 +1955,7 @@ class ModelCatalog(BaseClient):
         model_instances_json = model_instances_json.json()
         return model_instances_json["instances"]
 
-    def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters=""):
+    def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters="", code_format="", hash=""):
         """Register a new model instance.
 
         This allows to add a new instance of an existing model in the model catalog.
@@ -1975,6 +1975,10 @@ class ModelCatalog(BaseClient):
             Text describing this specific model instance.
         parameters : string, optional
             Any additional parameters to be submitted to model, or used by it, at runtime.
+        code_format : string, optional
+            Indicates the language/platform in which the model was developed.
+        hash : string, optional
+            Similar to a checksum; can be used to identify model instances from their implementation.
 
         Returns
         -------
@@ -1991,8 +1995,10 @@ class ModelCatalog(BaseClient):
         >>> instance_id = model_catalog.add_model_instance(model_id="196b89a3-e672-4b96-8739-748ba3850254",
                                                   source="https://www.abcde.com",
                                                   version="1.0",
-                                                  description="",
-                                                  parameters="")
+                                                  description="basic model variant",
+                                                  parameters="",
+                                                  code_format="py",
+                                                  hash="")
         """
 
         instance_data = locals()
@@ -2015,7 +2021,7 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model instance. Response = " + str(response.json()))
 
-    def edit_model_instance(self, instance_id="", model_id="", alias="", source=None, version=None, description=None, parameters=None):
+    def edit_model_instance(self, instance_id="", model_id="", alias="", source=None, version=None, description=None, parameters=None, code_format=None, hash=None):
         """Edit an existing model instance.
 
         This allows to edit an instance of an existing model in the model catalog.
@@ -2046,6 +2052,10 @@ class ModelCatalog(BaseClient):
             Text describing this specific model instance.
         parameters : string, optional
             Any additional parameters to be submitted to model, or used by it, at runtime.
+        code_format : string, optional
+            Indicates the language/platform in which the model was developed.
+        hash : string, optional
+            Similar to a checksum; can be used to identify model instances from their implementation.
 
         Returns
         -------
@@ -2055,11 +2065,12 @@ class ModelCatalog(BaseClient):
         Examples
         --------
         >>> instance_id = model_catalog.edit_model_instance(instance_id="fd1ab546-80f7-4912-9434-3c62af87bc77",
-                                                model_id="196b89a3-e672-4b96-8739-748ba3850254",
                                                 source="https://www.abcde.com",
-                                                version="10.0",
-                                                description="",
-                                                parameters="")
+                                                version="1.0",
+                                                description="passive model variant",
+                                                parameters="",
+                                                code_format="py",
+                                                hash="")
         """
 
         if instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
