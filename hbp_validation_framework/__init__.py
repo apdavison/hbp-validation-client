@@ -217,14 +217,19 @@ class BaseClient(object):
             response = requests.post(config_data["url"], data=json.dumps(config_data["config"]),
                                      auth=self.auth, headers=headers,
                                      verify=self.verify)
-            if response.json()["uuid"] == str(config_data["config"]["id"]):
+            if response.status_code == 201:
                 print("New app has beeen created and sucessfully configured!")
+            else:
+                print("Error! App could not be configured. Response = " + str(response.content))
         else:
             if not config_data["only_if_new"]:
                 response = requests.put(config_data["url"], data=json.dumps(config_data["config"]),
                                         auth=self.auth, headers=headers,
                                         verify=self.verify)
-                print("Existing app has beeen sucessfully reconfigured!")
+                if response.status_code == 202:
+                    print("Existing app has beeen sucessfully reconfigured!")
+                else:
+                    print("Error! App could not be reconfigured. Response = " + str(response.content))
 
     def _hbp_auth(self, username, password):
         """
@@ -437,7 +442,7 @@ class TestLibrary(BaseClient):
             self.app_id = 349
             self.app_name = "Validation Framework (dev)"
 
-    def set_collab_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
+    def set_app_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
         inputArgs = locals()
         params = {}
         params["url"] = self.url + "/parametersconfiguration-validation-app/parametersconfigurationrest/"
@@ -1282,9 +1287,9 @@ class TestLibrary(BaseClient):
                 model_instance_uuid = model_catalog.get_model_instance(model_id=test_result.model.model_uuid,
                                                                      version=test_result.model.version)['id']
             except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
-                # so we create an new instance
+                # so we create a new instance
                 response = model_catalog.add_model_instance(model_id=test_result.model.model_uuid,
-                                                            source=getattr(test_result.model, "remote_url", "http://no.url"), # empty/blank source not permitted currently
+                                                            source=getattr(test_result.model, "remote_url", ""),
                                                             version=test_result.model.version,
                                                             parameters=getattr(test_result.model, "parameters", ""))
                 model_instance_uuid = response['uuid'][0]
@@ -1432,7 +1437,7 @@ class ModelCatalog(BaseClient):
             self.app_id = 348
             self.app_name = "Model Catalog (dev)"
 
-    def set_collab_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
+    def set_app_config(self, collab_id="", app_id="", only_if_new=False, species="", brain_region="", cell_type="", model_type="", organization=""):
         inputArgs = locals()
         params = {}
         params["url"] = self.url + "/parametersconfiguration-model-catalog/parametersconfigurationrest/"
@@ -1440,6 +1445,44 @@ class ModelCatalog(BaseClient):
         params["config"] = inputArgs
         params["config"].pop("self")
         params["config"].pop("only_if_new")
+        params["config"]["app_type"] = "model_catalog"
+        self._configure_app_collab(params)
+
+    def set_app_config_minimal(self, collab_id="", app_id="", only_if_new=False):
+        inputArgs = locals()
+        species = []
+        brain_region = []
+        cell_type = []
+        model_type = []
+        organization = []
+
+        models = self.list_models(app_id=app_id)
+        if len(models) == 0:
+            print("There are currently no models associated with this Model Catalog app.\nConfiguring filters to show all accessible data.")
+
+        for model in models:
+            if model["species"] not in species:
+                species.append(model["species"])
+            if model["brain_region"] not in brain_region:
+                brain_region.append(model["brain_region"])
+            if model["cell_type"] not in cell_type:
+                cell_type.append(model["cell_type"])
+            if model["model_type"] not in model_type:
+                model_type.append(model["model_type"])
+            if model["organization"] not in organization:
+                organization.append(model["organization"])
+
+        filters = {}
+        for key in ["collab_id", "app_id", "species", "brain_region", "cell_type", "model_type", "organization"]:
+            if isinstance(locals()[key], list):
+                filters[key] = ",".join(locals()[key])
+            else:
+                filters[key] = locals()[key]
+
+        params = {}
+        params["url"] = self.url + "/parametersconfiguration-model-catalog/parametersconfigurationrest/"
+        params["only_if_new"] = only_if_new
+        params["config"] = filters
         params["config"]["app_type"] = "model_catalog"
         self._configure_app_collab(params)
 
@@ -1510,6 +1553,9 @@ class ModelCatalog(BaseClient):
         * brain_region
         * cell_type
         * model_type
+        * owner
+        * project
+        * license
 
         Parameters
         ----------
@@ -1534,8 +1580,8 @@ class ModelCatalog(BaseClient):
         return models["models"]
 
     def register_model(self, app_id="", name="", alias=None, author="", organization="", private=False,
-                       species="", brain_region="", cell_type="", model_type="", description="",
-                       instances=[], images=[]):
+                       species="", brain_region="", cell_type="", model_type="", owner="", project="",
+                       license="", description="", instances=[], images=[]):
         """Register a new model in the model catalog.
 
         This allows you to add a new model to the model catalog. Model instances
@@ -1565,6 +1611,12 @@ class ModelCatalog(BaseClient):
             The type of cell for which the model is developed.
         model_type : string
             Specifies the type of the model.
+        owner : string
+            Specifies the owner of the model. Need not necessarily be the same as the author.
+        project : string
+            Can be used to indicate the project to which the model belongs.
+        license : string
+            Indicates the license applicable for this model.
         description : string
             Provides a description of the model.
         instances : list, optional
@@ -1582,17 +1634,19 @@ class ModelCatalog(BaseClient):
         (without instances and images)
 
         >>> model = model_catalog.register_model(app_id="39968", name="Test Model - B2",
-                        alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
+                        alias="Model vB2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
+                        owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
                         description="This is a test entry")
 
         (with instances and images)
 
-        >>> model = model_catalog.register_model(app_id="39968", name="Client Test - C2",
-                        alias="C2", author="Shailesh Appukuttan", organization="HBP-SP6",
+        >>> model = model_catalog.register_model(app_id="39968", name="Test Model - C2",
+                        alias="Model vC2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
+                        owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
                         description="This is a test entry! Please ignore.",
                         instances=[{"source":"https://www.abcde.com",
                                     "version":"1.0", "parameters":""},
@@ -1642,11 +1696,11 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model. Response = " + str(response.json()))
 
-    def edit_model(self, model_id="", app_id=None, name=None, alias=None, author=None, organization=None, private=None,
-                   cell_type=None, model_type=None, brain_region=None, species=None, description=None):
+    def edit_model(self, model_id="", app_id=None, name=None, alias=None, author=None, organization=None, private=None, cell_type=None,
+                   model_type=None, brain_region=None, species=None, owner="", project="", license="", description=None):
         """Edit an existing model on the model catalog.
 
-        This allows you to edit an new model to the model catalog.
+        This allows you to edit a new model to the model catalog.
         The `model_id` must be provided. Any of the other parameters maybe updated.
         Only the parameters being updated need to be specified.
 
@@ -1675,12 +1729,14 @@ class ModelCatalog(BaseClient):
             The type of cell for which the model is developed.
         model_type : string
             Specifies the type of the model.
+        owner : string
+            Specifies the owner of the model. Need not necessarily be the same as the author.
+        project : string
+            Can be used to indicate the project to which the model belongs.
+        license : string
+            Indicates the license applicable for this model.
         description : string
             Provides a description of the model.
-        instances : list, optional
-            Specify a list of instances (versions) of the model.
-        images : list, optional
-            Specify a list of images (figures) to be linked to the model.
 
         Note
         ----
@@ -1699,6 +1755,7 @@ class ModelCatalog(BaseClient):
                         alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_type="Single Cell",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
+                        owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
                         description="This is a test entry")
         """
 
@@ -1878,7 +1935,7 @@ class ModelCatalog(BaseClient):
 
         Examples
         --------
-        >>> model_instances = model_catalog.list_model_instances(alias="alias2")
+        >>> model_instances = model_catalog.list_model_instances(alias="Model vB2")
         """
 
         if instance_path == "" and model_id == "" and alias == "":
@@ -1898,7 +1955,7 @@ class ModelCatalog(BaseClient):
         model_instances_json = model_instances_json.json()
         return model_instances_json["instances"]
 
-    def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters=""):
+    def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters="", code_format="", hash=""):
         """Register a new model instance.
 
         This allows to add a new instance of an existing model in the model catalog.
@@ -1918,6 +1975,10 @@ class ModelCatalog(BaseClient):
             Text describing this specific model instance.
         parameters : string, optional
             Any additional parameters to be submitted to model, or used by it, at runtime.
+        code_format : string, optional
+            Indicates the language/platform in which the model was developed.
+        hash : string, optional
+            Similar to a checksum; can be used to identify model instances from their implementation.
 
         Returns
         -------
@@ -1934,8 +1995,10 @@ class ModelCatalog(BaseClient):
         >>> instance_id = model_catalog.add_model_instance(model_id="196b89a3-e672-4b96-8739-748ba3850254",
                                                   source="https://www.abcde.com",
                                                   version="1.0",
-                                                  description="",
-                                                  parameters="")
+                                                  description="basic model variant",
+                                                  parameters="",
+                                                  code_format="py",
+                                                  hash="")
         """
 
         instance_data = locals()
@@ -1958,7 +2021,7 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model instance. Response = " + str(response.json()))
 
-    def edit_model_instance(self, instance_id="", model_id="", alias="", source=None, version=None, description=None, parameters=None):
+    def edit_model_instance(self, instance_id="", model_id="", alias="", source=None, version=None, description=None, parameters=None, code_format=None, hash=None):
         """Edit an existing model instance.
 
         This allows to edit an instance of an existing model in the model catalog.
@@ -1989,6 +2052,10 @@ class ModelCatalog(BaseClient):
             Text describing this specific model instance.
         parameters : string, optional
             Any additional parameters to be submitted to model, or used by it, at runtime.
+        code_format : string, optional
+            Indicates the language/platform in which the model was developed.
+        hash : string, optional
+            Similar to a checksum; can be used to identify model instances from their implementation.
 
         Returns
         -------
@@ -1998,11 +2065,12 @@ class ModelCatalog(BaseClient):
         Examples
         --------
         >>> instance_id = model_catalog.edit_model_instance(instance_id="fd1ab546-80f7-4912-9434-3c62af87bc77",
-                                                model_id="196b89a3-e672-4b96-8739-748ba3850254",
                                                 source="https://www.abcde.com",
-                                                version="10.0",
-                                                description="",
-                                                parameters="")
+                                                version="1.0",
+                                                description="passive model variant",
+                                                parameters="",
+                                                code_format="py",
+                                                hash="")
         """
 
         if instance_id == "" and (model_id == "" or version == "") and (alias == "" or version == ""):
