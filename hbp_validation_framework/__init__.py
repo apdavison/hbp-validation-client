@@ -27,6 +27,11 @@ from requests.auth import AuthBase
 from .datastores import URI_SCHEME_MAP
 
 try:
+    from pathlib import Path
+except ImportError:
+    from pathlib2 import Path  # Python 2 backport
+
+try:
     from jupyter_collab_storage import oauth_token_handler
     have_collab_token_handler = True
 except ImportError:
@@ -305,60 +310,6 @@ class BaseClient(object):
                 raise Exception("Something went wrong. Status code {} from HBP, expected 302".format(rHBP1.status_code))
         else:
             raise Exception("Something went wrong. Status code {} from NMPI, expected 302".format(rNMPI1.status_code))
-
-    def _translate_URL_to_UUID(self, path):
-        """
-        Can take a path such as `collab:///5165/hippoCircuit_20171027-142713`
-        with 5165 being the Collab ID and the latter part being the target folder
-        name, and translate this to the UUID on the HBP Collaboratory storage.
-        The target can be a file or folder.
-        """
-        base_url = "https://services.humanbrainproject.eu/storage/v1/api/entity/"
-        if path.startswith("collab://"):
-            path = path[len("collab://"):]
-        url = base_url + "?path=" + path
-        data = requests.get(url, auth=self.auth, verify=self.verify)
-        if data.status_code == 200:
-            return data.json()["uuid"]
-        else:
-            raise Exception("Error: " + data.content)
-
-    def _download_resource(self, uuid):
-        """
-        Downloads the resource specified by the UUID on the HBP Collaboratory.
-        Target can be a file or a folder. Returns a list containing absolute
-        filepaths of all downloaded files.
-        """
-        files_downloaded = []
-
-        base_url = "https://services.humanbrainproject.eu/storage/v1/api/entity/"
-        url = base_url + "?uuid=" + uuid
-        data = requests.get(url, auth=self.auth, verify=self.verify)
-        if data.status_code != 200:
-            raise Exception("The provided 'uuid' is invalid!")
-        else:
-            data = data.json()
-            if data["entity_type"] == "folder":
-                if not os.path.exists(data["name"]):
-                    os.makedirs(data["name"])
-                os.chdir(data["name"])
-                base_url = "https://services.humanbrainproject.eu/storage/v1/api/folder/"
-                url = base_url + uuid + "/children/"
-                folder_data = requests.get(url, auth=self.auth, verify=self.verify)
-                folder_sublist = folder_data.json()["results"]
-                for entity in folder_sublist:
-                    files_downloaded.extend(self._download_resource(entity["uuid"]))
-                os.chdir('..')
-            elif data["entity_type"] == "file":
-                base_url = "https://services.humanbrainproject.eu/storage/v1/api/file/"
-                url = base_url + uuid + "/content/"
-                file_data = requests.get(url, auth=self.auth, verify=self.verify)
-                with open(data["name"], "w") as filename:
-                    filename.write("%s" % file_data.content)
-                    files_downloaded.append(os.path.realpath(filename.name))
-            else:
-                raise Exception("Downloading of resources currently supported only for files and folders!")
-        return files_downloaded
 
     @classmethod
     def from_existing(cls, client):
@@ -1094,15 +1045,7 @@ class TestLibrary(BaseClient):
             raise Exception("Error in editing test instance. Response = " + str(response.content))
 
     def _load_reference_data(self, uri):
-        # Load the reference data ("observations"). For now this is assumed
-        # to be in JSON format or a compressed file format.
-        # We should support other data formats in future.
-        #
-        # Note: currently when using zip/tar files, the base directory must
-        # contain a JSON file with the same filename (exluding extension) as
-        # the zip/tar file. This is loaded as observation data and any other
-        # files or directories can be used by the test for plotting etc.
-        # These requirements may be relaxed in the future.
+        # Load the reference data ("observations").
         parse_result = urlparse(uri)
         datastore = URI_SCHEME_MAP[parse_result.scheme](auth=self.auth)
         observation_data = datastore.load_data(uri)
@@ -1380,6 +1323,7 @@ class ModelCatalog(BaseClient):
     Edit model description                 :meth:`edit_model`
     Get valid attribute values             :meth:`get_attribute_options`
     Get model instance                     :meth:`get_model_instance`
+    Download model instance                :meth:`download_model_instance`
     List model instances                   :meth:`list_model_instances`
     Add new model instance                 :meth:`add_model_instance`
     Edit existing model instance           :meth:`edit_model_instance`
@@ -1406,17 +1350,17 @@ class ModelCatalog(BaseClient):
 
         .. code-block:: JSON
 
-    {
-        "prod": {
-            "url": "https://validation-v1.brainsimulation.eu",
-            "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
-        },
-        "dev_test": {
-            "url": "https://localhost:8000",
-            "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
-            "verify_ssl": false
+        {
+            "prod": {
+                "url": "https://validation-v1.brainsimulation.eu",
+                "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
+            },
+            "dev_test": {
+                "url": "https://localhost:8000",
+                "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
+                "verify_ssl": false
+            }
         }
-    }
 
     Examples
     --------
@@ -1909,6 +1853,98 @@ class ModelCatalog(BaseClient):
             return model_instance_json["instances"][0]
         else:
             raise Exception("Error in retrieving model instance. Possibly invalid input data.")
+
+    def download_model_instance(self, instance_path="", instance_id="", model_id="", alias="", version="", local_directory="."):
+        """Download files/directory corresponding to an existing model instance.
+
+        Files/directory corresponding to a model instance to be downloaded. The model
+        instance can be specified in the following ways (in order of priority):
+
+        1. load from a local JSON file specified via `instance_path`
+        2. specify `instance_id` corresponding to model instance in model catalog
+        3. specify `model_id` and `version`
+        4. specify `alias` (of the model) and `version`
+
+        Parameters
+        ----------
+        instance_path : string
+            Location of local JSON file with model instance metadata.
+        instance_id : UUID
+            System generated unique identifier associated with model instance.
+        model_id : UUID
+            System generated unique identifier associated with model description.
+        alias : string
+            User-assigned unique identifier associated with model description.
+        version : string
+            User-assigned identifier (unique for each model) associated with model instance.
+        local_directory : string
+            Directory path (relative/absolute) where files should be downloaded and saved. Default is current location.
+            Existing files, if any, at the target location will be overwritten!
+
+        Returns
+        -------
+        string
+            Absolute path of the downloaded file/directory.
+
+        Note
+        ----
+        Existing files, if any, at the target location will be overwritten!
+
+        Examples
+        --------
+        >>> file_path = model_catalog.download_model_instance(instance_id="a035f2b2-fe2e-42fd-82e2-4173a304263b")
+        """
+
+        model_source = self.get_model_instance(instance_path=instance_path, instance_id=instance_id, model_id=model_id, alias=alias, version=version)["source"]
+        if model_source[-1]=="/":
+            model_source = model_source[:-1]    # remove trailing '/'
+        Path(local_directory).mkdir(parents=True, exist_ok=True)
+        fileList = []
+
+        if model_source.startswith("https://collab.humanbrainproject.eu/#/collab/"):
+            # ***** Handles Collab storage urls *****
+            entity_uuid = model_source.split("?state=uuid%3D")[-1]
+            datastore = URI_SCHEME_MAP["collab"](auth=self.auth)
+            fileList = datastore.download_data_using_uuid(entity_uuid, local_directory=local_directory)
+        elif model_source.startswith("swift://cscs.ch/"):
+            # ***** Handles CSCS private urls *****
+            datastore = URI_SCHEME_MAP["swift"]()
+            fileList = datastore.download_data(str(model_source), local_directory=local_directory)
+        elif model_source.startswith("https://object.cscs.ch/"):
+            # ***** Handles CSCS public urls (file or folder) *****
+            req = requests.head(model_source)
+            if req.status_code == 200:
+                if "directory" in req.headers["Content-Type"]:
+                    base_source = "/".join(model_source.split("/")[:6])
+                    model_rel_source = "/".join(model_source.split("/")[6:])
+                    dir_name = model_source.split("/")[-1]
+                    req = requests.get(base_source)
+                    contents = req.text.split("\n")
+                    files_match = [os.path.join(base_source, x) for x in contents if x.startswith(model_rel_source) and "." in x]
+                    local_directory = os.path.join(local_directory, dir_name)
+                    Path(local_directory).mkdir(parents=True, exist_ok=True)
+                else:
+                    files_match = [model_source]
+                datastore = URI_SCHEME_MAP["http"]()
+                fileList = datastore.download_data(files_match, local_directory=local_directory)
+            else:
+                raise FileNotFoundError("Requested file/folder not found: {}".format(model_source))
+        else:
+            # ***** Handles ModelDB and external urls (only file; not folder) *****
+            datastore = URI_SCHEME_MAP["http"]()
+            fileList = datastore.download_data(str(model_source), local_directory=local_directory)
+
+        if len(fileList) > 0:
+            flag = True
+            if len(fileList) == 1:
+                outpath = fileList[0]
+            else:
+                outpath = os.path.dirname(os.path.commonprefix(fileList))
+            return os.path.abspath(outpath.encode('ascii'))
+        else:
+            print("\nSource location: {}".format(model_source))
+            print("Could not download the specified file(s)!")
+            return None
 
     def list_model_instances(self, instance_path="", model_id="", alias=""):
         """Retrieve list of model instances belonging to a specified model.
