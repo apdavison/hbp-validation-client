@@ -34,6 +34,11 @@ try:
 except ImportError:
     from pathlib2 import Path  # Python 2 backport
 
+try:
+    raw_input
+except NameError:  # Python 3
+    raw_input = input  
+
 mimetypes.init()
 
 
@@ -263,10 +268,25 @@ class SwiftDataStore(object):
     def __init__(self, **kwargs):
         pass
 
-    def upload_data(self, file_paths):
-        raise NotImplementedError("The SwiftDataStore does not support uploading data.")
+    def upload_data(self, file_paths, username="", container="", project=None, remote_directory="", overwrite=False):
+        try:
+            from hbp_archive import Container
+        except ImportError:
+            print("Please install the following package: hbp_archive")
+            return
+        
+        print("----------------------------------------------------")
+        print("NOTE: The target location is inside a CSCS container")
+        print("----------------------------------------------------")
+        if not username:
+            username = raw_input("Please enter your CSCS username: ")
+        if not container:
+            container = raw_input("Please enter target container name: ")
+        container_obj = Container(container, username, project=project)
+        remote_paths = container_obj.upload(file_paths, remote_directory=remote_directory, overwrite=overwrite)
+        return remote_paths
 
-    def get_container(self, remote_path):
+    def get_container(self, remote_path, username=""):
         try:
             from hbp_archive import Container
         except ImportError:
@@ -287,21 +307,22 @@ class SwiftDataStore(object):
             dirname = name_parts[-1]
             pre_path = entity_path.replace(dirname, "", 1)
 
-        print("------------------------------------------------------------")
-        print("NOTE: The target location is inside a private CSCS container")
-        print("------------------------------------------------------------")
-        username = raw_input("Please enter your CSCS username: ")
+        print("----------------------------------------------------")
+        print("NOTE: The target location is inside a CSCS container")
+        print("----------------------------------------------------")
+        if not username:
+            username = raw_input("Please enter your CSCS username: ")
         container = Container(cont_name, username, project=prj_name)
         if prj_name:
             container.project._get_container_info()
         return container, entity_path, pre_path
 
-    def download_data(self, remote_paths, local_directory="."):
+    def download_data(self, remote_paths, local_directory=".", username=""):
         if isinstance(remote_paths, str):
             remote_paths = [remote_paths]
         local_paths = []
         for remote_path in remote_paths:
-            container, entity_path, pre_path = self.get_container(remote_path)
+            container, entity_path, pre_path = self.get_container(remote_path, username=username)
             contents = container.list()
             contents_match = [x for x in contents if x.name.startswith(entity_path)]
             for item in contents_match:
@@ -315,8 +336,8 @@ class SwiftDataStore(object):
                         local_paths.append(outpath)
         return local_paths
 
-    def load_data(self, remote_path):
-        container, entity_path, pre_path = self.get_container(remote_path)
+    def load_data(self, remote_path, username=""):
+        container, entity_path, pre_path = self.get_container(remote_path, username=username)
         content = container.read(entity_path)
         content_type = mimetypes.guess_type(remote_path)[0]
         if content_type == "application/json":
