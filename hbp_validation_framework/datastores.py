@@ -34,6 +34,11 @@ try:
 except ImportError:
     from pathlib2 import Path  # Python 2 backport
 
+try:
+    raw_input
+except NameError:  # Python 3
+    raw_input = input  
+
 mimetypes.init()
 
 
