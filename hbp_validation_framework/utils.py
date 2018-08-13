@@ -80,6 +80,8 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     1. specify `test_instance_id` corresponding to test instance in test library
     2. specify `test_id` and `test_version`
     3. specify `test_alias` and `test_version`
+    Note: for (2) and (3) above, if `test_version` is not specified,
+          then the latest test version is retrieved
 
     Parameters
     ----------
@@ -152,8 +154,8 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     else:
         test_library = TestLibrary(hbp_username, environment=environment)
 
-    if test_instance_id == "" and (test_id == "" or test_version == "") and (test_alias == "" or test_version == ""):
-        raise Exception("test_instance_id or (test_id, test_version) or (test_alias, test_version) needs to be provided for finding test.")
+    if test_instance_id == "" and test_id == "" and test_alias == "":
+        raise Exception("test_instance_id or test_id or test_alias needs to be provided for finding test.")
     else:
         test = test_library.get_validation_test(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version, **test_kwargs)
 
@@ -261,7 +263,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
             # required if reusing model inside loop; avoids re-use of generated model_instance_uuid
             delattr(score.model, 'model_instance_uuid')
             #score.model.model_instance_uuid = None
-        return response
+        return response, score
 
 def generate_report(hbp_username="", environment="production", result_list=[], only_combined=True):
     """Generates and downloads a PDF report of test results
