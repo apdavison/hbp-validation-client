@@ -70,7 +70,7 @@ def _make_js_file(data):
         json.dump(data, outfile)
         outfile.write("'")
 
-def run_test(hbp_username="", environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, model_metadata="", client_obj=None, **test_kwargs):
+def run_test(hbp_username="", environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **test_kwargs):
     """Run validation test and register result
 
     This method will accept a model, located locally, run the specified
@@ -108,12 +108,6 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     register_result : boolean
         Specify whether the test results are to be scored on the validation framework.
         Default is set as True.
-    model_metadata : dict
-        Data for registering model in the model catalog. If the model already exists
-        in the model catalog, then the model_instance UUID must be specified in the model's source
-        code by setting `model.instance_id`. Otherwise, the model is registered using info from
-        `model_metadata`. If `id` and `model_metadata` are both absent, then the results
-        will not be saved on the validation framework (even if `register_result` = True).
     client_obj : ModelCatalog/TestLibrary object
         Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
         Avoids need for repeated authentications; improves performance. Also, helps minimize
@@ -177,69 +171,9 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     if register_result:
         # Register the result with the HBP validation service
         model_catalog = ModelCatalog.from_existing(test_library)
-        if not getattr(score.model, 'model_instance_uuid', False):
-            # no `score.model.model_instance_uuid`
-            model_instance_uuid = None
-            if getattr(score.model, 'model_uuid', False):
-                # no `score.model.model_instance_uuid` but `score.model.model_uuid` present
-                model_instances = model_catalog.list_model_instances(model_id=score.model.model_uuid)
-                if len(model_instances) > 0:
-                    if getattr(score.model, 'version', False):
-                        # check to find if a model instance with same version exists
-                        # if yes then use its model_instance_uuid
-                        for m_inst in model_instances:
-                            if m_inst["version"] == score.model.version:
-                                model_instance_uuid = m_inst["id"]
-                    if not model_instance_uuid and getattr(score.model, 'model_hash', False):
-                        # if no matching model instance was found using version, then:
-                        # check to find if a model instance with same hash value exists
-                        # if yes then use its model_instance_uuid
-                        for m_inst in model_instances:
-                            if m_inst["description"] == score.model.model_hash:
-                                model_instance_uuid = m_inst["id"]
-                if not model_instance_uuid:
-                    if not getattr(score.model, 'source', False):
-                        score.model.source = ""
-                    if not getattr(score.model, 'description', False):
-                        if getattr(score.model, 'model_hash', False):
-                            score.model.description = score.model.model_hash
-                        else:
-                            score.model.description = ""
-                    print score.model
-                    print score.model.version
-                    if not getattr(score.model, 'version', False):
-                        raise NameError("You need to specify a value for model version.")
-                    model_instance_uuid = model_catalog.add_model_instance(model_id=score.model.model_uuid,
-                                                     source=score.model.source,
-                                                     version=score.model.version,
-                                                     description=score.model.description,
-                                                     parameters=json.dumps(score.model.params))
-            elif not model_metadata:
-                # no `score.model.model_instance_uuid` and no `model_metadata`
-                raise ValueError ("Model = {} => Results NOT saved on validation framework: no model.model_instance_uuid or model_metadata provided!".format(model))
-            else:
-                # no `score.model.model_instance_uuid` but with `model_metadata`: register the model on the validation framework
-                model_name = model_metadata["name"] if "name" in model_metadata else model.name
-                model_alias = model_metadata["alias"] if "alias" in model_metadata else model_name if ("use_name_as_alias" in model_metadata and model_metadata["use_name_as_alias"]) else None
-                print "model_alias = ", model_alias
-                model_id = model_catalog.register_model(app_id=model_metadata["app_id"],
-                                                        name=model_name,
-                                                        alias=model_alias,
-                                                        author=model_metadata["author"],
-                                                        organization=model_metadata["organization"],
-                                                        private=model_metadata["private"],
-                                                        cell_type=model_metadata["cell_type"],
-                                                        model_type=model_metadata["model_type"],
-                                                        brain_region=model_metadata["brain_region"],
-                                                        species=model_metadata["species"],
-                                                        description=model_metadata["description"],
-                                                        instances=model_metadata["instances"])
-                model_instance_id = model_catalog.get_model_instance(model_id=model_id, version=model_metadata["instances"][0]["version"])
-                model_instance_uuid = model_instance_id["id"]
+        model_instance_uuid = model_catalog.find_model_instance_else_add(score.model)
 
-            score.model.model_instance_uuid = model_instance_uuid
-
-        model_instance_json = model_catalog.get_model_instance(instance_id=score.model.model_instance_uuid)
+        model_instance_json = model_catalog.get_model_instance(instance_id=model_instance_uuid)
         model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
         model_host_collab_id = model_json["app"]["collab_id"]
         model_name = model_json["name"]
@@ -258,11 +192,6 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
                                          auth=test_library.auth)
 
         response = test_library.register_result(test_result=score, data_store=collab_storage)
-        # response = test_library.register_result(test_result=score)
-        if 'model_instance_uuid' in locals():   # if this was set here, then the original model didn't specify it
-            # required if reusing model inside loop; avoids re-use of generated model_instance_uuid
-            delattr(score.model, 'model_instance_uuid')
-            #score.model.model_instance_uuid = None
         return response, score
 
 def generate_report(hbp_username="", environment="production", result_list=[], only_combined=True):

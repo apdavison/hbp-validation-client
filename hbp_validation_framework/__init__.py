@@ -1210,43 +1210,15 @@ class TestLibrary(BaseClient):
         >>> response = test_library.register_result(test_result=score)
         """
 
-        # print("TEST RESULT: {}".format(test_result))
-        # print(test_result.model)
-        # print(test_result.prediction)
-        # print(test_result.observation)
-        # print(test_result.score)
-        # for file_path in test_result.related_data:
-        #     print(file_path)
-        # depending on value of data_store,
-        # upload data file to Collab storage,
-        # or just store path if it is on HPAC machine
-
         if project is None:
             project = test_result.related_data.get("project", None)
         if project is None:
             raise Exception("Don't know where to register this result. Please specify the Collab ID")
 
-        if not hasattr(test_result.model, "model_instance_uuid"):
-            # check that the model is registered with the model registry.
-            if not hasattr(test_result.model, "model_uuid"):
-                raise AttributeError("Model class does not have a 'model_uuid' attribute. "
-                                     "Please register it with the Validation Framework and add the 'model_uuid' to the code.")
-            if not hasattr(test_result.model, "version"):
-                raise AttributeError("Model class does not have a 'version' attribute")
-            model_catalog = ModelCatalog.from_existing(self)
-            try:
-                model_instance_uuid = model_catalog.get_model_instance(model_id=test_result.model.model_uuid,
-                                                                     version=test_result.model.version)['id']
-            except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
-                # so we create a new instance
-                response = model_catalog.add_model_instance(model_id=test_result.model.model_uuid,
-                                                            source=getattr(test_result.model, "remote_url", ""),
-                                                            version=test_result.model.version,
-                                                            parameters=getattr(test_result.model, "parameters", ""))
-                model_instance_uuid = response['uuid'][0]
-        else:
-            model_instance_uuid = test_result.model.model_instance_uuid
+        model_catalog = ModelCatalog.from_existing(self)
+        model_instance_uuid = model_catalog.find_model_instance_else_add(test_result.model)
 
+        results_storage = ""
         if data_store:
             if not data_store.authorized:
                 data_store.authorize(self.auth)  # relies on data store using HBP authorization
@@ -1257,15 +1229,8 @@ class TestLibrary(BaseClient):
             files_to_upload = []
             if "figures" in test_result.related_data:
                 files_to_upload.extend(test_result.related_data["figures"])
-            if not files_to_upload:
-                # workaround for https://github.com/joffreygonin/hbp-validation-framework_dev/issues/136
-                if not os.path.exists("related_data.txt"):
-                    with open("related_data.txt", "w") as fp:
-                        fp.write("This validation test did not produce any additional data")
-                files_to_upload = ["related_data.txt"]
-            results_storage = data_store.upload_data(files_to_upload)
-        else:
-            results_storage = ""
+            if files_to_upload:
+                results_storage = data_store.upload_data(files_to_upload)
 
         url = self.url + "/results/?format=json"
         result_json = {
@@ -1279,7 +1244,6 @@ class TestLibrary(BaseClient):
                         "normalized_score": test_result.score
                       }
 
-        # print(result_json)
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps([result_json]),
                                  auth=self.auth, headers=headers,
@@ -1334,6 +1298,7 @@ class ModelCatalog(BaseClient):
     Download model instance                :meth:`download_model_instance`
     List model instances                   :meth:`list_model_instances`
     Add new model instance                 :meth:`add_model_instance`
+    Find model instance; else add          :meth:`find_model_instance_else_add`
     Edit existing model instance           :meth:`edit_model_instance`
     Get figure from model description      :meth:`get_model_image`
     List figures from model description    :meth:`list_model_images`
@@ -2064,6 +2029,53 @@ class ModelCatalog(BaseClient):
             return response.json()["uuid"][0]
         else:
             raise Exception("Error in adding model instance. Response = " + str(response.json()))
+
+    def find_model_instance_else_add(self, model_obj):
+        """Find existing model instance; else create a new instance
+
+        This checks if the input model object has an associated model instance.
+        If not, a new model instance is created.
+
+        Parameters
+        ----------
+        model_obj : object
+            Python object representing a model.
+
+        Returns
+        -------
+        UUID
+            UUID of the existing or created model instance.
+
+        Note
+        ----
+        * `model_obj` is expected to contain the attribute `model_instance_uuid`,
+          or both the attributes `model_uuid` and `version`.
+
+        Examples
+        --------
+        >>> instance_id = model_catalog.find_model_instance_else_add(model)
+        """
+
+        if not hasattr(model_obj, "model_instance_uuid"):
+            # check that the model is registered with the model registry.
+            if not hasattr(model_obj, "model_uuid"):
+                raise AttributeError("Model object does not have a 'model_uuid' attribute. "
+                                     "Please register it with the Validation Framework and add the 'model_uuid' to the model object.")
+            if not hasattr(model_obj, "version"):
+                raise AttributeError("Model object does not have a 'version' attribute")
+            try:
+                model_instance_uuid = self.get_model_instance(model_id=model_obj.model_uuid,
+                                                                     version=model_obj.version)['id']
+            except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
+                # so we create a new instance
+                response = self.add_model_instance(model_id=model_obj.model_uuid,
+                                                            source=getattr(model_obj, "remote_url", ""),
+                                                            version=model_obj.version,
+                                                            parameters=getattr(model_obj, "parameters", ""))
+                model_instance_uuid = response['uuid'][0]
+        else:
+            model_instance_uuid = model_obj.model_instance_uuid
+        return model_instance_uuid
 
     def edit_model_instance(self, instance_id="", model_id="", alias="", source=None, version=None, description=None, parameters=None, code_format=None, hash=None):
         """Edit an existing model instance.
