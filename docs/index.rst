@@ -180,6 +180,7 @@ On first use, the users have the following options (in order of priority):
    Environment variables set like this are only stored temporally. When you exit
    the running instance of bash by exiting the terminal, they get discarded. To
    save this permanentally, write the above command into `~/.bashrc` or `~/.profile`
+   (you might need to reload these files by, for example, ``source ~/.bashrc``)
 
 #. Enter your HBP password when prompted by the Python Client.
 
