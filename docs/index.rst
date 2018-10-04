@@ -174,10 +174,12 @@ On first use, the users have the following options (in order of priority):
 
 #. Setting an environment variable named ``HBP_PASS`` with your HBP password.
    On Linux, this can be done as:
+
    ``export HBP_PASS='putyourpasswordhere'``
+
    Environment variables set like this are only stored temporally. When you exit
    the running instance of bash by exiting the terminal, they get discarded. To
-   save this permanentally, write the above command into ~/.bashrc or ~/.profile
+   save this permanentally, write the above command into `~/.bashrc` or `~/.profile`
 
 #. Enter your HBP password when prompted by the Python Client.
 
