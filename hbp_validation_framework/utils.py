@@ -131,6 +131,8 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     -------
     UUID
         UUID of the test result that has been created.
+    object
+        score object evaluated by the test.
 
     Examples
     --------
