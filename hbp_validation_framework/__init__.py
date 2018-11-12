@@ -2065,12 +2065,12 @@ class ModelCatalog(BaseClient):
                 raise AttributeError("Model object does not have a 'version' attribute")
             try:
                 model_instance_uuid = self.get_model_instance(model_id=model_obj.model_uuid,
-                                                                     version=model_obj.version)['id']
+                                                                     version=model_obj.model_version)['id']
             except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
                 # so we create a new instance
                 response = self.add_model_instance(model_id=model_obj.model_uuid,
                                                             source=getattr(model_obj, "remote_url", ""),
-                                                            version=model_obj.version,
+                                                            version=model_obj.model_version,
                                                             parameters=getattr(model_obj, "parameters", ""))
                 model_instance_uuid = response['uuid'][0]
         else:
