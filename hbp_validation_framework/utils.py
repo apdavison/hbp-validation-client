@@ -70,7 +70,7 @@ def _make_js_file(data):
         json.dump(data, outfile)
         outfile.write("'")
 
-def run_test(hbp_username="", environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **test_kwargs):
+def run_test(hbp_username="", hbp_password=None, environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **test_kwargs):
     """Run validation test and register result
 
     This method will accept a model, located locally, run the specified
@@ -87,6 +87,8 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     ----------
     hbp_username : string
         Your HBP Collaboratory username.
+    hbp_password : string
+        Your HBP Collaboratory password.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
@@ -148,7 +150,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
     if client_obj:
         test_library = TestLibrary.from_existing(client_obj)
     else:
-        test_library = TestLibrary(hbp_username, environment=environment)
+        test_library = TestLibrary(hbp_username, hbp_password, environment=environment)
 
     if test_instance_id == "" and test_id == "" and test_alias == "":
         raise Exception("test_instance_id or test_id or test_alias needs to be provided for finding test.")
@@ -196,7 +198,7 @@ def run_test(hbp_username="", environment="production", model="", test_instance_
         response = test_library.register_result(test_result=score, data_store=collab_storage)
         return response, score
 
-def generate_report(hbp_username="", environment="production", result_list=[], only_combined=True):
+def generate_report(hbp_username="", hbp_password=None, environment="production", result_list=[], only_combined=True):
     """Generates and downloads a PDF report of test results
 
     This method will generate and download a PDF report of the specified
@@ -279,7 +281,7 @@ def generate_report(hbp_username="", environment="production", result_list=[], o
         #     # Page number
         #     self.cell(0, 10, 'Page ' + str(self.page_no()) + '/{nb}', 0, 0, 'C')
 
-    model_catalog = ModelCatalog(hbp_username, environment=environment)
+    model_catalog = ModelCatalog(hbp_username, hbp_password, environment=environment)
     test_library = TestLibrary.from_existing(model_catalog)
     result_data = {}
     valid_uuids = []
