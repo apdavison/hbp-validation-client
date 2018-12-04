@@ -2049,7 +2049,7 @@ class ModelCatalog(BaseClient):
         Note
         ----
         * `model_obj` is expected to contain the attribute `model_instance_uuid`,
-          or both the attributes `model_uuid` and `version`.
+          or both the attributes `model_uuid` and `model_version`.
 
         Examples
         --------
@@ -2061,8 +2061,8 @@ class ModelCatalog(BaseClient):
             if not hasattr(model_obj, "model_uuid"):
                 raise AttributeError("Model object does not have a 'model_uuid' attribute. "
                                      "Please register it with the Validation Framework and add the 'model_uuid' to the model object.")
-            if not hasattr(model_obj, "version"):
-                raise AttributeError("Model object does not have a 'version' attribute")
+            if not hasattr(model_obj, "model_version"):
+                raise AttributeError("Model object does not have a 'model_version' attribute")
             try:
                 model_instance_uuid = self.get_model_instance(model_id=model_obj.model_uuid,
                                                                      version=model_obj.model_version)['id']
