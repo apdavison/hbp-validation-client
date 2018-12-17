@@ -36,6 +36,7 @@ except ImportError:  # Python 2
     from urlparse import urlparse
 from importlib import import_module
 import mimetypes
+import math
 
 def view_json_tree(data):
     """Displays the JSON tree structure inside the web browser
@@ -241,7 +242,10 @@ def run_test_offline(model="", test_config_file=""):
     print("----------------------------------------------")
 
     # Run the test
+    t_start = datetime.utcnow()
     score = test.judge(model, deep_error=True)
+    t_end = datetime.utcnow()
+
     print("----------------------------------------------")
     print("Score: ", score.score)
     if "figures" in score.related_data:
@@ -249,6 +253,10 @@ def run_test_offline(model="", test_config_file=""):
         for item in score.related_data["figures"]:
             print(item)
     print("----------------------------------------------")
+
+    score.runtime = str(int(math.ceil((t_end-t_start).total_seconds()))) + " s"
+    score.exec_timestamp = t_end
+    # score.exec_platform = str(self._get_platform())
 
     # Save result info to file
     test_result_file = os.path.join(test_info["base_folder"], "test_result.pkl")
@@ -327,7 +335,21 @@ def upload_test_result(hbp_username="", hbp_password=None, environment="producti
         storage_collab_id = model_host_collab_id
     score.related_data["project"] = storage_collab_id
 
+    # Check if result with same hash has already been uploaded for
+    # this (model instance, test instance) combination; if yes, don't register result
+    result_json = {
+                    "model_instance_id": model_instance_uuid,
+                    "test_code_id": score.test.uuid,
+                    "score": score.score,
+                    "runtime": score.runtime,
+                    "exectime": score.exec_timestamp#,
+                    # "platform": score.exec_platform
+                  }
+    score.score_hash = str(hash(json.dumps(result_json, sort_keys=True, default = str)))
     test_library = TestLibrary.from_existing(model_catalog)
+    results = test_library.list_results(model_version_id=model_instance_uuid, test_code_id=score.test.uuid)["results"]
+    if score.score_hash in [x["hash"] for x in results]:
+        raise Exception("An identical result has already been registered on the validation framework.")
 
     collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name, datetime.now().strftime("%Y%m%d-%H%M%S"))
     collab_storage = CollabDataStore(collab_id=storage_collab_id,
