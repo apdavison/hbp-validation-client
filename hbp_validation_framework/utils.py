@@ -348,8 +348,9 @@ def upload_test_result(hbp_username="", hbp_password=None, environment="producti
     score.score_hash = str(hash(json.dumps(result_json, sort_keys=True, default = str)))
     test_library = TestLibrary.from_existing(model_catalog)
     results = test_library.list_results(model_version_id=model_instance_uuid, test_code_id=score.test.uuid)["results"]
-    if score.score_hash in [x["hash"] for x in results]:
-        raise Exception("An identical result has already been registered on the validation framework.")
+    duplicate_results =  [x["id"] for x in results if x["hash"] == score.score_hash]
+    if duplicate_results:
+        raise Exception("An identical result has already been registered on the validation framework.\nExisting Result UUID = {}".format(", ".join(duplicate_results)))
 
     collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name, datetime.now().strftime("%Y%m%d-%H%M%S"))
     collab_storage = CollabDataStore(collab_id=storage_collab_id,
