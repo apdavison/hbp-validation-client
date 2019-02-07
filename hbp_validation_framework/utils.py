@@ -11,7 +11,6 @@ View JSON data in web browser             :meth:`view_json_tree`
 Prepare test for execution                :meth:`prepare_run_test_offline`
 Run the validation test                   :meth:`run_test_offline`
 Register result with validation service   :meth:`upload_test_result`
-New: Run test and register result         :meth:`run_test_new`
 Run test and register result              :meth:`run_test`
 Download PDF report of test results       :meth:`generate_report`
 =======================================   ====================================
@@ -360,139 +359,11 @@ def upload_test_result(username="", password=None, environment="production", tes
     response = test_library.register_result(test_result=score, data_store=collab_storage)
     return response, score
 
-def run_test_new(username="", password=None, environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **params):
+def run_test(username="", password=None, environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **params):
     test_config_file = prepare_run_test_offline(username=username, password=password, environment=environment, test_instance_id=test_instance_id, test_id=test_id, test_alias=test_alias, test_version=test_version, client_obj=client_obj, **params)
     test_result_file = run_test_offline(model=model, test_config_file=test_config_file)
     result_id, score = upload_test_result(username=username, password=password, environment=environment, test_result_file=test_result_file, storage_collab_id=storage_collab_id, register_result=register_result, client_obj=client_obj)
     return result_id, score
-
-def run_test(username="", password=None, environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **params):
-    """Run validation test and register result
-
-    This method will accept a model, located locally, run the specified
-    test on the model, and store the results on the validation service.
-    The test can be specified in the following ways (in order of priority):
-
-    1. specify `test_instance_id` corresponding to test instance in test library
-    2. specify `test_id` and `test_version`
-    3. specify `test_alias` and `test_version`
-    Note: for (2) and (3) above, if `test_version` is not specified,
-          then the latest test version is retrieved
-
-    Parameters
-    ----------
-    username : string
-        Your HBP Collaboratory username.
-    password : string
-        Your HBP Collaboratory password.
-    environment : string, optional
-        Used to indicate whether being used for development/testing purposes.
-        Set as `production` as default for using the production system,
-        which is appropriate for most users. When set to `dev`, it uses the
-        `development` system. For other values, an external config file would
-        be read (the latter is currently not implemented).
-    model : sciunit.Model
-        A :class:`sciunit.Model` instance.
-    test_instance_id : UUID
-        System generated unique identifier associated with test instance.
-    test_id : UUID
-        System generated unique identifier associated with test definition.
-    test_alias : string
-        User-assigned unique identifier associated with test definition.
-    test_version : string
-        User-assigned identifier (unique for each test) associated with test instance.
-    storage_collab_id : string
-        Collab ID where output files should be stored; if empty, stored in model's host Collab.
-    register_result : boolean
-        Specify whether the test results are to be scored on the validation framework.
-        Default is set as True.
-    client_obj : ModelCatalog/TestLibrary object
-        Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
-        Avoids need for repeated authentications; improves performance. Also, helps minimize
-        being blocked out by the authentication server for repeated authentication requests
-        (applicable when running several tests in quick succession, e.g. in a loop).
-    **params : list
-        Keyword arguments to be passed to the Test constructor.
-
-    Note
-    ----
-    This is a very basic implementation that would suffice for simple use cases.
-    You can customize and create your own run_test() implementations.
-
-    Returns
-    -------
-    UUID
-        UUID of the test result that has been created.
-    object
-        score object evaluated by the test.
-
-    Examples
-    --------
-    >>> import models
-    >>> from hbp_validation_framework import utils
-    >>> mymodel = models.hippoCircuit()
-    >>> utils.run_test(username="shailesh", model=mymodel, test_alias="CDT-5", test_version="5.0")
-    """
-
-    # Check the model
-    if not isinstance(model, sciunit.Model):
-        raise TypeError("`model` is not a sciunit Model!")
-    print("----------------------------------------------")
-    print("Model name: ", model.name)
-    print("Model type: ", type(model))
-    print("----------------------------------------------")
-
-    # Load the test
-    if client_obj:
-        test_library = TestLibrary.from_existing(client_obj)
-    else:
-        test_library = TestLibrary(username, password, environment=environment)
-
-    if test_instance_id == "" and test_id == "" and test_alias == "":
-        raise Exception("test_instance_id or test_id or test_alias needs to be provided for finding test.")
-    else:
-        test = test_library.get_validation_test(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version, **params)
-
-    print("----------------------------------------------")
-    print("Test name: ", test.name)
-    print("Test type: ", type(test))
-    print("----------------------------------------------")
-
-    # Run the test
-    score = test.judge(model, deep_error=True)
-    print("----------------------------------------------")
-    print("Score: ", score.score)
-    if "figures" in score.related_data:
-        print("Output files: ")
-        for item in score.related_data["figures"]:
-            print(item)
-    print("----------------------------------------------")
-
-    if register_result:
-        # Register the result with the HBP validation service
-        model_catalog = ModelCatalog.from_existing(test_library)
-        model_instance_uuid = model_catalog.find_model_instance_else_add(score.model)
-
-        model_instance_json = model_catalog.get_model_instance(instance_id=model_instance_uuid)
-        model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
-        model_host_collab_id = model_json["app"]["collab_id"]
-        model_name = model_json["name"]
-
-        if not storage_collab_id:
-            storage_collab_id = model_host_collab_id
-        score.related_data["project"] = storage_collab_id
-        #     print "=============================================="
-        #     print "Enter Collab ID for Data Storage (if applicable)"
-        #     print "(Leave empty for Model's host collab, i.e. ", model_host_collab_id, ")"
-        #     score.related_data["project"] = raw_input('Collab ID: ')
-
-        collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name, datetime.now().strftime("%Y%m%d-%H%M%S"))
-        collab_storage = CollabDataStore(collab_id=storage_collab_id,
-                                         base_folder=collab_folder,
-                                         auth=test_library.auth)
-
-        response = test_library.register_result(test_result=score, data_store=collab_storage)
-        return response, score
 
 def generate_report(username="", password=None, environment="production", result_list=[], only_combined=True):
     """Generates and downloads a PDF report of test results
