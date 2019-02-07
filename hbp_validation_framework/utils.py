@@ -4,17 +4,21 @@ Does not require explicit instantiation.
 
 The following methods are available:
 
-====================================   ====================================
-Action                                 Method
-====================================   ====================================
-View JSON data in web browser          :meth:`view_json_tree`
-Run test and register result           :meth:`run_test`
-Download PDF report of test results    :meth:`generate_report`
-====================================   ====================================
+=======================================   ====================================
+Action                                    Method
+=======================================   ====================================
+View JSON data in web browser             :meth:`view_json_tree`
+Prepare test for execution                :meth:`prepare_run_test_offline`
+Run the validation test                   :meth:`run_test_offline`
+Register result with validation service   :meth:`upload_test_result`
+Run test and register result              :meth:`run_test`
+Download PDF report of test results       :meth:`generate_report`
+=======================================   ====================================
 """
 
 import os
 import json
+import pickle
 import webbrowser
 import argparse
 try:
@@ -24,7 +28,14 @@ except NameError:  # Python 3
 import sciunit
 from datetime import datetime
 from . import TestLibrary, ModelCatalog
-from .datastores import CollabDataStore
+from .datastores import CollabDataStore, URI_SCHEME_MAP
+try:  # Python 3
+    from urllib.parse import urlparse
+except ImportError:  # Python 2
+    from urlparse import urlparse
+from importlib import import_module
+import mimetypes
+import math
 
 def view_json_tree(data):
     """Displays the JSON tree structure inside the web browser
@@ -70,11 +81,12 @@ def _make_js_file(data):
         json.dump(data, outfile)
         outfile.write("'")
 
-def run_test(hbp_username="", hbp_password=None, environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **test_kwargs):
-    """Run validation test and register result
+def prepare_run_test_offline(username="", password=None, environment="production", test_instance_id="", test_id="", test_alias="", test_version="", client_obj=None, **params):
+    """Gather info necessary for running validation test
 
-    This method will accept a model, located locally, run the specified
-    test on the model, and store the results on the validation service.
+    This method will select the specified test and prepare a config file
+    enabling offline execution of the validation test. The observation file
+    required by the test is also downloaded and stored locally.
     The test can be specified in the following ways (in order of priority):
 
     1. specify `test_instance_id` corresponding to test instance in test library
@@ -85,9 +97,9 @@ def run_test(hbp_username="", hbp_password=None, environment="production", model
 
     Parameters
     ----------
-    hbp_username : string
+    username : string
         Your HBP Collaboratory username.
-    hbp_password : string
+    password : string
         Your HBP Collaboratory password.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
@@ -95,8 +107,6 @@ def run_test(hbp_username="", hbp_password=None, environment="production", model
         which is appropriate for most users. When set to `dev`, it uses the
         `development` system. For other values, an external config file would
         be read (the latter is currently not implemented).
-    model : sciunit.Model
-        A :class:`sciunit.Model` instance.
     test_instance_id : UUID
         System generated unique identifier associated with test instance.
     test_id : UUID
@@ -105,6 +115,174 @@ def run_test(hbp_username="", hbp_password=None, environment="production", model
         User-assigned unique identifier associated with test definition.
     test_version : string
         User-assigned identifier (unique for each test) associated with test instance.
+    client_obj : ModelCatalog/TestLibrary object
+        Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
+        Avoids need for repeated authentications; improves performance. Also, helps minimize
+        being blocked out by the authentication server for repeated authentication requests
+        (applicable when running several tests in quick succession, e.g. in a loop).
+    **params : list
+        Keyword arguments to be passed to the Test constructor.
+
+    Note
+    ----
+    Should be run on node having access to external URLs (i.e. with internet access)
+
+    Returns
+    -------
+    path
+        The absolute path of the generated test config file
+
+    Examples
+    --------
+    >>> test_config_file = utils.prepare_run_test_offline(username="shailesh", test_alias="CDT-5", test_version="5.0")
+    """
+
+    if client_obj:
+        test_library = TestLibrary.from_existing(client_obj)
+    else:
+        test_library = TestLibrary(username, environment=environment)
+
+    if test_instance_id == "" and test_id == "" and test_alias == "":
+        raise Exception("test_instance_id or test_id or test_alias needs to be provided for finding test.")
+
+    # Gather specified test info
+    test_instance_json = test_library.get_test_instance(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version)
+    test_id = test_instance_json["test_definition_id"]
+    test_instance_id = test_instance_json["id"]
+    test_instance_path = test_instance_json["path"]
+
+    # Download test observation to local storage
+    test_observation_path = test_library.get_test_definition(test_id=test_id)["data_location"]
+    parse_result = urlparse(test_observation_path)
+    datastore = URI_SCHEME_MAP[parse_result.scheme](auth=test_library.auth)
+    base_folder = os.path.join(os.getcwd(), "hbp_validation_framework", test_id, datetime.now().strftime("%Y%m%d-%H%M%S"))
+    test_observation_file = datastore.download_data([test_observation_path], local_directory=base_folder)[0]
+
+    # Create test config required for offline execution
+    test_info = {}
+    test_info["test_id"] = test_id
+    test_info["test_instance_id"] = test_instance_id
+    test_info["test_instance_path"] = test_instance_path
+    test_info["test_observation_file"] = test_observation_file
+    test_info["params"] = params
+    test_info["base_folder"] = base_folder
+
+    # Save test info to config file
+    test_config_file = os.path.join(base_folder, "test_config.json")
+    with open(test_config_file, 'w') as file:
+        file.write(json.dumps(test_info, indent=4))
+    return test_config_file
+
+def run_test_offline(model="", test_config_file=""):
+    """Run the validation test
+
+    This method will accept a model, located locally, run the test specified
+    via the test config file (generated by :meth:`prepare_run_test_offline`),
+    and store the results locally.
+
+    Parameters
+    ----------
+    model : sciunit.Model
+        A :class:`sciunit.Model` instance.
+    test_config_file : string
+        Absolute path of the test config file generated by :meth:`prepare_run_test_offline`
+
+    Note
+    ----
+    Can be run on node(s) having no access to external URLs (i.e. without internet access)
+
+    Returns
+    -------
+    path
+        The absolute path of the generated test result file
+
+    Examples
+    --------
+    >>> test_result_file = utils.run_test_offline(model=model, test_config_file=test_config_file)
+    """
+
+    if not os.path.isfile(test_config_file) :
+        raise Exception("'test_config_file' should direct to file describing the test configuration.")
+
+    # Load the test info from config file
+    with open(test_config_file) as file:
+        test_info = json.load(file)
+
+    # Identify test class path
+    path_parts = test_info["test_instance_path"].split(".")
+    cls_name = path_parts[-1]
+    module_name = ".".join(path_parts[:-1])
+    test_module = import_module(module_name)
+    test_cls = getattr(test_module, cls_name)
+
+    # Read observation data required by test
+    with open(test_info["test_observation_file"], 'r') as file:
+        observation_data = file.read()
+    content_type = mimetypes.guess_type(test_info["test_observation_file"])[0]
+    if content_type == "application/json":
+        observation_data = json.loads(observation_data)
+
+    # Create the :class:`sciunit.Test` instance
+    params = test_info["params"]
+    test = test_cls(observation=observation_data, **params)
+    test.uuid = test_info["test_instance_id"]
+
+    print("----------------------------------------------")
+    print("Test name: ", test.name)
+    print("Test type: ", type(test))
+    print("----------------------------------------------")
+
+    # Check the model
+    if not isinstance(model, sciunit.Model):
+        raise TypeError("`model` is not a sciunit Model!")
+    print("----------------------------------------------")
+    print("Model name: ", model.name)
+    print("Model type: ", type(model))
+    print("----------------------------------------------")
+
+    # Run the test
+    t_start = datetime.utcnow()
+    score = test.judge(model, deep_error=True)
+    t_end = datetime.utcnow()
+
+    print("----------------------------------------------")
+    print("Score: ", score.score)
+    if "figures" in score.related_data:
+        print("Output files: ")
+        for item in score.related_data["figures"]:
+            print(item)
+    print("----------------------------------------------")
+
+    score.runtime = str(int(math.ceil((t_end-t_start).total_seconds()))) + " s"
+    score.exec_timestamp = t_end
+    # score.exec_platform = str(self._get_platform())
+
+    # Save result info to file
+    test_result_file = os.path.join(test_info["base_folder"], "test_result.pkl")
+    with open(test_result_file, 'wb') as file:
+        pickle.dump(score, file)
+    return test_result_file
+
+def upload_test_result(username="", password=None, environment="production", test_result_file="", storage_collab_id="", register_result=True, client_obj=None):
+    """Register the result with the Validation Service
+
+    This method will register the validation result specified via the test result file
+    (generated by :meth:`run_test_offline`) with the validation service.
+
+    Parameters
+    ----------
+    username : string
+        Your HBP Collaboratory username.
+    password : string
+        Your HBP Collaboratory password.
+    environment : string, optional
+        Used to indicate whether being used for development/testing purposes.
+        Set as `production` as default for using the production system,
+        which is appropriate for most users. When set to `dev`, it uses the
+        `development` system. For other values, an external config file would
+        be read (the latter is currently not implemented).
+    test_result_file : string
+        Absolute path of the test result file generated by :meth:`run_test_offline`
     storage_collab_id : string
         Collab ID where output files should be stored; if empty, stored in model's host Collab.
     register_result : boolean
@@ -115,13 +293,10 @@ def run_test(hbp_username="", hbp_password=None, environment="production", model
         Avoids need for repeated authentications; improves performance. Also, helps minimize
         being blocked out by the authentication server for repeated authentication requests
         (applicable when running several tests in quick succession, e.g. in a loop).
-    **test_kwargs : list
-        Keyword arguments to be passed to the Test constructor.
 
     Note
     ----
-    This is a very basic implementation that would suffice for simple use cases.
-    You can customize and create your own run_test() implementations.
+    Should be run on node having access to external URLs (i.e. with internet access)
 
     Returns
     -------
@@ -132,73 +307,65 @@ def run_test(hbp_username="", hbp_password=None, environment="production", model
 
     Examples
     --------
-    >>> import models
-    >>> from hbp_validation_framework import utils
-    >>> mymodel = models.hippoCircuit()
-    >>> utils.run_test(hbp_username="shailesh", model=mymodel, test_alias="CDT-5", test_version="5.0")
+    >>> result_id, score = utils.upload_test_result(username="shailesh", test_result_file=test_result_file)
     """
 
-    # Check the model
-    if not isinstance(model, sciunit.Model):
-        raise TypeError("`model` is not a sciunit Model!")
-    print("----------------------------------------------")
-    print("Model name: ", model.name)
-    print("Model type: ", type(model))
-    print("----------------------------------------------")
+    if not register_result:
+        return
+    if not os.path.isfile(test_result_file) :
+        raise Exception("'test_result_file' should direct to file containg the test result data.")
 
-    # Load the test
+    # Load result info from file
+    with open(test_result_file, 'rb') as file:
+        score = pickle.load(file)
+
+    # Register the result with the HBP validation framework
     if client_obj:
-        test_library = TestLibrary.from_existing(client_obj)
+        model_catalog = ModelCatalog.from_existing(client_obj)
     else:
-        test_library = TestLibrary(hbp_username, hbp_password, environment=environment)
+        model_catalog = ModelCatalog(username, environment=environment)
+    model_instance_uuid = model_catalog.find_model_instance_else_add(score.model)
+    model_instance_json = model_catalog.get_model_instance(instance_id=model_instance_uuid)
+    model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
+    model_host_collab_id = model_json["app"]["collab_id"]
+    model_name = model_json["name"]
 
-    if test_instance_id == "" and test_id == "" and test_alias == "":
-        raise Exception("test_instance_id or test_id or test_alias needs to be provided for finding test.")
-    else:
-        test = test_library.get_validation_test(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version, **test_kwargs)
+    if not storage_collab_id:
+        storage_collab_id = model_host_collab_id
+    score.related_data["project"] = storage_collab_id
 
-    print("----------------------------------------------")
-    print("Test name: ", test.name)
-    print("Test type: ", type(test))
-    print("----------------------------------------------")
+    # Check if result with same hash has already been uploaded for
+    # this (model instance, test instance) combination; if yes, don't register result
+    result_json = {
+                    "model_instance_id": model_instance_uuid,
+                    "test_code_id": score.test.uuid,
+                    "score": score.score,
+                    "runtime": score.runtime,
+                    "exectime": score.exec_timestamp#,
+                    # "platform": score.exec_platform
+                  }
+    score.score_hash = str(hash(json.dumps(result_json, sort_keys=True, default = str)))
+    test_library = TestLibrary.from_existing(model_catalog)
+    results = test_library.list_results(model_version_id=model_instance_uuid, test_code_id=score.test.uuid)["results"]
+    duplicate_results =  [x["id"] for x in results if x["hash"] == score.score_hash]
+    if duplicate_results:
+        raise Exception("An identical result has already been registered on the validation framework.\nExisting Result UUID = {}".format(", ".join(duplicate_results)))
 
-    # Run the test
-    score = test.judge(model, deep_error=True)
-    print("----------------------------------------------")
-    print("Score: ", score.score)
-    if "figures" in score.related_data:
-        print("Output files: ")
-        for item in score.related_data["figures"]:
-            print(item)
-    print("----------------------------------------------")
+    collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name, datetime.now().strftime("%Y%m%d-%H%M%S"))
+    collab_storage = CollabDataStore(collab_id=storage_collab_id,
+                                     base_folder=collab_folder,
+                                     auth=test_library.auth)
 
-    if register_result:
-        # Register the result with the HBP validation service
-        model_catalog = ModelCatalog.from_existing(test_library)
-        model_instance_uuid = model_catalog.find_model_instance_else_add(score.model)
+    response = test_library.register_result(test_result=score, data_store=collab_storage)
+    return response, score
 
-        model_instance_json = model_catalog.get_model_instance(instance_id=model_instance_uuid)
-        model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
-        model_host_collab_id = model_json["app"]["collab_id"]
-        model_name = model_json["name"]
+def run_test(username="", password=None, environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **params):
+    test_config_file = prepare_run_test_offline(username=username, password=password, environment=environment, test_instance_id=test_instance_id, test_id=test_id, test_alias=test_alias, test_version=test_version, client_obj=client_obj, **params)
+    test_result_file = run_test_offline(model=model, test_config_file=test_config_file)
+    result_id, score = upload_test_result(username=username, password=password, environment=environment, test_result_file=test_result_file, storage_collab_id=storage_collab_id, register_result=register_result, client_obj=client_obj)
+    return result_id, score
 
-        if not storage_collab_id:
-            storage_collab_id = model_host_collab_id
-        score.related_data["project"] = storage_collab_id
-        #     print "=============================================="
-        #     print "Enter Collab ID for Data Storage (if applicable)"
-        #     print "(Leave empty for Model's host collab, i.e. ", model_host_collab_id, ")"
-        #     score.related_data["project"] = raw_input('Collab ID: ')
-
-        collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name, datetime.now().strftime("%Y%m%d-%H%M%S"))
-        collab_storage = CollabDataStore(collab_id=storage_collab_id,
-                                         base_folder=collab_folder,
-                                         auth=test_library.auth)
-
-        response = test_library.register_result(test_result=score, data_store=collab_storage)
-        return response, score
-
-def generate_report(hbp_username="", hbp_password=None, environment="production", result_list=[], only_combined=True):
+def generate_report(username="", password=None, environment="production", result_list=[], only_combined=True):
     """Generates and downloads a PDF report of test results
 
     This method will generate and download a PDF report of the specified
@@ -214,7 +381,7 @@ def generate_report(hbp_username="", hbp_password=None, environment="production"
 
     Parameters
     ----------
-    hbp_username : string
+    username : string
         Your HBP collaboratory username.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
@@ -243,7 +410,7 @@ def generate_report(hbp_username="", hbp_password=None, environment="production"
     Examples
     --------
     >>> result_list = ["a618a6b1-e92e-4ac6-955a-7b8c6859285a", "793e5852-761b-4801-84cb-53af6f6c1acf"]
-    >>> valid_uuids, report_path = utils.generate_report(hbp_username="shailesh", result_list=result_list)
+    >>> valid_uuids, report_path = utils.generate_report(username="shailesh", result_list=result_list)
     """
     # This method can be significantly improved in future.
 
@@ -281,7 +448,7 @@ def generate_report(hbp_username="", hbp_password=None, environment="production"
         #     # Page number
         #     self.cell(0, 10, 'Page ' + str(self.page_no()) + '/{nb}', 0, 0, 'C')
 
-    model_catalog = ModelCatalog(hbp_username, hbp_password, environment=environment)
+    model_catalog = ModelCatalog(username, password, environment=environment)
     test_library = TestLibrary.from_existing(model_catalog)
     result_data = {}
     valid_uuids = []
