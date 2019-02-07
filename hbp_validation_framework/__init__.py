@@ -2068,11 +2068,10 @@ class ModelCatalog(BaseClient):
                                                                      version=model_obj.model_version)['id']
             except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
                 # so we create a new instance
-                response = self.add_model_instance(model_id=model_obj.model_uuid,
+                model_instance_uuid = self.add_model_instance(model_id=model_obj.model_uuid,
                                                             source=getattr(model_obj, "remote_url", ""),
                                                             version=model_obj.model_version,
                                                             parameters=getattr(model_obj, "parameters", ""))
-                model_instance_uuid = response['uuid'][0]
         else:
             model_instance_uuid = model_obj.model_instance_uuid
         return model_instance_uuid
