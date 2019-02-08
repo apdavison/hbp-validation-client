@@ -1238,10 +1238,10 @@ class TestLibrary(BaseClient):
                         "test_code_id": test_result.test.uuid,
                         "results_storage": results_storage,
                         "score": test_result.score,
-                        "runtime": getattr(test_result, 'runtime', None),
+                        "runtime": test_result.runtime if hasattr(test_result, 'runtime') else None,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
                         "platform": str(self._get_platform()), # database accepts a string
-                        "hash": getattr(test_result, 'score_hash', None),
+                        "hash": test_result.score_hash if hasattr(test_result, 'score_hash') else None,
                         "project": project,
                         "normalized_score": test_result.score
                       }
