@@ -2031,6 +2031,10 @@ class ModelCatalog(BaseClient):
         instance_data = locals()
         instance_data.pop("self")
 
+        for key, val in instance_data.items():
+            if val is None:
+                instance_data[key] = ""
+
         if model_id == "" and alias == "":
             raise Exception("Model ID needs to be provided for finding the model.")
             #raise Exception("Model ID or alias needs to be provided for finding the model.")
