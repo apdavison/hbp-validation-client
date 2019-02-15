@@ -200,7 +200,8 @@ class BaseClient(object):
                   "cell_type":"",
                   "collab_id":8123,
                   "data_modalities":"",
-                  "model_type":"",
+                  "model_scope":"",
+                  "abstraction_level":"",
                   "organization":"",
                   "species":"",
                   "test_type":""
@@ -393,7 +394,7 @@ class TestLibrary(BaseClient):
             self.app_id = 349
             self.app_name = "Validation Framework (dev)"
 
-    def set_app_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_type="", organization=""):
+    def set_app_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
         inputArgs = locals()
         params = {}
         params["url"] = self.url + "/parametersconfiguration-validation-app/parametersconfigurationrest/"
@@ -557,7 +558,8 @@ class TestLibrary(BaseClient):
         * data_modality
         * test_type
         * score_type
-        * model_type
+        * model_scope
+        * abstraction_level
         * data_type
         * publication
 
@@ -1094,10 +1096,10 @@ class TestLibrary(BaseClient):
         if param == "":
             param = "all"
 
-        if param in ["cell_type", "test_type", "score_type", "brain_region", "model_type", "data_modalities", "species", "organization", "all"]:
+        if param in ["cell_type", "test_type", "score_type", "brain_region", "model_scope", "abstraction_level", "data_modalities", "species", "organization", "all"]:
             url = self.url + "/authorizedcollabparameterrest/?python_client=true&parameters="+param+"&format=json"
         else:
-            raise Exception("Attribute, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_type, data_modalities, species, all]")
+            raise Exception("Attribute, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_scope, abstraction_level, data_modalities, species, all]")
         data = requests.get(url, auth=self.auth, verify=self.verify).json()
         return ast.literal_eval(json.dumps(data))
 
@@ -1238,10 +1240,8 @@ class TestLibrary(BaseClient):
                         "test_code_id": test_result.test.uuid,
                         "results_storage": results_storage,
                         "score": test_result.score,
-                        "runtime": test_result.runtime if hasattr(test_result, 'runtime') else None,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
                         "platform": str(self._get_platform()), # database accepts a string
-                        "hash": test_result.score_hash if hasattr(test_result, 'score_hash') else None,
                         "project": project,
                         "normalized_score": test_result.score
                       }
@@ -1356,7 +1356,7 @@ class ModelCatalog(BaseClient):
             self.app_id = 348
             self.app_name = "Model Catalog (dev)"
 
-    def set_app_config(self, collab_id="", app_id="", only_if_new=False, species="", brain_region="", cell_type="", model_type="", organization=""):
+    def set_app_config(self, collab_id="", app_id="", only_if_new=False, species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
         inputArgs = locals()
         params = {}
         params["url"] = self.url + "/parametersconfiguration-model-catalog/parametersconfigurationrest/"
@@ -1372,7 +1372,8 @@ class ModelCatalog(BaseClient):
         species = []
         brain_region = []
         cell_type = []
-        model_type = []
+        model_scope = []
+        abstraction_level = []
         organization = []
 
         models = self.list_models(app_id=app_id)
@@ -1386,13 +1387,15 @@ class ModelCatalog(BaseClient):
                 brain_region.append(model["brain_region"])
             if model["cell_type"] not in cell_type:
                 cell_type.append(model["cell_type"])
-            if model["model_type"] not in model_type:
-                model_type.append(model["model_type"])
+            if model["model_scope"] not in model_scope:
+                model_scope.append(model["model_scope"])
+            if model["abstraction_level"] not in abstraction_level:
+                abstraction_level.append(model["abstraction_level"])
             if model["organization"] not in organization:
                 organization.append(model["organization"])
 
         filters = {}
-        for key in ["collab_id", "app_id", "species", "brain_region", "cell_type", "model_type", "organization"]:
+        for key in ["collab_id", "app_id", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "organization"]:
             if isinstance(locals()[key], list):
                 filters[key] = ",".join(locals()[key])
             else:
@@ -1471,7 +1474,8 @@ class ModelCatalog(BaseClient):
         * species
         * brain_region
         * cell_type
-        * model_type
+        * model_scope
+        * abstraction_level
         * owner
         * project
         * license
@@ -1499,7 +1503,7 @@ class ModelCatalog(BaseClient):
         return models["models"]
 
     def register_model(self, app_id="", name="", alias=None, author="", organization="", private=False,
-                       species="", brain_region="", cell_type="", model_type="", owner="", project="",
+                       species="", brain_region="", cell_type="", model_scope="", abstraction_level="", owner="", project="",
                        license="", description="", instances=[], images=[]):
         """Register a new model in the model catalog.
 
@@ -1528,8 +1532,10 @@ class ModelCatalog(BaseClient):
             The brain region for which the model is developed.
         cell_type : string
             The type of cell for which the model is developed.
-        model_type : string
+        model_scope : string
             Specifies the type of the model.
+        abstraction_level : string
+            Specifies the model abstraction level.
         owner : string
             Specifies the owner of the model. Need not necessarily be the same as the author.
         project : string
@@ -1554,7 +1560,8 @@ class ModelCatalog(BaseClient):
 
         >>> model = model_catalog.register_model(app_id="39968", name="Test Model - B2",
                         alias="Model vB2", author="Shailesh Appukuttan", organization="HBP-SP6",
-                        private=False, cell_type="Granule Cell", model_type="Single Cell",
+                        private=False, cell_type="Granule Cell", model_scope="Single cell model",
+                        abstraction_level="Spiking neurons",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
                         owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
                         description="This is a test entry")
@@ -1563,7 +1570,8 @@ class ModelCatalog(BaseClient):
 
         >>> model = model_catalog.register_model(app_id="39968", name="Test Model - C2",
                         alias="Model vC2", author="Shailesh Appukuttan", organization="HBP-SP6",
-                        private=False, cell_type="Granule Cell", model_type="Single Cell",
+                        private=False, cell_type="Granule Cell", model_scope="Single cell model",
+                        abstraction_level="Spiking neurons",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
                         owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
                         description="This is a test entry! Please ignore.",
@@ -1581,8 +1589,10 @@ class ModelCatalog(BaseClient):
 
         if cell_type not in values["cell_type"]:
             raise Exception("cell_type = '" +cell_type+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if model_type not in values["model_type"]:
-            raise Exception("model_type = '" +model_type+"' is invalid.\nValue has to be one of these: " + str(values["model_type"]))
+        if model_scope not in values["model_scope"]:
+            raise Exception("model_scope = '" +model_scope+"' is invalid.\nValue has to be one of these: " + str(values["model_scope"]))
+        if abstraction_level not in values["abstraction_level"]:
+            raise Exception("abstraction_level = '" +abstraction_level+"' is invalid.\nValue has to be one of these: " + str(values["abstraction_level"]))
         if brain_region not in values["brain_region"]:
             raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
         if species not in values["species"]:
@@ -1616,7 +1626,7 @@ class ModelCatalog(BaseClient):
             raise Exception("Error in adding model. Response = " + str(response.json()))
 
     def edit_model(self, model_id="", app_id=None, name=None, alias=None, author=None, organization=None, private=None, cell_type=None,
-                   model_type=None, brain_region=None, species=None, owner="", project="", license="", description=None):
+                   model_scope=None, abstraction_level=None, brain_region=None, species=None, owner="", project="", license="", description=None):
         """Edit an existing model on the model catalog.
 
         This allows you to edit a new model to the model catalog.
@@ -1646,8 +1656,10 @@ class ModelCatalog(BaseClient):
             The brain region for which the model is developed.
         cell_type : string
             The type of cell for which the model is developed.
-        model_type : string
+        model_scope : string
             Specifies the type of the model.
+        abstraction_level : string
+            Specifies the model abstraction level.
         owner : string
             Specifies the owner of the model. Need not necessarily be the same as the author.
         project : string
@@ -1672,7 +1684,8 @@ class ModelCatalog(BaseClient):
         >>> model = model_catalog.edit_model(app_id="39968", name="Test Model - B2",
                         model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5",
                         alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
-                        private=False, cell_type="Granule Cell", model_type="Single Cell",
+                        private=False, cell_type="Granule Cell", model_scope="Single cell model",
+                        abstraction_level="Spiking neurons",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
                         owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
                         description="This is a test entry")
@@ -1707,8 +1720,10 @@ class ModelCatalog(BaseClient):
 
         if model_data["cell_type"] not in values["cell_type"]:
             raise Exception("cell_type = '" +model_data["cell_type"]+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if model_data["model_type"] not in values["model_type"]:
-            raise Exception("model_type = '" +model_data["model_type"]+"' is invalid.\nValue has to be one of these: " + str(values["model_type"]))
+        if model_data["model_scope"] not in values["model_scope"]:
+            raise Exception("model_scope = '" +model_data["model_scope"]+"' is invalid.\nValue has to be one of these: " + str(values["model_scope"]))
+        if model_data["abstraction_level"] not in values["abstraction_level"]:
+            raise Exception("abstraction_level = '" +model_data["abstraction_level"]+"' is invalid.\nValue has to be one of these: " + str(values["abstraction_level"]))
         if model_data["brain_region"] not in values["brain_region"]:
             raise Exception("brain_region = '" +model_data["brain_region"]+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
         if model_data["species"] not in values["species"]:
@@ -1740,7 +1755,8 @@ class ModelCatalog(BaseClient):
 
     	* cell_type
     	* brain_region
-    	* model_type
+    	* model_scope
+        * abstraction_level
     	* species
     	* organization
 
@@ -1766,10 +1782,10 @@ class ModelCatalog(BaseClient):
         if param == "":
             param = "all"
 
-        if param in ["cell_type", "test_type", "score_type", "brain_region", "model_type", "data_modalities", "species", "organization", "all"]:
+        if param in ["cell_type", "test_type", "score_type", "brain_region", "model_scope", "abstraction_level", "data_modalities", "species", "organization", "all"]:
             url = self.url + "/authorizedcollabparameterrest/?python_client=true&parameters="+param+"&format=json"
         else:
-            raise Exception("Attribute, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_type, data_modalities, species, all]")
+            raise Exception("Attribute, if specified, has to be one from: cell_type, test_type, score_type, brain_region, model_scope, abstraction_level, data_modalities, species, all]")
         data = requests.get(url, auth=self.auth, verify=self.verify).json()
         return ast.literal_eval(json.dumps(data))
 
@@ -2014,6 +2030,10 @@ class ModelCatalog(BaseClient):
 
         instance_data = locals()
         instance_data.pop("self")
+
+        for key, val in instance_data.items():
+            if val is None:
+                instance_data[key] = ""
 
         if model_id == "" and alias == "":
             raise Exception("Model ID needs to be provided for finding the model.")

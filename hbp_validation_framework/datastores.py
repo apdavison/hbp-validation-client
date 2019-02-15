@@ -247,6 +247,7 @@ class HTTPDataStore(object):
                     filename = url.split('/')[-1]
             local_path = os.path.join(local_directory, filename)
             #local_path = os.path.join(local_directory, os.path.basename(urlparse(url).path))
+            Path(os.path.dirname(local_path)).mkdir(parents=True, exist_ok=True)
             filename, headers = urlretrieve(url, local_path)
             local_paths.append(filename)
         return local_paths
