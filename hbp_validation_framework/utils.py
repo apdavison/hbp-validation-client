@@ -140,7 +140,7 @@ def prepare_run_test_offline(username="", password=None, environment="production
     if client_obj:
         test_library = TestLibrary.from_existing(client_obj)
     else:
-        test_library = TestLibrary(username, environment=environment)
+        test_library = TestLibrary(username, password, environment=environment)
 
     if test_instance_id == "" and test_id == "" and test_alias == "":
         raise Exception("test_instance_id or test_id or test_alias needs to be provided for finding test.")
