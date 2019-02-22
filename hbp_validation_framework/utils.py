@@ -163,9 +163,8 @@ def prepare_run_test_offline(username="", password=None, environment="production
     test_info["test_id"] = test_id
     test_info["test_instance_id"] = test_instance_id
     test_info["test_instance_path"] = test_instance_path
-    test_info["test_observation_file"] = test_observation_file
+    test_info["test_observation_file"] = os.path.basename(os.path.realpath(test_observation_file))
     test_info["params"] = params
-    test_info["base_folder"] = base_folder
 
     # Save test info to config file
     test_config_file = os.path.join(base_folder, "test_config.json")
@@ -189,7 +188,9 @@ def run_test_offline(model="", test_config_file=""):
 
     Note
     ----
-    Can be run on node(s) having no access to external URLs (i.e. without internet access)
+    Can be run on node(s) having no access to external URLs (i.e. without internet access).
+    Also, it is required that the test_config_file and the test_observation_file are located
+    in the same directory.
 
     Returns
     -------
@@ -203,6 +204,7 @@ def run_test_offline(model="", test_config_file=""):
 
     if not os.path.isfile(test_config_file) :
         raise Exception("'test_config_file' should direct to file describing the test configuration.")
+    base_folder = os.path.dirname(os.path.realpath(test_config_file))
 
     # Load the test info from config file
     with open(test_config_file) as file:
@@ -216,7 +218,7 @@ def run_test_offline(model="", test_config_file=""):
     test_cls = getattr(test_module, cls_name)
 
     # Read observation data required by test
-    with open(test_info["test_observation_file"], 'r') as file:
+    with open(os.path.join(base_folder, test_info["test_observation_file"]), 'r') as file:
         observation_data = file.read()
     content_type = mimetypes.guess_type(test_info["test_observation_file"])[0]
     if content_type == "application/json":
@@ -258,7 +260,7 @@ def run_test_offline(model="", test_config_file=""):
     # score.exec_platform = str(self._get_platform())
 
     # Save result info to file
-    test_result_file = os.path.join(test_info["base_folder"], "test_result.pkl")
+    test_result_file = os.path.join(base_folder, "test_result.pkl")
     with open(test_result_file, 'wb') as file:
         pickle.dump(score, file)
     return test_result_file
@@ -360,6 +362,64 @@ def upload_test_result(username="", password=None, environment="production", tes
     return response, score
 
 def run_test(username="", password=None, environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **params):
+    """Run validation test and register result
+
+    This will execute the following methods by relaying the output of one to the next:
+    1. :meth:`prepare_run_test_offline`
+    2. :meth:`run_test_offline`
+    3. :meth:`upload_test_result`
+
+    Parameters
+    ----------
+    username : string
+        Your HBP Collaboratory username.
+    password : string
+        Your HBP Collaboratory password.
+    environment : string, optional
+        Used to indicate whether being used for development/testing purposes.
+        Set as `production` as default for using the production system,
+        which is appropriate for most users. When set to `dev`, it uses the
+        `development` system. For other values, an external config file would
+        be read (the latter is currently not implemented).
+    model : sciunit.Model
+        A :class:`sciunit.Model` instance.
+    test_instance_id : UUID
+        System generated unique identifier associated with test instance.
+    test_id : UUID
+        System generated unique identifier associated with test definition.
+    test_alias : string
+        User-assigned unique identifier associated with test definition.
+    test_version : string
+        User-assigned identifier (unique for each test) associated with test instance.
+    storage_collab_id : string
+        Collab ID where output files should be stored; if empty, stored in model's host Collab.
+    register_result : boolean
+        Specify whether the test results are to be scored on the validation framework.
+        Default is set as True.
+    client_obj : ModelCatalog/TestLibrary object
+        Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
+        Avoids need for repeated authentications; improves performance. Also, helps minimize
+        being blocked out by the authentication server for repeated authentication requests
+        (applicable when running several tests in quick succession, e.g. in a loop).
+    **params : list
+        Keyword arguments to be passed to the Test constructor.
+
+    Note
+    ----
+    Should be run on node having access to external URLs (i.e. with internet access)
+
+    Returns
+    -------
+    UUID
+        UUID of the test result that has been created.
+    object
+        score object evaluated by the test.
+
+    Examples
+    --------
+    >>> result_id, score = utils.run_test(username="HBP_USERNAME", password="HBP_PASSWORD" environment="production", model=cell_model, test_alias="basalg_msn_d1", test_version="1.0", storage_collab_id="8123", register_result=True)
+    """
+
     test_config_file = prepare_run_test_offline(username=username, password=password, environment=environment, test_instance_id=test_instance_id, test_id=test_id, test_alias=test_alias, test_version=test_version, client_obj=client_obj, **params)
     test_result_file = run_test_offline(model=model, test_config_file=test_config_file)
     result_id, score = upload_test_result(username=username, password=password, environment=environment, test_result_file=test_result_file, storage_collab_id=storage_collab_id, register_result=register_result, client_obj=client_obj)
