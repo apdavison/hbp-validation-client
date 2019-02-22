@@ -365,7 +365,7 @@ def run_test(username="", password=None, environment="production", model="", tes
     result_id, score = upload_test_result(username=username, password=password, environment=environment, test_result_file=test_result_file, storage_collab_id=storage_collab_id, register_result=register_result, client_obj=client_obj)
     return result_id, score
 
-def generate_report(username="", password=None, environment="production", result_list=[], only_combined=True):
+def generate_report(username="", password=None, environment="production", result_list=[], only_combined=True, client_obj=None):
     """Generates and downloads a PDF report of test results
 
     This method will generate and download a PDF report of the specified
@@ -395,6 +395,11 @@ def generate_report(username="", password=None, environment="production", result
         Indicates whether only a single combined PDF should be saved. Set to
         `True` as default. When set to `False`, then `n+2` PDFs will be saved,
         where `n` is the number of valid result UUIDs. These would include:
+    client_obj : ModelCatalog/TestLibrary object
+        Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
+        Avoids need for repeated authentications; improves performance. Also, helps minimize
+        being blocked out by the authentication server for repeated authentication requests
+        (applicable when running several tests in quick succession, e.g. in a loop).
 
         * Combined PDF report
         * Summary of call to `generate_report()`
@@ -448,7 +453,10 @@ def generate_report(username="", password=None, environment="production", result
         #     # Page number
         #     self.cell(0, 10, 'Page ' + str(self.page_no()) + '/{nb}', 0, 0, 'C')
 
-    model_catalog = ModelCatalog(username, password, environment=environment)
+    if client_obj:
+        model_catalog = ModelCatalog.from_existing(client_obj)
+    else:
+        model_catalog = ModelCatalog(username, password, environment=environment)
     test_library = TestLibrary.from_existing(model_catalog)
     result_data = {}
     valid_uuids = []
