@@ -313,7 +313,7 @@ def upload_test_result(username="", password=None, environment="production", tes
     """
 
     if not register_result:
-        return
+        return None, None
     if not os.path.isfile(test_result_file) :
         raise Exception("'test_result_file' should direct to file containg the test result data.")
 
