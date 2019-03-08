@@ -325,7 +325,7 @@ def upload_test_result(username="", password=None, environment="production", tes
     if client_obj:
         model_catalog = ModelCatalog.from_existing(client_obj)
     else:
-        model_catalog = ModelCatalog(username, environment=environment)
+        model_catalog = ModelCatalog(username, password, environment=environment)
     model_instance_uuid = model_catalog.find_model_instance_else_add(score.model)
     model_instance_json = model_catalog.get_model_instance(instance_id=model_instance_uuid)
     model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
