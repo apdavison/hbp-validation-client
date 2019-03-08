@@ -36,6 +36,10 @@ except ImportError:  # Python 2
 from importlib import import_module
 import mimetypes
 import math
+try:
+    from pathlib import Path
+except ImportError:
+    from pathlib2 import Path  # Python 2 backport
 
 def view_json_tree(data):
     """Displays the JSON tree structure inside the web browser
@@ -260,7 +264,8 @@ def run_test_offline(model="", test_config_file=""):
     # score.exec_platform = str(self._get_platform())
 
     # Save result info to file
-    test_result_file = os.path.join(base_folder, "test_result.pkl")
+    Path(os.path.join(base_folder, "results")).mkdir(parents=True, exist_ok=True)
+    test_result_file = os.path.join(base_folder, "results", "result__" + model.name + "__" + datetime.now().strftime("%Y%m%d%H%M%S") + ".pkl")
     with open(test_result_file, 'wb') as file:
         pickle.dump(score, file)
     return test_result_file
