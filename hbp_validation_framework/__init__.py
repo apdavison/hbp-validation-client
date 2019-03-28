@@ -1982,7 +1982,7 @@ class ModelCatalog(BaseClient):
         model_instances_json = model_instances_json.json()
         return model_instances_json["instances"]
 
-    def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters="", code_format="", hash=""):
+    def add_model_instance(self, model_id="", alias="", source="", version="", description="", morphology="", parameters="", code_format="", hash=""):
         """Register a new model instance.
 
         This allows to add a new instance of an existing model in the model catalog.
@@ -2000,6 +2000,8 @@ class ModelCatalog(BaseClient):
             User-assigned identifier (unique for each model) associated with model instance.
         description : string, optional
             Text describing this specific model instance.
+        morphology : string, optional
+            Complete path to the morphology file employed for this model.
         parameters : string, optional
             Any additional parameters to be submitted to model, or used by it, at runtime.
         code_format : string, optional
@@ -2098,7 +2100,7 @@ class ModelCatalog(BaseClient):
             model_instance_uuid = model_obj.model_instance_uuid
         return model_instance_uuid
 
-    def edit_model_instance(self, instance_id="", model_id="", alias="", source=None, version=None, description=None, parameters=None, code_format=None, hash=None):
+    def edit_model_instance(self, instance_id="", model_id="", alias="", source=None, version=None, description=None, morphology=None, parameters=None, code_format=None, hash=None):
         """Edit an existing model instance.
 
         This allows to edit an instance of an existing model in the model catalog.
@@ -2127,6 +2129,8 @@ class ModelCatalog(BaseClient):
             User-assigned identifier (unique for each model) associated with model instance.
         description : string, optional
             Text describing this specific model instance.
+        morphology : string, optional
+            Complete path to the morphology file employed for this model.
         parameters : string, optional
             Any additional parameters to be submitted to model, or used by it, at runtime.
         code_format : string, optional
