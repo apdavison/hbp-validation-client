@@ -12,12 +12,16 @@ from importlib import import_module
 import platform
 try:  # Python 3
     from urllib.request import urlopen
-    from urllib.parse import urlparse, urlencode
+    from urllib.parse import urlparse, urlencode, parse_qs
     from urllib.error import URLError
 except ImportError:  # Python 2
     from urllib2 import urlopen, URLError
-    from urlparse import urlparse
+    from urlparse import urlparse, parse_qs
     from urllib import urlencode
+try:
+    raw_input
+except NameError:
+    raw_input = input
 import socket
 import json
 import ast
