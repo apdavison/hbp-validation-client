@@ -260,7 +260,12 @@ class BaseClient(object):
                 res = rNMPI1.content
                 if not isinstance(res, str):
                     res = res.decode("ascii")
-                state = res[res.find("state")+6:res.find("&redirect_uri")]
+                start = res.find("https://services.humanbrainproject.eu/oidc/authorize?")
+                url = res[start:res.find("}", start)]
+                query = parse_qs(urlparse(url).query)
+                state = query["state"][0]
+                if not state:
+                    raise Exception("Could not obtain state. Response was '{}'".format(res))
                 url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, self.client_id)
             # get the exchange cookie
             cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
@@ -1765,7 +1770,7 @@ class ModelCatalog(BaseClient):
         if response.status_code == 201:
             return response.json()["uuid"]
         else:
-            raise Exception("Error in adding model. Response = " + str(response.json()))
+            raise Exception("Error in adding model. Response = " + str(response.content))
 
     def edit_model(self, model_id="", app_id=None, name=None, alias=None, author=None, organization=None, private=None, cell_type=None,
                    model_scope=None, abstraction_level=None, brain_region=None, species=None, owner="", project="", license="", description=None):
