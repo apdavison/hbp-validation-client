@@ -800,7 +800,10 @@ def generate_score_matrix(username="", password=None, environment="production", 
     for t_key, t_val in tests_dict.items():
         score_vals = []
         for m_key in models_dict.keys():
-            score_vals.append(results_dict[t_key][m_key])
+            try:
+                score_vals.append(results_dict[t_key][m_key])
+            except KeyError:
+                score_vals.append(None)
         data[t_val] = score_vals
     df = pd.DataFrame(data, index = models_dict.values())
     return df
