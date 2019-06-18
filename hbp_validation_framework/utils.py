@@ -21,6 +21,7 @@ import json
 import pickle
 import webbrowser
 import argparse
+import unicodedata
 try:
     raw_input
 except NameError:  # Python 3
@@ -629,7 +630,7 @@ def generate_report(username="", password=None, environment="production", result
                 pdf.ln(10)
                 _print_param_value(pdf, "app_id", str(val["id"]), 12)
             else:
-                _print_param_value(pdf, str(key + ": "), str(val), 12)
+                _print_param_value(pdf, str(key + ": "), unicodedata.normalize('NFKD', val).encode('ascii','ignore') if isinstance(val, unicode) else str(val), 12)
             pdf.ln(10)
 
         # Model Instance Info
