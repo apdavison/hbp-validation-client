@@ -1750,8 +1750,6 @@ class ModelCatalog(BaseClient):
 
         if private not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
-        else:
-            private = str(private)
 
         model_data = locals()
         for key in ["self", "app_id", "instances", "images", "values"]:
@@ -2370,7 +2368,7 @@ class ModelCatalog(BaseClient):
         model_instance_json = model_instance_json["instances"][0]
         for key in instance_data:
             if instance_data[key] is None:
-                instance_data[key] = model_instance_json[key]
+                instance_data[key] = model_instance_json.get(key, None)
 
         url = self.url + "/model-instances/?format=json"
         headers = {'Content-type': 'application/json'}

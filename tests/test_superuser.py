@@ -14,11 +14,11 @@ def test_delete_superUser(request):
     model_catalog = ModelCatalog(username=os.environ.get('HBP_USER'), password=os.environ.get('HBP_PASS'), environment=ENVIRONMENT)
     model_name = "Model_{}_{}_py{}_superuser1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
     model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
-                   alias=model_name, author="Validation Tester", organization="HBP-SP6",
+                   alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.",
                    instances=[{"source":"https://www.abcde.com",
                                "version":"1.0", "parameters":""}],
@@ -32,7 +32,7 @@ def test_delete_superUser(request):
 
     test_library = TestLibrary.from_existing(model_catalog)
     test_name = "Test_{}_{}_py{}_superuser2".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), test_library.environment, platform.python_version())
-    test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author="Validation Tester",
+    test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
                     species="Mus musculus", age="", brain_region="basal ganglia", cell_type="granule cell",
                     data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
                     data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
@@ -83,11 +83,11 @@ def test_delete_normalUser(request):
     model_catalog = ModelCatalog(username=os.environ.get('HBP_USER_NORMAL'), password=os.environ.get('HBP_PASS_NORMAL'), environment=ENVIRONMENT)
     model_name = "Model_{}_{}_py{}_normaluser1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
     model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
-                   alias=model_name, author="Validation Tester", organization="HBP-SP6",
+                   alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.",
                    instances=[{"source":"https://www.abcde.com",
                                "version":"1.0", "parameters":""}],
@@ -101,7 +101,7 @@ def test_delete_normalUser(request):
 
     test_library = TestLibrary.from_existing(model_catalog)
     test_name = "Test_{}_{}_py{}_normaluser2".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), test_library.environment, platform.python_version())
-    test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author="Validation Tester",
+    test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
                     species="Mus musculus", age="", brain_region="basal ganglia", cell_type="granule cell",
                     data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
                     data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",

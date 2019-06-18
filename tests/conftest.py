@@ -28,15 +28,16 @@ def testLibrary(request):
 def myModelID(modelCatalog):
    model_catalog = modelCatalog
    model_name = "Model_{}_{}_py{}".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
+   # todo: need to test with both "single cell" and "network" as model_scope, since these have different KG representations
    model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
-                   alias=model_name, author="Validation Tester", organization="HBP-SP6",
+                   alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.",
                    instances=[{"source":"https://www.abcde.com",
-                               "version":"1.0", "parameters":""},
+                               "version":"1.0", "parameters":"", "morphology": "http://example.com/mycell.asc"},
                               {"source":"https://www.abcde.com",
                                "version":"1.0a", "parameters":""},
                               {"source":"https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
@@ -53,7 +54,7 @@ def myModelID(modelCatalog):
 def myTestID(testLibrary):
    test_library = testLibrary
    test_name = "Test_{}_{}_py{}".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), test_library.environment, platform.python_version())
-   test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author="Validation Tester",
+   test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
                         species="Mus musculus", age="", brain_region="basal ganglia", cell_type="granule cell",
                         data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
                         data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
@@ -73,7 +74,7 @@ def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
    model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"])
 
    test_name = "Test_{}_{}_py{}_getValTest_1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), test_library.environment, platform.python_version())
-   test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author="Validation Tester",
+   test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
               species="Mus musculus", age="", brain_region="basal ganglia", cell_type="granule cell",
               data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
               data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
@@ -90,12 +91,12 @@ def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
 def pytest_sessionfinish(session, exitstatus):
    ENVIRONMENT = session.config.getoption("--environment")
    model_catalog = ModelCatalog(username=HBP_USERNAME, password=HBP_PASSWORD, environment=ENVIRONMENT)
-   models = model_catalog.list_models(app_id="359330", author="Validation Tester")
+   models = model_catalog.list_models(app_id="359330", author={"family_name": "Tester", "given_name": "Validation"})
    for model in models:
       if "IGNORE - Test Model - " in model["name"]:
          model_catalog.delete_model(model["id"])
    test_library = TestLibrary.from_existing(model_catalog)
-   tests = test_library.list_tests(author="Validation Tester")
+   tests = test_library.list_tests(author={"family_name": "Tester", "given_name": "Validation"})
    for test in tests:
       if "IGNORE - Test Test - " in test["name"]:
          test_library.delete_test(test["id"])
