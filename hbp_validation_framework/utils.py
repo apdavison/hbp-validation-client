@@ -13,6 +13,7 @@ Run the validation test                   :meth:`run_test_offline`
 Register result with validation service   :meth:`upload_test_result`
 Run test and register result              :meth:`run_test`
 Download PDF report of test results       :meth:`generate_report`
+Obtain score matrix for test results      :meth:`generate_score_matrix`
 =======================================   ====================================
 """
 
@@ -21,6 +22,7 @@ import json
 import pickle
 import webbrowser
 import argparse
+import collections
 import unicodedata
 try:
     raw_input
@@ -461,15 +463,16 @@ def generate_report(username="", password=None, environment="production", result
         Indicates whether only a single combined PDF should be saved. Set to
         `True` as default. When set to `False`, then `n+2` PDFs will be saved,
         where `n` is the number of valid result UUIDs. These would include:
+
+        * Combined PDF report
+        * Summary of call to `generate_report()`
+        * One PDF for each valid result UUID
+
     client_obj : ModelCatalog/TestLibrary object
         Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
         Avoids need for repeated authentications; improves performance. Also, helps minimize
         being blocked out by the authentication server for repeated authentication requests
         (applicable when running several tests in quick succession, e.g. in a loop).
-
-        * Combined PDF report
-        * Summary of call to `generate_report()`
-        * One PDF for each valid result UUID
 
     Returns
     -------
@@ -709,3 +712,95 @@ def generate_report(username="", password=None, environment="production", result
     report_path = os.path.abspath("./report/"+filename)
     print("Report generated at: {}".format(report_path))
     return valid_uuids, report_path
+
+def generate_score_matrix(username="", password=None, environment="production", result_list=[], client_obj=None):
+    """Generates a pandas dataframe with score matrix
+
+    This method will generate a pandas dataframe for the specified test results.
+    Each row will correspond to a particular model instance, and the columns
+    correspond to the test instances.
+
+    Parameters
+    ----------
+    username : string
+        Your HBP collaboratory username.
+    environment : string, optional
+        Used to indicate whether being used for development/testing purposes.
+        Set as `production` as default for using the production system,
+        which is appropriate for most users. When set to `dev`, it uses the
+        `development` system. For other values, an external config file would
+        be read (the latter is currently not implemented).
+    result_list : list
+        List of result UUIDs for which score matrix is to be generated.
+    client_obj : ModelCatalog/TestLibrary object
+        Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
+        Avoids need for repeated authentications; improves performance. Also, helps minimize
+        being blocked out by the authentication server for repeated authentication requests
+        (applicable when running several tests in quick succession, e.g. in a loop).
+
+    Returns
+    -------
+    pandas.DataFrame
+        A 2-dimensional matrix represenation of the scores
+
+    Examples
+    --------
+    >>> result_list = ["a618a6b1-e92e-4ac6-955a-7b8c6859285a", "793e5852-761b-4801-84cb-53af6f6c1acf"]
+    >>> df = utils.generate_score_matrix(username="shailesh", result_list=result_list)
+    """
+
+    try:
+        import pandas as pd
+    except ImportError:
+        print("Please install the following package: pandas")
+        return
+
+    if client_obj:
+        model_catalog = ModelCatalog.from_existing(client_obj)
+    else:
+        model_catalog = ModelCatalog(username, password, environment=environment)
+
+    if client_obj:
+        test_library = TestLibrary.from_existing(client_obj)
+    else:
+        test_library = TestLibrary(username, password, environment=environment)
+
+    results_dict = collections.OrderedDict()
+    models_dict = collections.OrderedDict()
+    tests_dict = collections.OrderedDict()
+
+    for uuid in result_list:
+        result = test_library.get_result(result_id = uuid)["results"][0]
+        results_dict[result["test_code_id"]] = {result["model_version_id"]: result["score"]}
+
+        if result["model_version_id"] not in models_dict.keys():
+            models_dict[result["model_version_id"]] = None
+        if result["test_code_id"] not in models_dict.keys():
+            tests_dict[result["test_code_id"]] = None
+
+    # form test labels: test_name(version_name)
+    for uuid in tests_dict.keys():
+        test = test_library.get_test_instance(instance_id=uuid)
+        test_version = test["version"]
+        test = test_library.get_test_definition(test_id=test["test_definition_id"])
+        test_name = test["alias"] if test["alias"] else test["name"]
+        test_label = test_name + " (" + str(test_version) + ")"
+        tests_dict[uuid] = test_label
+
+    # form model labels: model_name(version_name)
+    for uuid in models_dict.keys():
+        model = model_catalog.get_model_instance(instance_id=uuid)
+        model_version = model["version"]
+        model = model_catalog.get_model(model_id=model["model_id"])
+        model_name = model["alias"] if model["alias"] else model["name"]
+        model_label = model_name + "(" + str(model_version) + ")"
+        models_dict[uuid] = model_label
+
+    data = {}
+    for t_key, t_val in tests_dict.items():
+        score_vals = []
+        for m_key in models_dict.keys():
+            score_vals.append(results_dict[t_key][m_key])
+        data[t_val] = score_vals
+    df = pd.DataFrame(data, index = models_dict.values())
+    return df
