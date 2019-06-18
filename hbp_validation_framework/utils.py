@@ -741,7 +741,7 @@ def generate_score_matrix(username="", password=None, environment="production", 
     Returns
     -------
     pandas.DataFrame
-        A 2-dimensional matrix represenation of the scores
+        A 2-dimensional matrix representation of the scores
 
     Examples
     --------
