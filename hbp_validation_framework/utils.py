@@ -771,7 +771,10 @@ def generate_score_matrix(username="", password=None, environment="production", 
 
     for uuid in result_list:
         result = test_library.get_result(result_id = uuid)["results"][0]
-        results_dict[result["test_code_id"]] = {result["model_version_id"]: result["score"]}
+        if result["test_code_id"] in results_dict.keys():
+            results_dict[result["test_code_id"]].update({result["model_version_id"]: result["score"]})
+        else:
+            results_dict[result["test_code_id"]] = {result["model_version_id"]: result["score"]}
 
         if result["model_version_id"] not in models_dict.keys():
             models_dict[result["model_version_id"]] = None
