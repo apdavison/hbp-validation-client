@@ -713,7 +713,7 @@ def generate_report(username="", password=None, environment="production", result
     print("Report generated at: {}".format(report_path))
     return valid_uuids, report_path
 
-def generate_score_matrix(username="", password=None, environment="production", result_list=[], client_obj=None):
+def generate_score_matrix(username="", password=None, environment="production", result_list=[], collab_id=None, client_obj=None):
     """Generates a pandas dataframe with score matrix
 
     This method will generate a pandas dataframe for the specified test results.
@@ -732,6 +732,11 @@ def generate_score_matrix(username="", password=None, environment="production", 
         be read (the latter is currently not implemented).
     result_list : list
         List of result UUIDs for which score matrix is to be generated.
+    collab_id : string, optional
+        Collaboratory ID where result hyperlinks are to be redirected.
+        This parameter is not used when the script is run inside a Collab and defaults
+        to the present Collab. If unspecified when run outside of a Collab, the results
+        will not have clickable hyperlinks.
     client_obj : ModelCatalog/TestLibrary object
         Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
         Avoids need for repeated authentications; improves performance. Also, helps minimize
@@ -765,6 +770,17 @@ def generate_score_matrix(username="", password=None, environment="production", 
     else:
         test_library = TestLibrary(username, password, environment=environment)
 
+    try:
+        collab_path = get_collab_storage_path()
+        collab_id = collab_path[1:] # this might fail for very old Collabs which use name instead of Collab ID
+    except:
+        pass
+
+    if collab_id:
+        # check if app exists; if not then create
+        VFapp_navID = test_library.exists_in_collab_else_create(collab_id)
+        test_library.set_app_config(collab_id=collab_id, app_id=VFapp_navID, only_if_new="True")
+
     results_dict = collections.OrderedDict()
     models_dict = collections.OrderedDict()
     tests_dict = collections.OrderedDict()
@@ -772,9 +788,9 @@ def generate_score_matrix(username="", password=None, environment="production", 
     for uuid in result_list:
         result = test_library.get_result(result_id = uuid)["results"][0]
         if result["test_code_id"] in results_dict.keys():
-            results_dict[result["test_code_id"]].update({result["model_version_id"]: result["score"]})
+            results_dict[result["test_code_id"]].update({result["model_version_id"]: str(result["score"]) + "#*#" + uuid}) # '#*#' is used as separator
         else:
-            results_dict[result["test_code_id"]] = {result["model_version_id"]: result["score"]}
+            results_dict[result["test_code_id"]] = {result["model_version_id"]: str(result["score"]) + "#*#" + uuid}
 
         if result["model_version_id"] not in models_dict.keys():
             models_dict[result["model_version_id"]] = None
@@ -809,4 +825,13 @@ def generate_score_matrix(username="", password=None, environment="production", 
                 score_vals.append(None)
         data[t_val] = score_vals
     df = pd.DataFrame(data, index = models_dict.values())
-    return df
+
+    def make_clickable(value):
+        score, result_uuid = value.split('#*#')
+        if collab_id:
+            result_url = "https://collab.humanbrainproject.eu/#/collab/{}/nav/{}?state=result.{}".format(str(collab_id),str(VFapp_navID), result_uuid)
+            return '<a target="_blank" href="{}">{}</a>'.format(result_url,score)
+        else:
+            return score
+
+    return df.style.format(make_clickable)
