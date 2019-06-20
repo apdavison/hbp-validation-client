@@ -1,6 +1,7 @@
 import pytest
 import platform
 import uuid
+from time import sleep
 from hbp_validation_framework import sample
 from hbp_validation_framework.datastores import CollabDataStore
 from datetime import datetime
@@ -16,7 +17,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
     model_id = myModelID
     test_library = testLibrary
     test_id = myTestID
-
+    sleep(20)
     model = model_catalog.get_model(model_id=model_id)
     model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"])
 
@@ -27,6 +28,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
                     data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                     data_type="Mean, SD", publication="Testing et al., 2019",
                     version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
+    sleep(20)
     test = test_library.get_validation_test(test_id=test_id)
 
     score = test.judge(model)
@@ -46,6 +48,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
 def test_get_result_valid_order_default(testLibrary, myResultID):
     test_library = testLibrary
     result_id = myResultID
+    sleep(30)
     result = test_library.get_result(result_id=result_id)
     assert isinstance(result, dict)
     assert len(result.keys()) == 1
@@ -55,6 +58,7 @@ def test_get_result_valid_order_default(testLibrary, myResultID):
 def test_get_result_valid_order_test(testLibrary, myResultID):
     test_library = testLibrary
     result_id = myResultID
+    sleep(20)
     result = test_library.get_result(result_id=result_id, order="test")
     assert isinstance(result, dict)
     assert len(result.keys()) == 1
@@ -64,6 +68,7 @@ def test_get_result_valid_order_test(testLibrary, myResultID):
 def test_get_result_valid_order_model(testLibrary, myResultID):
     test_library = testLibrary
     result_id = myResultID
+    sleep(20)
     result = test_library.get_result(result_id=result_id, order="model")
     assert isinstance(result, dict)
     assert len(result.keys()) == 1
@@ -73,6 +78,7 @@ def test_get_result_valid_order_model(testLibrary, myResultID):
 def test_get_result_valid_order_test_code(testLibrary, myResultID):
     test_library = testLibrary
     result_id = myResultID
+    sleep(20)
     result = test_library.get_result(result_id=result_id, order="test_code")
     assert isinstance(result, dict)
     assert len(result.keys()) == 1
@@ -82,6 +88,7 @@ def test_get_result_valid_order_test_code(testLibrary, myResultID):
 def test_get_result_valid_order_model_instance(testLibrary, myResultID):
     test_library = testLibrary
     result_id = myResultID
+    sleep(20)
     result = test_library.get_result(result_id=result_id, order="model_instance")
     assert isinstance(result, dict)
     assert len(result.keys()) == 1
@@ -91,6 +98,7 @@ def test_get_result_valid_order_model_instance(testLibrary, myResultID):
 def test_get_result_valid_order_score_type(testLibrary, myResultID):
     test_library = testLibrary
     result_id = myResultID
+    sleep(20)
     result = test_library.get_result(result_id=result_id, order="score_type")
     assert isinstance(result, dict)
     assert len(result.keys()) == 1
@@ -113,6 +121,7 @@ def test_get_result_invalid_order(testLibrary, myResultID):
 def test_list_results_valid_order_default(testLibrary, myTestID, myResultID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     result = test_library.list_results(test_id=test_id)
     assert isinstance(result, dict)
     assert len(result.keys()) == 1
@@ -122,6 +131,7 @@ def test_list_results_valid_order_default(testLibrary, myTestID, myResultID):
 def test_list_results_valid_order_test(testLibrary, myTestID, myResultID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     result = test_library.list_results(test_id=test_id, order="test")
     assert isinstance(result, dict)
     assert len(result.keys()) == 1
@@ -131,6 +141,7 @@ def test_list_results_valid_order_test(testLibrary, myTestID, myResultID):
 def test_list_results_valid_order_model(testLibrary, myTestID, myResultID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     result = test_library.list_results(test_id=test_id, order="model")
     assert isinstance(result, dict)
     assert len(result.keys()) == 1
@@ -140,6 +151,7 @@ def test_list_results_valid_order_model(testLibrary, myTestID, myResultID):
 def test_list_results_valid_order_test_code(testLibrary, myTestID, myResultID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     result = test_library.list_results(test_id=test_id, order="test_code")
     assert isinstance(result, dict)
     assert len(result.keys()) == 1
@@ -149,6 +161,7 @@ def test_list_results_valid_order_test_code(testLibrary, myTestID, myResultID):
 def test_list_results_valid_order_model_instance(testLibrary, myTestID, myResultID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     result = test_library.list_results(test_id=test_id, order="model_instance")
     assert isinstance(result, dict)
     assert len(result.keys()) == 1
@@ -158,6 +171,7 @@ def test_list_results_valid_order_model_instance(testLibrary, myTestID, myResult
 def test_list_results_valid_order_score_type(testLibrary, myTestID, myResultID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     result = test_library.list_results(test_id=test_id, order="score_type")
     assert isinstance(result, dict)
     assert len(result.keys()) == 1

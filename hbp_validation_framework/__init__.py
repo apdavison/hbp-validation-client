@@ -1248,7 +1248,7 @@ class TestLibrary(BaseClient):
             url = self.url + "/results/?id=" + result_id + "&order=" + order + "&format=json"
         result_json = requests.get(url, auth=self.auth, verify=self.verify)
         if result_json.status_code != 200:
-            raise Exception("Error in retrieving result. Response = " + str(result_json) + ".\nContent = " + result_json.content)
+            raise Exception("Error in retrieving result. Response = " + str(result_json) + ".\nContent = " + str(result_json.content))
         result_json = result_json.json()
         # Unlike other "get_" methods, we do not return "[key][0]" as the key can vary
         # based on the parameter "order". Retaining this key is potentially useful.
@@ -1289,7 +1289,7 @@ class TestLibrary(BaseClient):
             url = self.url + "/results/?" + "order=" + order + "&" + urlencode(params) + "&format=json"
         result_json = requests.get(url, auth=self.auth, verify=self.verify)
         if result_json.status_code != 200:
-            raise Exception("Error in retrieving results. Response = " + str(result_json) + ".\nContent = " + result_json.content)
+            raise Exception("Error in retrieving results. Response = " + str(result_json) + ".\nContent = " + str(result_json.content))
         result_json = result_json.json()
         return result_json
 

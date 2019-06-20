@@ -3,6 +3,7 @@ import pytest
 import platform
 from hbp_validation_framework import ModelCatalog, TestLibrary, sample
 from datetime import datetime
+from time import sleep
 
 HBP_USERNAME = os.environ.get('HBP_USER')
 HBP_PASSWORD = os.environ.get('HBP_PASS')
@@ -69,7 +70,7 @@ def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
    model_id = myModelID
    test_library = testLibrary
    test_id = myTestID
-
+   sleep(20)
    model = model_catalog.get_model(model_id=model_id)
    model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"])
 
@@ -80,6 +81,7 @@ def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
               data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
               data_type="Mean, SD", publication="Testing et al., 2019",
               version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
+   sleep(20)
    test = test_library.get_validation_test(test_id=test_id)
 
    score = test.judge(model)

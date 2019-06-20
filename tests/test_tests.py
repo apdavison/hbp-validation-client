@@ -1,6 +1,7 @@
 import pytest
 import platform
 import uuid
+from time import sleep
 import sciunit
 from datetime import datetime
 
@@ -26,6 +27,7 @@ def test_getTest_id(testLibrary, myTestID):
 def test_getTest_alias(testLibrary, myTestID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
     test = test_library.get_test_definition(alias=test["alias"])
     assert test["id"] ==  test_id
@@ -219,6 +221,7 @@ def test_addtest_repeat_alias_nodetails(testLibrary):
                     data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                     data_type="Mean, SD", publication="Testing et al., 2019",
                     version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
+    sleep(20)
     with pytest.raises(Exception) as excinfo:
         test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
                         species="Mus musculus", age="", brain_region="basal ganglia", cell_type="granule cell",
@@ -300,6 +303,7 @@ def test_editTest_invalid_duplicate_alias(testLibrary):
                     data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                     data_type="Mean, SD", publication="Testing et al., 2019",
                     version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
+    sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
     with pytest.raises(Exception) as excinfo:
         test_id = test_library.edit_test(test_id=test_id, name=test["name"] + "_changed", alias=test_name1, author={"family_name": "Tester", "given_name": "Validation"},
@@ -344,6 +348,7 @@ def test_getValidationTest_testID(testLibrary):
                     data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                     data_type="Mean, SD", publication="Testing et al., 2019",
                     version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
+    sleep(30)
     test = test_library.get_validation_test(test_id=test_id)
     assert isinstance(test, sciunit.Test)
     assert "test.txt" in test.observation

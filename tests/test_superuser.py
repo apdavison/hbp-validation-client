@@ -2,6 +2,7 @@ import os
 import pytest
 import platform
 from datetime import datetime
+from time import sleep
 from hbp_validation_framework import ModelCatalog, TestLibrary, sample
 
 """
@@ -27,7 +28,7 @@ def test_delete_superUser(request):
 
     model = model_catalog.get_model(model_id=model_id)
     model_instance_id = model["instances"][0]["id"]
-    model_image_id = model["images"][0]["id"]
+    #model_image_id = model["images"][0]["id"]
     model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"])
 
     test_library = TestLibrary.from_existing(model_catalog)
@@ -39,6 +40,7 @@ def test_delete_superUser(request):
                     data_type="Mean, SD", publication="Testing et al., 2019",
                     version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
 
+    sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
     test_instance_id = test["codes"][0]["id"]
     test = test_library.get_validation_test(test_id=test_id)
@@ -49,30 +51,35 @@ def test_delete_superUser(request):
     result_id = test_library.register_result(score, project = "52468") # Collab ID = 52468
 
     test_library.delete_result(result_id=result_id)
+    sleep(20)
     result = test_library.get_result(result_id=result_id)
     assert len(result["results"]) == 0
 
     model_catalog.delete_model_instance(instance_id=model_instance_id)
+    sleep(20)
     with pytest.raises(Exception) as excinfo:
         model_instance = model_catalog.get_model_instance(instance_id=model_instance_id)
     assert "Error in retrieving model instance." in str(excinfo.value)
 
-    model_catalog.delete_model_image(image_id=model_image_id)
-    with pytest.raises(Exception) as excinfo:
-        model_image = model_catalog.get_model_image(image_id=model_image_id)
-    assert "Error in retrieving model image." in str(excinfo.value)
+    # model_catalog.delete_model_image(image_id=model_image_id)
+    # with pytest.raises(Exception) as excinfo:
+    #     model_image = model_catalog.get_model_image(image_id=model_image_id)
+    # assert "Error in retrieving model image." in str(excinfo.value)
 
     model_catalog.delete_model(model_id=model_id)
+    sleep(20)
     with pytest.raises(Exception) as excinfo:
         model = model_catalog.get_model(model_id=model_id)
     assert "Error in retrieving model." in str(excinfo.value)
 
     test_library.delete_test_instance(instance_id=test_instance_id)
+    sleep(20)
     with pytest.raises(Exception) as excinfo:
         test_instance = test_library.get_test_instance(instance_id=test_instance_id)
     assert "Error in retrieving test instance." in str(excinfo.value)
 
     test_library.delete_test(test_id=test_id)
+    sleep(20)
     with pytest.raises(Exception) as excinfo:
         test = test_library.get_test_definition(test_id=test_id)
     assert "Error in retrieving test definition." in str(excinfo.value)
@@ -96,7 +103,7 @@ def test_delete_normalUser(request):
 
     model = model_catalog.get_model(model_id=model_id)
     model_instance_id = model["instances"][0]["id"]
-    model_image_id = model["images"][0]["id"]
+    #model_image_id = model["images"][0]["id"]
     model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"])
 
     test_library = TestLibrary.from_existing(model_catalog)
@@ -107,7 +114,7 @@ def test_delete_normalUser(request):
                     data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                     data_type="Mean, SD", publication="Testing et al., 2019",
                     version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
-
+    sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
     test_instance_id = test["codes"][0]["id"]
     test = test_library.get_validation_test(test_id=test_id)
@@ -115,7 +122,7 @@ def test_delete_normalUser(request):
     score = test.judge(model)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
-    result_id = test_library.register_result(score, project = "52468") # Collab ID = 52468
+    result_id = test_library.register_result(score, project="52468") # Collab ID = 52468
 
     with pytest.raises(Exception) as excinfo:
         test_library.delete_result(result_id=result_id)

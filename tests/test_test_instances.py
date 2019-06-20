@@ -1,5 +1,8 @@
+
 import pytest
 import uuid
+from time import sleep
+
 
 """
 1. Get an instance of a test
@@ -9,6 +12,7 @@ import uuid
 def test_getTestInstance_valid_id(testLibrary, myTestID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
     test_instance = test_library.get_test_instance(instance_id=test["codes"][0]["id"])
     assert test_instance["id"] == test["codes"][0]["id"]
@@ -17,6 +21,7 @@ def test_getTestInstance_valid_id(testLibrary, myTestID):
 def test_getTestInstance_valid_test_version(testLibrary, myTestID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
     test_instance = test_library.get_test_instance(test_id=test_id, version=test["codes"][0]["version"])
     assert test_instance["id"] == test["codes"][0]["id"]
@@ -25,6 +30,7 @@ def test_getTestInstance_valid_test_version(testLibrary, myTestID):
 def test_getTestInstance_valid_alias_version(testLibrary, myTestID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
     test_instance = test_library.get_test_instance(alias=test["alias"], version=test["codes"][0]["version"])
     assert test_instance["id"] == test["codes"][0]["id"]
@@ -41,6 +47,7 @@ def test_getTestInstance_invalid_only_test(testLibrary, myTestID):
 def test_getTestInstance_invalid_only_alias(testLibrary, myTestID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
     test_instance = test_library.get_test_instance(alias=test["alias"])
     assert test_instance["version"] == "2.0"
@@ -63,6 +70,7 @@ def test_getTestInstance_invalid_only_version(testLibrary, myTestID):
 def test_listTestInstances_valid_test_version(testLibrary, myTestID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
     test_instances = test_library.list_test_instances(test_id=test_id)
     assert isinstance(test_instances, list)
@@ -72,6 +80,7 @@ def test_listTestInstances_valid_test_version(testLibrary, myTestID):
 def test_listTestInstances_valid_alias_version(testLibrary, myTestID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
     test_instances = test_library.list_test_instances(alias=test["alias"])
     assert isinstance(test_instances, list)
@@ -93,6 +102,7 @@ def test_listTestInstances_invalid_noInput(testLibrary):
 def test_addTestInstance_valid(testLibrary, myTestID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     test_instance = test_library.add_test_instance(test_id=test_id, version="3.0",
                                                     repository="http://www.12345.com",
                                                     path="hbp_validation_framework.sample.SampleTest",
@@ -142,6 +152,7 @@ def test_addTestInstance_duplicate_version(testLibrary, myTestID):
                                                     path="hbp_validation_framework.sample.SampleTest",
                                                     parameters="",
                                                     description="")
+    sleep(20)
     with pytest.raises(Exception) as excinfo:
         test_instance = test_library.add_test_instance(test_id=test_id, version="7.0",
                                                     repository="http://www.12345.com",
@@ -159,14 +170,15 @@ def test_addTestInstance_duplicate_version(testLibrary, myTestID):
 def test_editTestInstance_valid_id(testLibrary, myTestID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
-    test_instance_id = test_library.edit_test_instance(instance_id=test["codes"][0]["id"],
+    test_instance = test_library.edit_test_instance(instance_id=test["codes"][0]["id"],
                                                         repository="http://www.12345.com",
                                                         path="hbp_validation_framework.sample.SampleTest",
                                                         parameters="d",
-                                                        description="e")["id"]
-    assert test_instance_id == test["codes"][0]["id"]
-    test_instance = test_library.get_test_instance(instance_id=test_instance_id)
+                                                        description="e")
+    assert test_instance["id"] == test["codes"][0]["id"]
+    test_instance = test_library.get_test_instance(instance_id=test_instance["id"])
     assert test_instance["repository"] == "http://www.12345.com"
     assert test_instance["path"] == "hbp_validation_framework.sample.SampleTest"
     assert test_instance["parameters"] == "d"
@@ -177,6 +189,7 @@ def test_editTestInstance_valid_id(testLibrary, myTestID):
 def test_editTestInstance_valid_test_version(testLibrary, myTestID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
     test_instance_id = test_library.edit_test_instance(test_id=test_id, version=test["codes"][0]["version"],
                                                         repository="http://www.12345.com",
@@ -195,6 +208,7 @@ def test_editTestInstance_valid_test_version(testLibrary, myTestID):
 def test_editTestInstance_valid_alias_version(testLibrary, myTestID):
     test_library = testLibrary
     test_id = myTestID
+    sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
     test_instance_id = test_library.edit_test_instance(alias=test["alias"], version=test["codes"][0]["version"],
                                                         repository="https://www.abcde.com",
@@ -250,6 +264,7 @@ def test_editTestInstance_invalid_only_version(testLibrary, myTestID):
 def test_editTestInstance_valid_change_version(testLibrary, myTestID):
     test_library = testLibrary
     test_id = myTestID
+
     test_instance_id = test_library.add_test_instance(test_id=test_id, version="1.0_edit",
                                                     repository="http://www.12345.com",
                                                     path="hbp_validation_framework.sample.SampleTest",
@@ -257,5 +272,6 @@ def test_editTestInstance_valid_change_version(testLibrary, myTestID):
                                                     description="")
     test_instance_id = test_library.edit_test_instance(instance_id=test_instance_id,
                                                         version="a.1_edit")
+    sleep(20)
     test_instances = test_library.list_test_instances(test_id=test_id)
     assert "1.0_edit" not in [i["version"] for i in test_instances] and "a.1_edit" in [i["version"] for i in test_instances]
