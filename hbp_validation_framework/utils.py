@@ -820,7 +820,7 @@ def generate_score_matrix(username="", password=None, environment="production", 
 
     def make_clickable(value):
         if not value:
-            return value:
+            return value
         score, result_uuid = value.split('#*#')
         if collab_id:
             result_url = "https://collab.humanbrainproject.eu/#/collab/{}/nav/{}?state=result.{}".format(str(collab_id),str(VFapp_navID), result_uuid)
