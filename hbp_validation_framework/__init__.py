@@ -71,6 +71,9 @@ class BaseClient(object):
         if environment == "production":
             self.url = "https://validation-v1.brainsimulation.eu"
             self.client_id = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
+        elif environment == "integration":
+            self.url = "https://validation-dev.brainsimulation.eu"
+            self.client_id = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c"
         elif environment == "dev":
             self.url = "https://validation-dev.brainsimulation.eu"
             self.client_id = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
@@ -1646,7 +1649,11 @@ class ModelCatalog(BaseClient):
             if filter not in valid_filters:
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
         url = self.url + "/models/?"+urlencode(params)+"&format=json"
-        models = requests.get(url, auth=self.auth, verify=self.verify).json()
+        response = requests.get(url, auth=self.auth, verify=self.verify)
+        try:
+            models = response.json()
+        except json.JSONDecodeError:
+            raise Exception("Error in list_models():\n{}".format(response.content))
         return models["models"]
 
     def register_model(self, app_id="", name="", alias=None, author="", organization="", private=False,
