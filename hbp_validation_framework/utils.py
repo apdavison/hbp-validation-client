@@ -733,10 +733,8 @@ def generate_score_matrix(username="", password=None, environment="production", 
     result_list : list
         List of result UUIDs for which score matrix is to be generated.
     collab_id : string, optional
-        Collaboratory ID where result hyperlinks are to be redirected.
-        This parameter is not used when the script is run inside a Collab and defaults
-        to the present Collab. If unspecified when run outside of a Collab, the results
-        will not have clickable hyperlinks.
+        Collaboratory ID where hyperlinks to results are to be redirected.
+        If unspecified, the scores will not have clickable hyperlinks.
     client_obj : ModelCatalog/TestLibrary object
         Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
         Avoids need for repeated authentications; improves performance. Also, helps minimize
@@ -769,12 +767,6 @@ def generate_score_matrix(username="", password=None, environment="production", 
         test_library = TestLibrary.from_existing(client_obj)
     else:
         test_library = TestLibrary(username, password, environment=environment)
-
-    try:
-        collab_path = get_collab_storage_path()
-        collab_id = collab_path[1:] # this might fail for very old Collabs which use name instead of Collab ID
-    except:
-        pass
 
     if collab_id:
         # check if app exists; if not then create
