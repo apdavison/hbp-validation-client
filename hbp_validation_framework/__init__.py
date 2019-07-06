@@ -72,7 +72,7 @@ class BaseClient(object):
             self.url = "https://validation-v1.brainsimulation.eu"
             self.client_id = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
         elif environment == "integration":
-            self.url = "https://validation-dev.brainsimulation.eu"
+            self.url = "https://validation-staging.brainsimulation.eu"
             self.client_id = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c"
         elif environment == "dev":
             self.url = "https://validation-dev.brainsimulation.eu"
