@@ -920,7 +920,8 @@ def get_raw_dataframe(styled_df):
     """
 
     def make_raw_scores(value):
-        return value.split('#*#')[0]
+        if value:
+            return value.split('#*#')[0]
     return styled_df.data.applymap(make_raw_scores)
 
 def display_score_matrix_html(styled_df=None, df=None):
