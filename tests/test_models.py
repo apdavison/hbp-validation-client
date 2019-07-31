@@ -2,6 +2,7 @@ import pytest
 import platform
 import uuid
 from datetime import datetime
+from time import sleep
 
 """
 1] Retrieve a model description by its model_id or alias.
@@ -23,6 +24,7 @@ def test_getModel_id(modelCatalog, myModelID):
 
 #1.3) Using alias
 def test_getModel_alias(modelCatalog, myModelID):
+    sleep(60)  # time for KG indexing
     model_catalog = modelCatalog
     model_id = myModelID
     model = model_catalog.get_model(model_id=model_id)
@@ -125,7 +127,8 @@ def test_getList_invalid_filter(modelCatalog):
 #2.5) Filter with no matches
 def test_getList_nomatch(modelCatalog):
     model_catalog = modelCatalog
-    models = model_catalog.list_models(app_id="ABCDE")
+    #models = model_catalog.list_models(app_id="ABCDE")
+    models = model_catalog.list_models(species="Ornithorhynchus anatinus")
     assert isinstance(models, list)
     assert len(models) == 0
 
@@ -185,9 +188,9 @@ def test_addModel_missingParam(modelCatalog):
                        private=False, cell_type="granule cell", model_scope="single cell",
                        abstraction_level="spiking neurons",
                        brain_region="basal ganglia", species="Mus musculus",
-                       owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                       owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                        description="This is a test entry! Please ignore.")
-    assert "This field may not be blank." in str(excinfo.value)
+    assert "This field may not be blank." in str(excinfo.value)  # author is missing
 
 #4.3) Invalid value for parameter (brain_region)
 def test_addModel_invalidParam(modelCatalog):
@@ -195,11 +198,11 @@ def test_addModel_invalidParam(modelCatalog):
     with pytest.raises(Exception) as excinfo:
         model_name = "Model_{}_{}_py{}_add3".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
         model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
-                       alias=model_name, author="Validation Tester", organization="HBP-SP6",
+                       alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                        private=False, cell_type="granule cell", model_scope="single cell",
                        abstraction_level="spiking neurons",
                        brain_region="ABCDE", species="Mus musculus",
-                       owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                       owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                        description="This is a test entry! Please ignore.")
     assert "brain_region = 'ABCDE' is invalid." in str(excinfo.value)
 
@@ -208,11 +211,11 @@ def test_addModel_valid_noalias_nodetails(modelCatalog):
     model_catalog = modelCatalog
     model_name = "Model_{}_{}_py{}_add4".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
     model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
-                   author="Validation Tester", organization="HBP-SP6",
+                   author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.")
     assert isinstance(uuid.UUID(model_id, version=4), uuid.UUID)
 
@@ -221,11 +224,11 @@ def test_addModel_valid_withalias_nodetails(modelCatalog):
     model_catalog = modelCatalog
     model_name = "Model_{}_{}_py{}_add5".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
     model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
-                   alias=model_name, author="Validation Tester", organization="HBP-SP6",
+                   alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.")
     assert isinstance(uuid.UUID(model_id, version=4), uuid.UUID)
 
@@ -234,19 +237,20 @@ def test_addModel_repeat_alias_nodetails(modelCatalog):
     model_catalog = modelCatalog
     model_name = "Model_{}_{}_py{}_add6".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
     model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
-                   alias=model_name, author="Validation Tester", organization="HBP-SP6",
+                   alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.")
+    sleep(30)
     with pytest.raises(Exception) as excinfo:
         model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
-                       alias=model_name, author="Validation Tester", organization="HBP-SP6",
+                       alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                        private=False, cell_type="granule cell", model_scope="single cell",
                        abstraction_level="spiking neurons",
                        brain_region="basal ganglia", species="Mus musculus",
-                       owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                       owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                        description="This is a test entry! Please ignore.")
     assert "model with this alias already exists." in str(excinfo.value)
 
@@ -256,11 +260,11 @@ def test_addModel_valid_withalias_withdetails(modelCatalog):
     model_catalog = modelCatalog
     model_name = "Model_{}_{}_py{}_add7".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
     model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
-                   alias=model_name, author="Validation Tester", organization="HBP-SP6",
+                   alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.",
                    instances=[{"source":"https://www.abcde.com",
                                "version":"1.0", "parameters":""},
@@ -282,22 +286,22 @@ def test_editModel_invalid_noID(modelCatalog):
     model_catalog = modelCatalog
     model_name = "Model_{}_{}_py{}_edit1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
     model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
-                   alias=model_name, author="Validation Tester", organization="HBP-SP6",
+                   alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.")
     model = model_catalog.get_model(model_id=model_id)
     with pytest.raises(Exception) as excinfo:
         model_id = model_catalog.edit_model(
                        app_id="359330", name=model["name"] + "_changed",
                        alias = model["alias"] + "_changed",
-                       author="Validation Tester", organization="HBP-SP6",
+                       author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                        private=False, cell_type="granule cell", model_scope="single cell",
                        abstraction_level="spiking neurons",
                        brain_region="basal ganglia", species="Mus musculus",
-                       owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                       owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                        description="This is a test entry! Please ignore.")
     assert str(excinfo.value) == "Model ID needs to be provided for editing a model."
 
@@ -307,20 +311,20 @@ def test_editModel_valid(modelCatalog):
     model_catalog = modelCatalog
     model_name = "Model_{}_{}_py{}_edit2".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
     model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
-                   alias=model_name, author="Validation Tester", organization="HBP-SP6",
+                   alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.")
     model = model_catalog.get_model(model_id=model_id)
     model_id = model_catalog.edit_model(model_id=model_id,
                    app_id="359330", name=model["name"] + "_changed",
-                   alias = model["alias"] + "_changed", author="Validation Tester", organization="HBP-SP4",
+                   alias = model["alias"] + "_changed", author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP4",
                    private=False, cell_type="pyramidal cell", model_scope="network: whole brain",
                    abstraction_level="systems biology",
                    brain_region="hippocampus", species="Rattus norvegicus",
-                   owner="Validation Tester", project="HBP SP 6.4", license="BSD 2-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, project="HBP SP 6.4", license="BSD 2-Clause",
                    description="This is a test entry! Please ignore.")
     assert isinstance(uuid.UUID(model_id, version=4), uuid.UUID)
 
@@ -330,28 +334,28 @@ def test_editModel_invalid_duplicate_alias(modelCatalog):
     model_catalog = modelCatalog
     model_name1 = "Model_{}_{}_py{}_edit3.1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
     model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name1,
-                   alias=model_name1, author="Validation Tester", organization="HBP-SP6",
+                   alias=model_name1, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.")
     model_name2 = "Model_{}_{}_py{}_edit3.2".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
     model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name2,
-                   alias=model_name2, author="Validation Tester", organization="HBP-SP6",
+                   alias=model_name2, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.")
     model = model_catalog.get_model(model_id=model_id)
     with pytest.raises(Exception) as excinfo:
         model_id = model_catalog.edit_model(model_id=model_id,
                        app_id="359330", name=model["name"] + "_changed",
-                       alias = model_name1, author="Validation Tester", organization="HBP-SP6",
+                       alias = model_name1, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                        private=False, cell_type="granule cell", model_scope="single cell",
                        abstraction_level="spiking neurons",
                        brain_region="basal ganglia", species="Mus musculus",
-                       owner="Validation Tester", project="SP 6.4", license="BSD 3-Clause",
+                       owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
                        description="This is a test entry! Please ignore.")
     assert "scientific model with this alias already exists" in str(excinfo.value)

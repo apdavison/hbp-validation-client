@@ -2,6 +2,7 @@ import os
 import pytest
 import uuid
 import sciunit
+from time import sleep
 from hbp_validation_framework import sample, utils
 
 """
@@ -20,6 +21,7 @@ def test_view_json_tree(modelCatalog, myModelID):
 def test_generate_report(modelCatalog, myResultID):
     model_catalog = modelCatalog
     result_id = myResultID
+    sleep(20)
     valid_uuids, report_path = utils.generate_report(client_obj=model_catalog, result_list=[result_id])
     assert isinstance(valid_uuids, list)
     assert len(valid_uuids) == 1
