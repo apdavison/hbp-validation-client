@@ -401,6 +401,9 @@ class TestLibrary(BaseClient):
         elif self.environment == "dev":
             self.app_id = 349
             self.app_name = "Validation Framework (dev)"
+        elif self.environment == "integration":
+            self.app_id = 432
+            self.app_name = "Model Validation app (staging)"
 
     def set_app_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
         inputArgs = locals()
@@ -1501,6 +1504,9 @@ class ModelCatalog(BaseClient):
         elif self.environment == "dev":
             self.app_id = 348
             self.app_name = "Model Catalog (dev)"
+        elif self.environment == "integration":
+            self.app_id = 431
+            self.app_name = "Model Catalog (staging)"
 
     def set_app_config(self, collab_id="", app_id="", only_if_new=False, species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
         inputArgs = locals()
@@ -1643,7 +1649,7 @@ class ModelCatalog(BaseClient):
         >>> models = model_catalog.list_models(cell_type="Pyramidal Cell", brain_region="Hippocampus")
         """
 
-        valid_filters = ["app_id", "name", "alias", "author", "organization", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "owner", "project", "license"]
+        valid_filters = ["app_id", "collab_id", "name", "alias", "author", "organization", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "owner", "project", "license"]
         params = locals()["filters"]
         for filter in params:
             if filter not in valid_filters:
