@@ -13,14 +13,19 @@ Run the validation test                   :meth:`run_test_offline`
 Register result with validation service   :meth:`upload_test_result`
 Run test and register result              :meth:`run_test`
 Download PDF report of test results       :meth:`generate_report`
+Obtain score matrix for test results      :meth:`generate_score_matrix`
+Get Pandas DataFrame from score matrix    :meth:`get_raw_dataframe`
+Display score matrix in web browser       :meth:`display_score_matrix_html`
 =======================================   ====================================
 """
 
 import os
+import uuid
 import json
 import pickle
 import webbrowser
 import argparse
+import collections
 import unicodedata
 try:
     raw_input
@@ -461,15 +466,16 @@ def generate_report(username="", password=None, environment="production", result
         Indicates whether only a single combined PDF should be saved. Set to
         `True` as default. When set to `False`, then `n+2` PDFs will be saved,
         where `n` is the number of valid result UUIDs. These would include:
+
+        * Combined PDF report
+        * Summary of call to `generate_report()`
+        * One PDF for each valid result UUID
+
     client_obj : ModelCatalog/TestLibrary object
         Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
         Avoids need for repeated authentications; improves performance. Also, helps minimize
         being blocked out by the authentication server for repeated authentication requests
         (applicable when running several tests in quick succession, e.g. in a loop).
-
-        * Combined PDF report
-        * Summary of call to `generate_report()`
-        * One PDF for each valid result UUID
 
     Returns
     -------
@@ -628,7 +634,8 @@ def generate_report(username="", password=None, environment="production", result
             if key == "app":
                 _print_param_value(pdf, "collab_id", str(val["collab_id"]), 12)
                 pdf.ln(10)
-                _print_param_value(pdf, "app_id", str(val["id"]), 12)
+                if "id" in val:
+                    _print_param_value(pdf, "app_id", str(val["id"]), 12)
             else:
                 _print_param_value(pdf, str(key + ": "), unicodedata.normalize('NFKD', val).encode('ascii','ignore') if isinstance(val, unicode) else str(val), 12)
             pdf.ln(10)
@@ -709,3 +716,244 @@ def generate_report(username="", password=None, environment="production", result
     report_path = os.path.abspath("./report/"+filename)
     print("Report generated at: {}".format(report_path))
     return valid_uuids, report_path
+
+def generate_score_matrix(username="", password=None, environment="production", model_list=[], model_instance_list=[], test_list=[], test_instance_list=[], result_list=[], collab_id=None, client_obj=None):
+    """Generates a styled pandas dataframe with score matrix
+
+    This method will generate a styled pandas dataframe for the specified test results.
+    Each row will correspond to a particular model instance, and the columns
+    correspond to the test instances.
+
+    Parameters
+    ----------
+    username : string
+        Your HBP collaboratory username.
+    environment : string, optional
+        Used to indicate whether being used for development/testing purposes.
+        Set as `production` as default for using the production system,
+        which is appropriate for most users. When set to `dev`, it uses the
+        `development` system. For other values, an external config file would
+        be read (the latter is currently not implemented).
+    model_list : list
+        List of model UUIDs or aliases for which score matrix is to be generated.
+    model_instance_list : list
+        List of model instance UUIDs for which score matrix is to be generated.
+    test_list : list
+        List of test UUIDs or aliases for which score matrix is to be generated.
+    test_instance_list : list
+        List of test instance UUIDs for which score matrix is to be generated.
+    result_list : list
+        List of result UUIDs for which score matrix is to be generated.
+    collab_id : string, optional
+        Collaboratory ID where hyperlinks to results are to be redirected.
+        If unspecified, the scores will not have clickable hyperlinks.
+    client_obj : ModelCatalog/TestLibrary object
+        Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
+        Avoids need for repeated authentications; improves performance. Also, helps minimize
+        being blocked out by the authentication server for repeated authentication requests
+        (applicable when running several tests in quick succession, e.g. in a loop).
+
+    Note
+    ----
+    Only the latest score entry from specified input for a particular
+    model instance and test instance combination will be selectedself.
+    To get the raw (unstyled) dataframe, use :meth:`get_raw_dataframe()`
+
+    Returns
+    -------
+    pandas.io.formats.style.Styler
+        A 2-dimensional matrix representation of the scores
+    list
+        List of entries from specified input that could not be resolved and thus ignored
+
+    Examples
+    --------
+    >>> result_list = ["a618a6b1-e92e-4ac6-955a-7b8c6859285a", "793e5852-761b-4801-84cb-53af6f6c1acf"]
+    >>> styled_df, excluded = utils.generate_score_matrix(username="shailesh", result_list=result_list)
+    """
+
+    try:
+        import pandas as pd
+    except ImportError:
+        print("Please install the following package: pandas")
+        return
+
+    if client_obj:
+        model_catalog = ModelCatalog.from_existing(client_obj)
+    else:
+        model_catalog = ModelCatalog(username, password, environment=environment)
+
+    if client_obj:
+        test_library = TestLibrary.from_existing(client_obj)
+    else:
+        test_library = TestLibrary(username, password, environment=environment)
+
+    if collab_id:
+        # check if app exists; if not then create
+        VFapp_navID = test_library.exists_in_collab_else_create(collab_id)
+        test_library.set_app_config(collab_id=collab_id, app_id=VFapp_navID, only_if_new="True")
+
+    # retrieve all model instances from specified models
+    if model_list:
+        for entry in model_list:
+            try:
+                uuid.UUID(entry, version=4)
+                data = model_catalog.list_model_instances(model_id=entry)
+            except ValueError:
+                data = model_catalog.list_model_instances(alias=entry)
+            for item in data:
+                model_instance_list.append(item["id"])
+
+    # retrieve all test instances from specified tests
+    if test_list:
+        for entry in test_list:
+            try:
+                uuid.UUID(entry, version=4)
+                data = test_library.list_test_instances(test_id=entry)
+            except ValueError:
+                data = test_library.list_test_instances(alias=entry)
+            for item in data:
+                test_instance_list.append(item["id"])
+
+    # extend results list to include all results corresponding to above
+    # identified model instances and test instances
+    for item in model_instance_list:
+        results_json = test_library.list_results(model_version_id=item)["results"]
+        result_list.extend([r["id"] for r in results_json])
+    for item in test_instance_list:
+        results_json = test_library.list_results(test_code_id=item)["results"]
+        result_list.extend([r["id"] for r in results_json])
+
+    # remove duplicate result UUIDs
+    result_list = list(collections.OrderedDict.fromkeys(result_list).keys())
+
+    results_dict = collections.OrderedDict()
+    model_instances_dict = collections.OrderedDict()
+    test_instances_dict = collections.OrderedDict()
+
+    excluded_results = []   # not latest entry for a particular model instance and test instance combination
+    for r_id in result_list:
+        result = test_library.get_result(result_id = r_id)["results"][0]
+        # '#*#' is used as separator between score and result UUID (latter used for constructing hyperlink)
+        if result["test_code_id"] in results_dict.keys():
+            if result["model_version_id"] not in results_dict[result["test_code_id"]].keys():
+                results_dict[result["test_code_id"]][result["model_version_id"]] = [result["timestamp"], str(result["score"]) + "#*#" + r_id]
+            elif result["timestamp"] > results_dict[result["test_code_id"]][result["model_version_id"]][0]:
+                excluded_results.append(results_dict[result["test_code_id"]][result["model_version_id"]][1].split('#*#')[1])
+                results_dict[result["test_code_id"]][result["model_version_id"]] = [result["timestamp"], str(result["score"]) + "#*#" + r_id]
+            else:
+                excluded_results.append(r_id)
+        else:
+            results_dict[result["test_code_id"]] = {result["model_version_id"]: [result["timestamp"], str(result["score"]) + "#*#" + r_id]}
+
+        if result["model_version_id"] not in model_instances_dict.keys():
+            model_instances_dict[result["model_version_id"]] = None
+        if result["test_code_id"] not in model_instances_dict.keys():
+            test_instances_dict[result["test_code_id"]] = None
+
+    # update results_dict values to contain only scores; remove timestamps
+    for key_test_inst in results_dict.keys():
+        for key_model_inst, value in results_dict[key_test_inst].items():
+            results_dict[key_test_inst][key_model_inst] = value[1]
+
+    # form test labels: test_name(version_name)
+    for t_id in test_instances_dict.keys():
+        test = test_library.get_test_instance(instance_id=t_id)
+        test_version = test["version"]
+        test = test_library.get_test_definition(test_id=test["test_definition_id"])
+        test_name = test["alias"] if test["alias"] else test["name"]
+        test_label = test_name + " (" + str(test_version) + ")"
+        test_instances_dict[t_id] = test_label
+
+    # form model labels: model_name(version_name)
+    for m_id in model_instances_dict.keys():
+        model = model_catalog.get_model_instance(instance_id=m_id)
+        model_version = model["version"]
+        model = model_catalog.get_model(model_id=model["model_id"])
+        model_name = model["alias"] if model["alias"] else model["name"]
+        model_label = model_name + "(" + str(model_version) + ")"
+        model_instances_dict[m_id] = model_label
+
+    data = {}
+    for t_key, t_val in test_instances_dict.items():
+        score_vals = []
+        for m_key in model_instances_dict.keys():
+            try:
+                score_vals.append(results_dict[t_key][m_key])
+            except KeyError:
+                score_vals.append(None)
+        data[t_val] = score_vals
+    df = pd.DataFrame(data, index = model_instances_dict.values())
+
+    def make_clickable(value):
+        if not value:
+            return value
+        score, result_uuid = value.split('#*#')
+        if collab_id:
+            result_url = "https://collab.humanbrainproject.eu/#/collab/{}/nav/{}?state=result.{}".format(str(collab_id),str(VFapp_navID), result_uuid)
+            return '<a target="_blank" href="{}">{}</a>'.format(result_url,score)
+        else:
+            return score
+
+    return df.style.format(make_clickable), excluded_results
+
+def get_raw_dataframe(styled_df):
+    """Creates DataFrame from output of :meth`generate_score_matrix`
+
+    This method creates a raw DataFrame objects from its styled variant as
+    generated by :meth`generate_score_matrix`. The cell values in latter could
+    contain additional data (i.e. result UUIDs) for creating hyperlinks.
+    This is filtered out here such that the cell values only contain scores.
+
+    Parameters
+    ----------
+    styled_df : pandas.io.formats.style.Styler
+        Styled DataFrame object generated by :meth`generate_score_matrix`
+
+    Returns
+    -------
+    pandas.core.frame.DataFrame
+        A 2-dimensional matrix representation of the scores without any formatting
+
+    Examples
+    --------
+    >>> df = utils.get_raw_dataframe(styled_df)
+    """
+
+    def make_raw_scores(value):
+        if value:
+            return value.split('#*#')[0]
+    return styled_df.data.applymap(make_raw_scores)
+
+def display_score_matrix_html(styled_df=None, df=None):
+    """Displays score matrix generated from :meth`generate_score_matrix` inside web browser
+
+    This method displays the scoring matrix generated by :meth`generate_score_matrix`
+    inside a web browser. Input can either be the styled DataFrame object generated by
+    :meth`generate_score_matrix` or the raw DataFrame object from :meth`get_raw_dataframe`.
+
+    Parameters
+    ----------
+    styled_df : pandas.io.formats.style.Styler
+        Styled DataFrame object generated by :meth`generate_score_matrix`
+    df : pandas.core.frame.DataFrame
+        DataFrame object generated by :meth`get_raw_dataframe`
+
+    Returns
+    -------
+    None
+        Does not return any data. JSON displayed inside web browser.
+
+    Examples
+    --------
+    >>> utils.display_score_matrix_html(styled_df)
+    """
+
+    if styled_df is None and df is None:
+        raise Exception("styled_df or df needs to be provided for displaying the score matrix.")
+
+    filename = "hbp_vf_score_dataframe_{}.html".format(datetime.now().strftime("%Y%m%d-%H%M%S"))
+    if styled_df:
+        df = get_raw_dataframe(styled_df)
+    df.to_html(filename)
+    webbrowser.open(filename, new=2)

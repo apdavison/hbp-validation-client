@@ -12,12 +12,16 @@ from importlib import import_module
 import platform
 try:  # Python 3
     from urllib.request import urlopen
-    from urllib.parse import urlparse, urlencode
+    from urllib.parse import urlparse, urlencode, parse_qs
     from urllib.error import URLError
 except ImportError:  # Python 2
     from urllib2 import urlopen, URLError
-    from urlparse import urlparse
+    from urlparse import urlparse, parse_qs
     from urllib import urlencode
+try:
+    raw_input
+except NameError:
+    raw_input = input
 import socket
 import json
 import ast
@@ -67,6 +71,9 @@ class BaseClient(object):
         if environment == "production":
             self.url = "https://validation-v1.brainsimulation.eu"
             self.client_id = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
+        elif environment == "integration":
+            self.url = "https://validation-staging.brainsimulation.eu"
+            self.client_id = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c"
         elif environment == "dev":
             self.url = "https://validation-dev.brainsimulation.eu"
             self.client_id = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
@@ -256,7 +263,12 @@ class BaseClient(object):
                 res = rNMPI1.content
                 if not isinstance(res, str):
                     res = res.decode("ascii")
-                state = res[res.find("state")+6:res.find("&redirect_uri")]
+                start = res.find("https://services.humanbrainproject.eu/oidc/authorize?")
+                url = res[start:res.find("}", start)]
+                query = parse_qs(urlparse(url).query)
+                state = query["state"][0]
+                if not state:
+                    raise Exception("Could not obtain state. Response was '{}'".format(res))
                 url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, self.client_id)
             # get the exchange cookie
             cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
@@ -1239,7 +1251,7 @@ class TestLibrary(BaseClient):
             url = self.url + "/results/?id=" + result_id + "&order=" + order + "&format=json"
         result_json = requests.get(url, auth=self.auth, verify=self.verify)
         if result_json.status_code != 200:
-            raise Exception("Error in retrieving result. Response = " + str(result_json) + ".\nContent = " + result_json.content)
+            raise Exception("Error in retrieving result. Response = " + str(result_json) + ".\nContent = " + str(result_json.content))
         result_json = result_json.json()
         # Unlike other "get_" methods, we do not return "[key][0]" as the key can vary
         # based on the parameter "order". Retaining this key is potentially useful.
@@ -1280,7 +1292,7 @@ class TestLibrary(BaseClient):
             url = self.url + "/results/?" + "order=" + order + "&" + urlencode(params) + "&format=json"
         result_json = requests.get(url, auth=self.auth, verify=self.verify)
         if result_json.status_code != 200:
-            raise Exception("Error in retrieving results. Response = " + str(result_json) + ".\nContent = " + result_json.content)
+            raise Exception("Error in retrieving results. Response = " + str(result_json) + ".\nContent = " + str(result_json.content))
         result_json = result_json.json()
         return result_json
 
@@ -1637,7 +1649,11 @@ class ModelCatalog(BaseClient):
             if filter not in valid_filters:
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
         url = self.url + "/models/?"+urlencode(params)+"&format=json"
-        models = requests.get(url, auth=self.auth, verify=self.verify).json()
+        response = requests.get(url, auth=self.auth, verify=self.verify)
+        try:
+            models = response.json()
+        except json.JSONDecodeError:
+            raise Exception("Error in list_models():\n{}".format(response.content))
         return models["models"]
 
     def register_model(self, app_id="", name="", alias=None, author="", organization="", private=False,
@@ -1741,8 +1757,6 @@ class ModelCatalog(BaseClient):
 
         if private not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
-        else:
-            private = str(private)
 
         model_data = locals()
         for key in ["self", "app_id", "instances", "images", "values"]:
@@ -1761,7 +1775,7 @@ class ModelCatalog(BaseClient):
         if response.status_code == 201:
             return response.json()["uuid"]
         else:
-            raise Exception("Error in adding model. Response = " + str(response.json()))
+            raise Exception("Error in adding model. Response = " + str(response.content))
 
     def edit_model(self, model_id="", app_id=None, name=None, alias=None, author=None, organization=None, private=None, cell_type=None,
                    model_scope=None, abstraction_level=None, brain_region=None, species=None, owner="", project="", license="", description=None):
@@ -2361,7 +2375,7 @@ class ModelCatalog(BaseClient):
         model_instance_json = model_instance_json["instances"][0]
         for key in instance_data:
             if instance_data[key] is None:
-                instance_data[key] = model_instance_json[key]
+                instance_data[key] = model_instance_json.get(key, None)
 
         url = self.url + "/model-instances/?format=json"
         headers = {'Content-type': 'application/json'}
