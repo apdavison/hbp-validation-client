@@ -1339,7 +1339,7 @@ class TestLibrary(BaseClient):
         model_catalog = ModelCatalog.from_existing(self)
         model_instance_uuid = model_catalog.find_model_instance_else_add(test_result.model)
 
-        results_storage = ""
+        results_storage = []
         if data_store:
             if not data_store.authorized:
                 data_store.authorize(self.auth)  # relies on data store using HBP authorization
@@ -1351,13 +1351,13 @@ class TestLibrary(BaseClient):
             if "figures" in test_result.related_data:
                 files_to_upload.extend(test_result.related_data["figures"])
             if files_to_upload:
-                results_storage = data_store.upload_data(files_to_upload)
+                results_storage.append(data_store.upload_data(files_to_upload))
 
         url = self.url + "/results/?format=json"
         result_json = {
                         "model_version_id": model_instance_uuid,
                         "test_code_id": test_result.test.uuid,
-                        "results_storage": [results_storage],
+                        "results_storage": results_storage,
                         "score": test_result.score,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
                         "platform": str(self._get_platform()), # database accepts a string
