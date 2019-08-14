@@ -349,20 +349,20 @@ def upload_test_result(username="", password=None, environment="production", tes
 
     # Check if result with same hash has already been uploaded for
     # this (model instance, test instance) combination; if yes, don't register result
-    result_json = {
-                    "model_instance_id": model_instance_uuid,
-                    "test_code_id": score.test.uuid,
-                    "score": score.score,
-                    "runtime": score.runtime,
-                    "exectime": score.exec_timestamp#,
-                    # "platform": score.exec_platform
-                  }
-    score.score_hash = str(hash(json.dumps(result_json, sort_keys=True, default = str)))
+    # result_json = {
+    #                 "model_instance_id": model_instance_uuid,
+    #                 "test_code_id": score.test.uuid,
+    #                 "score": score.score,
+    #                 "runtime": score.runtime,
+    #                 "exectime": score.exec_timestamp#,
+    #                 # "platform": score.exec_platform
+    #               }
+    # score.score_hash = str(hash(json.dumps(result_json, sort_keys=True, default = str)))
     test_library = TestLibrary.from_existing(model_catalog)
-    results = test_library.list_results(model_version_id=model_instance_uuid, test_code_id=score.test.uuid)["results"]
-    duplicate_results =  [x["id"] for x in results if x["hash"] == score.score_hash]
-    if duplicate_results:
-        raise Exception("An identical result has already been registered on the validation framework.\nExisting Result UUID = {}".format(", ".join(duplicate_results)))
+    # results = test_library.list_results(model_version_id=model_instance_uuid, test_code_id=score.test.uuid)["results"]
+    # duplicate_results =  [x["id"] for x in results if x["hash"] == score.score_hash]
+    # if duplicate_results:
+    #     raise Exception("An identical result has already been registered on the validation framework.\nExisting Result UUID = {}".format(", ".join(duplicate_results)))
 
     collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name, datetime.now().strftime("%Y%m%d-%H%M%S"))
     collab_storage = CollabDataStore(collab_id=storage_collab_id,
@@ -672,7 +672,7 @@ def generate_report(username="", password=None, environment="production", result
         # Additional Files
         if result_data[result_id]["results_storage"]:
             datastore = CollabDataStore(auth=model_catalog.auth)
-            entity_uuid = datastore._translate_URL_to_UUID(result_data[result_id]["results_storage"])
+            entity_uuid = datastore._translate_URL_to_UUID(result_data[result_id]["results_storage"][0]["download_url"])
             file_list = datastore.download_data_using_uuid(entity_uuid)
 
             merger = PdfFileMerger()
