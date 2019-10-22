@@ -638,7 +638,7 @@ def generate_report(username="", password=None, environment="production", result
                 if "id" in val:
                     _print_param_value(pdf, "app_id", str(val["id"]), 12)
             else:
-                _print_param_value(pdf, str(key + ": "), unicodedata.normalize('NFKD', val).encode('ascii','ignore') if isinstance(val, unicode) else str(val), 12)
+                _print_param_value(pdf, str(key + ": "), unicodedata.normalize('NFKD', val).encode('ascii','ignore').decode('ascii') if isinstance(val, unicode) else str(val), 12)
             pdf.ln(10)
 
         # Model Instance Info
