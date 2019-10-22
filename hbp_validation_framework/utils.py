@@ -673,7 +673,7 @@ def generate_report(username="", password=None, environment="production", result
         # Additional Files
         if result_data[result_id]["results_storage"]:
             datastore = CollabDataStore(auth=model_catalog.auth)
-            entity_uuid = datastore._translate_URL_to_UUID(result_data[result_id]["results_storage"])
+            entity_uuid = datastore._translate_URL_to_UUID(result_data[result_id]["results_storage"][0]["download_url"])
             file_list = datastore.download_data_using_uuid(entity_uuid)
 
             merger = PdfFileMerger()
