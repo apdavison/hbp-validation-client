@@ -37,7 +37,7 @@ except ImportError:
 try:
     raw_input
 except NameError:  # Python 3
-    raw_input = input  
+    raw_input = input
 
 mimetypes.init()
 
@@ -275,7 +275,7 @@ class SwiftDataStore(object):
         except ImportError:
             print("Please install the following package: hbp_archive")
             return
-        
+
         print("----------------------------------------------------")
         print("NOTE: The target location is inside a CSCS container")
         print("----------------------------------------------------")
