@@ -682,7 +682,7 @@ def generate_report(username="", password=None, environment="production", result
 
             for datafile in file_list:
                 if datafile.endswith(".pdf"):
-                    merger.append(PdfFileReader(file(datafile, 'rb')))
+                    merger.append(PdfFileReader(open(datafile, 'rb')))
                 elif datafile.endswith((".txt", ".json")):
                     txt_pdf = FPDF()
                     txt_pdf.add_page()
@@ -697,7 +697,7 @@ def generate_report(username="", password=None, environment="production", result
                     savepath = os.path.join("./report", "temp_"+os.path.splitext(os.path.basename(datafile))[0]+"_"+str(result_ctr)+".pdf")
                     temp_txt_files.append(savepath)
                     txt_pdf.output(str(savepath), 'F')
-                    merger.append(PdfFileReader(file(savepath, 'rb')))
+                    merger.append(PdfFileReader(open(savepath, 'rb')))
 
             merger.write(str("./report/"+filename[:-4]+"_"+str(result_ctr)+".pdf"))
             os.remove(str("./report/"+filename[:-4]+"_temp_"+str(result_ctr)+".pdf"))
