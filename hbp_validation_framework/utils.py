@@ -31,6 +31,7 @@ try:
     raw_input
 except NameError:  # Python 3
     raw_input = input
+    unicode = str # Python 3 renamed the unicode type to str
 import sciunit
 from datetime import datetime
 from . import TestLibrary, ModelCatalog
