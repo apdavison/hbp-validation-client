@@ -638,7 +638,7 @@ def generate_report(username="", password=None, environment="production", result
                 if "id" in val:
                     _print_param_value(pdf, "app_id", str(val["id"]), 12)
             else:
-                _print_param_value(pdf, str(key + ": "), unicodedata.normalize('NFKD', val).encode('ascii','ignore') if isinstance(val, unicode) else str(val), 12)
+                _print_param_value(pdf, str(key + ": "), unicodedata.normalize('NFKD', val).encode('ascii','ignore').decode('ascii') if isinstance(val, unicode) else str(val), 12)
             pdf.ln(10)
 
         # Model Instance Info
@@ -673,7 +673,7 @@ def generate_report(username="", password=None, environment="production", result
         # Additional Files
         if result_data[result_id]["results_storage"]:
             datastore = CollabDataStore(auth=model_catalog.auth)
-            entity_uuid = datastore._translate_URL_to_UUID(result_data[result_id]["results_storage"])
+            entity_uuid = datastore._translate_URL_to_UUID(result_data[result_id]["results_storage"][0]["download_url"])
             file_list = datastore.download_data_using_uuid(entity_uuid)
 
             merger = PdfFileMerger()
@@ -682,7 +682,7 @@ def generate_report(username="", password=None, environment="production", result
 
             for datafile in file_list:
                 if datafile.endswith(".pdf"):
-                    merger.append(PdfFileReader(file(datafile, 'rb')))
+                    merger.append(PdfFileReader(open(datafile, 'rb')))
                 elif datafile.endswith((".txt", ".json")):
                     txt_pdf = FPDF()
                     txt_pdf.add_page()
@@ -697,7 +697,7 @@ def generate_report(username="", password=None, environment="production", result
                     savepath = os.path.join("./report", "temp_"+os.path.splitext(os.path.basename(datafile))[0]+"_"+str(result_ctr)+".pdf")
                     temp_txt_files.append(savepath)
                     txt_pdf.output(str(savepath), 'F')
-                    merger.append(PdfFileReader(file(savepath, 'rb')))
+                    merger.append(PdfFileReader(open(savepath, 'rb')))
 
             merger.write(str("./report/"+filename[:-4]+"_"+str(result_ctr)+".pdf"))
             os.remove(str("./report/"+filename[:-4]+"_temp_"+str(result_ctr)+".pdf"))
