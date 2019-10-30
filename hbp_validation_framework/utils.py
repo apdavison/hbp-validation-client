@@ -270,8 +270,25 @@ def run_test_offline(model="", test_config_file=""):
     # score.exec_platform = str(self._get_platform())
 
     # Save result info to file
+    def remove_unpickleable_items(item, filename):
+        # removes unpickleable items upto two levels
+        for key1, val1 in item.__dict__.items():
+            try:
+                with open(filename, 'wb') as file:
+                    pickle.dump(val1, file)
+            except TypeError:
+                if hasattr(item.__dict__[key1], "__dict__"):
+                    for key2, val2 in item.__dict__[key1].__dict__.items():
+                        try:
+                            with open(filename, 'wb') as file:
+                                pickle.dump(val2, file)
+                        except TypeError:
+                            item.__dict__[key1].__dict__[key2] = "(Removed; unpickleable)"
+        return item
+
     Path(os.path.join(base_folder, "results")).mkdir(parents=True, exist_ok=True)
     test_result_file = os.path.join(base_folder, "results", "result__" + model.name + "__" + datetime.now().strftime("%Y%m%d%H%M%S") + ".pkl")
+    score = remove_unpickleable_items(score, test_result_file)
     with open(test_result_file, 'wb') as file:
         pickle.dump(score, file)
     return test_result_file
