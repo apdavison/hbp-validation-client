@@ -31,6 +31,7 @@ try:
     raw_input
 except NameError:  # Python 3
     raw_input = input
+    unicode = str # Python 3 renamed the unicode type to str
 import sciunit
 from datetime import datetime
 from . import TestLibrary, ModelCatalog
@@ -349,20 +350,20 @@ def upload_test_result(username="", password=None, environment="production", tes
 
     # Check if result with same hash has already been uploaded for
     # this (model instance, test instance) combination; if yes, don't register result
-    result_json = {
-                    "model_instance_id": model_instance_uuid,
-                    "test_code_id": score.test.uuid,
-                    "score": score.score,
-                    "runtime": score.runtime,
-                    "exectime": score.exec_timestamp#,
-                    # "platform": score.exec_platform
-                  }
-    score.score_hash = str(hash(json.dumps(result_json, sort_keys=True, default = str)))
+    # result_json = {
+    #                 "model_instance_id": model_instance_uuid,
+    #                 "test_code_id": score.test.uuid,
+    #                 "score": score.score,
+    #                 "runtime": score.runtime,
+    #                 "exectime": score.exec_timestamp#,
+    #                 # "platform": score.exec_platform
+    #               }
+    # score.score_hash = str(hash(json.dumps(result_json, sort_keys=True, default = str)))
     test_library = TestLibrary.from_existing(model_catalog)
-    results = test_library.list_results(model_version_id=model_instance_uuid, test_code_id=score.test.uuid)["results"]
-    duplicate_results =  [x["id"] for x in results if x["hash"] == score.score_hash]
-    if duplicate_results:
-        raise Exception("An identical result has already been registered on the validation framework.\nExisting Result UUID = {}".format(", ".join(duplicate_results)))
+    # results = test_library.list_results(model_version_id=model_instance_uuid, test_code_id=score.test.uuid)["results"]
+    # duplicate_results =  [x["id"] for x in results if x["hash"] == score.score_hash]
+    # if duplicate_results:
+    #     raise Exception("An identical result has already been registered on the validation framework.\nExisting Result UUID = {}".format(", ".join(duplicate_results)))
 
     collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name, datetime.now().strftime("%Y%m%d-%H%M%S"))
     collab_storage = CollabDataStore(collab_id=storage_collab_id,
@@ -435,6 +436,113 @@ def run_test(username="", password=None, environment="production", model="", tes
     test_result_file = run_test_offline(model=model, test_config_file=test_config_file)
     result_id, score = upload_test_result(username=username, password=password, environment=environment, test_result_file=test_result_file, storage_collab_id=storage_collab_id, register_result=register_result, client_obj=client_obj)
     return result_id, score
+
+def generate_html_report(username="", password=None, environment="production", model_list=[], model_instance_list=[], test_list=[], test_instance_list=[], result_list=[], collab_id=None, client_obj=None):
+
+    try:
+        from jinja2 import Environment, FileSystemLoader
+    except ImportError:
+        print("Please install the following package: jinja2")
+        return
+
+    if client_obj:
+        model_catalog = ModelCatalog.from_existing(client_obj)
+    else:
+        model_catalog = ModelCatalog(username, password, environment=environment)
+    test_library = TestLibrary.from_existing(model_catalog)
+
+    if collab_id:
+        # check if app exists; if not then create
+        MCapp_navID = model_catalog.exists_in_collab_else_create(collab_id)
+        model_catalog.set_app_config(collab_id=collab_id, app_id=MCapp_navID, only_if_new="True")
+        VFapp_navID = test_library.exists_in_collab_else_create(collab_id)
+        test_library.set_app_config(collab_id=collab_id, app_id=VFapp_navID, only_if_new="True")
+
+    # retrieve all model instances from specified models
+    if model_list:
+        for entry in model_list:
+            try:
+                uuid.UUID(entry, version=4)
+                data = model_catalog.list_model_instances(model_id=entry)
+            except ValueError:
+                data = model_catalog.list_model_instances(alias=entry)
+            for item in data:
+                model_instance_list.append(item["id"])
+
+    # retrieve all test instances from specified tests
+    if test_list:
+        for entry in test_list:
+            try:
+                uuid.UUID(entry, version=4)
+                data = test_library.list_test_instances(test_id=entry)
+            except ValueError:
+                data = test_library.list_test_instances(alias=entry)
+            for item in data:
+                test_instance_list.append(item["id"])
+
+    # extend results list to include all results corresponding to above
+    # identified model instances and test instances
+    for item in model_instance_list:
+        results_json = test_library.list_results(model_version_id=item)["results"]
+        result_list.extend([r["id"] for r in results_json])
+    for item in test_instance_list:
+        results_json = test_library.list_results(test_code_id=item)["results"]
+        result_list.extend([r["id"] for r in results_json])
+
+    # remove duplicate result UUIDs
+    result_list = list(collections.OrderedDict.fromkeys(result_list).keys())
+
+    # TODO: ensure atleast one valid result UUID to be evaluated; else create no report, alert user
+
+    # utilize each result entry
+    result_summary_table = [] # list of dicts, each with 4 keys -> result_id, model_label, test_label, score
+    list_results = []
+    list_models = []
+    list_model_instances = []
+    list_tests = []
+    list_test_instances = []
+    for r_id in result_list:
+        result = test_library.get_result(result_id = r_id)["results"][0]
+        model_instance = result.pop("model_version")
+        test_instance = result.pop("test_code")
+        model = model_instance.pop("model")
+        test = test_instance.pop("test_definition")
+
+        list_results.append(result)
+        list_models.append(model)
+        list_model_instances.append(model_instance)
+        list_tests.append(test)
+        list_test_instances.append(test_instance)
+
+        model_label = (model["alias"] if model["alias"] else model["name"]) + " (" + str(model_instance["version"]) + ")"
+        test_label = (test["alias"] if test["alias"] else test["name"]) + " (" + str(test_instance["version"]) + ")"
+        if collab_id:
+            result_url = "https://collab.humanbrainproject.eu/#/collab/{}/nav/{}?state=result.{}".format(str(collab_id),str(VFapp_navID), r_id)
+            model_url = "https://collab.humanbrainproject.eu/#/collab/{}/nav/{}?state=model.{}".format(str(collab_id),str(MCapp_navID), model["id"])
+            test_url = "https://collab.humanbrainproject.eu/#/collab/{}/nav/{}?state=test.{}".format(str(collab_id),str(VFapp_navID), test["id"])
+            result_summary_table.append({"result_id":(r_id, result_url), "model_label":(model_label, model_url), "test_label":(test_label, test_url), "score":(result["score"], result_url)})
+        else:
+            result_summary_table.append({"result_id":(r_id), "model_label":(model_label), "test_label":(test_label), "score":(result["score"])})
+
+    timestamp = datetime.now()
+    report_name = str("HBP_VF_Report_" + timestamp.strftime("%Y%m%d-%H%M%S") + ".html")
+
+    env = Environment(loader=FileSystemLoader('.'))
+    template = env.get_template("report_template.html")
+
+    template_vars = {"report_name" : report_name,
+                    "created_date" : timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                    "result_summary_table" : result_summary_table,
+                    "list_results" : list_results,
+                    "list_models" : list_models,
+                    "list_model_instances" : list_model_instances,
+                    "list_tests" : list_tests,
+                    "list_test_instances" : list_test_instances}
+    html_out = template.render(template_vars)
+
+    with open("report.html", "w") as outfile:
+        outfile.write(html_out)
+
 
 def generate_report(username="", password=None, environment="production", result_list=[], only_combined=True, client_obj=None):
     """Generates and downloads a PDF report of test results
@@ -637,7 +745,7 @@ def generate_report(username="", password=None, environment="production", result
                 if "id" in val:
                     _print_param_value(pdf, "app_id", str(val["id"]), 12)
             else:
-                _print_param_value(pdf, str(key + ": "), unicodedata.normalize('NFKD', val).encode('ascii','ignore') if isinstance(val, unicode) else str(val), 12)
+                _print_param_value(pdf, str(key + ": "), unicodedata.normalize('NFKD', val).encode('ascii','ignore').decode('ascii') if isinstance(val, unicode) else str(val), 12)
             pdf.ln(10)
 
         # Model Instance Info
@@ -672,7 +780,7 @@ def generate_report(username="", password=None, environment="production", result
         # Additional Files
         if result_data[result_id]["results_storage"]:
             datastore = CollabDataStore(auth=model_catalog.auth)
-            entity_uuid = datastore._translate_URL_to_UUID(result_data[result_id]["results_storage"])
+            entity_uuid = datastore._translate_URL_to_UUID(result_data[result_id]["results_storage"][0]["download_url"])
             file_list = datastore.download_data_using_uuid(entity_uuid)
 
             merger = PdfFileMerger()
@@ -681,7 +789,7 @@ def generate_report(username="", password=None, environment="production", result
 
             for datafile in file_list:
                 if datafile.endswith(".pdf"):
-                    merger.append(PdfFileReader(file(datafile, 'rb')))
+                    merger.append(PdfFileReader(open(datafile, 'rb')))
                 elif datafile.endswith((".txt", ".json")):
                     txt_pdf = FPDF()
                     txt_pdf.add_page()
@@ -696,7 +804,7 @@ def generate_report(username="", password=None, environment="production", result
                     savepath = os.path.join("./report", "temp_"+os.path.splitext(os.path.basename(datafile))[0]+"_"+str(result_ctr)+".pdf")
                     temp_txt_files.append(savepath)
                     txt_pdf.output(str(savepath), 'F')
-                    merger.append(PdfFileReader(file(savepath, 'rb')))
+                    merger.append(PdfFileReader(open(savepath, 'rb')))
 
             merger.write(str("./report/"+filename[:-4]+"_"+str(result_ctr)+".pdf"))
             os.remove(str("./report/"+filename[:-4]+"_temp_"+str(result_ctr)+".pdf"))

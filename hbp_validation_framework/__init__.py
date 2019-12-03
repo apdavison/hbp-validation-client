@@ -1358,11 +1358,11 @@ class TestLibrary(BaseClient):
                         "model_version_id": model_instance_uuid,
                         "test_code_id": test_result.test.uuid,
                         "results_storage": results_storage,
-                        "score": test_result.score,
+                        "score": int(test_result.score) if isinstance(test_result.score, bool) else test_result.score,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
                         "platform": str(self._get_platform()), # database accepts a string
                         "project": project,
-                        "normalized_score": test_result.score
+                        "normalized_score": int(test_result.score) if isinstance(test_result.score, bool) else test_result.score,
                       }
 
         headers = {'Content-type': 'application/json'}
