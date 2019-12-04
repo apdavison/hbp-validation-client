@@ -27,6 +27,8 @@ import webbrowser
 import argparse
 import collections
 import unicodedata
+import pkg_resources
+
 try:
     raw_input
 except NameError:  # Python 3
@@ -437,8 +439,7 @@ def run_test(username="", password=None, environment="production", model="", tes
     result_id, score = upload_test_result(username=username, password=password, environment=environment, test_result_file=test_result_file, storage_collab_id=storage_collab_id, register_result=register_result, client_obj=client_obj)
     return result_id, score
 
-def generate_html_report(username="", password=None, environment="production", model_list=[], model_instance_list=[], test_list=[], test_instance_list=[], result_list=[], collab_id=None, client_obj=None):
-
+def generate_HTML_report(username="", password=None, environment="production", model_list=[], model_instance_list=[], test_list=[], test_instance_list=[], result_list=[], collab_id=None, client_obj=None):    
     try:
         from jinja2 import Environment, FileSystemLoader
     except ImportError:
@@ -501,8 +502,13 @@ def generate_html_report(username="", password=None, environment="production", m
     list_model_instances = []
     list_tests = []
     list_test_instances = []
+    valid_result_uuids = []
     for r_id in result_list:
-        result = test_library.get_result(result_id = r_id)["results"][0]
+        result = test_library.get_result(result_id = r_id)["results"]
+        if len(result) == 0:
+            continue    # invalid result UUID
+        result = result[0]
+        valid_result_uuids.append(r_id)
         model_instance = result.pop("model_version")
         test_instance = result.pop("test_code")
         model = model_instance.pop("model")
@@ -527,8 +533,9 @@ def generate_html_report(username="", password=None, environment="production", m
     timestamp = datetime.now()
     report_name = str("HBP_VF_Report_" + timestamp.strftime("%Y%m%d-%H%M%S") + ".html")
 
-    env = Environment(loader=FileSystemLoader('.'))
-    template = env.get_template("report_template.html")
+    template_path = pkg_resources.resource_filename("hbp_validation_framework", "templates/report_template.html")
+    env = Environment(loader=FileSystemLoader(os.path.dirname(template_path)))
+    template = env.get_template(os.path.basename(template_path))
 
     template_vars = {"report_name" : report_name,
                     "created_date" : timestamp.strftime("%Y-%m-%d %H:%M:%S"),
@@ -540,9 +547,33 @@ def generate_html_report(username="", password=None, environment="production", m
                     "list_test_instances" : list_test_instances}
     html_out = template.render(template_vars)
 
-    with open("report.html", "w") as outfile:
+    # TODO: use `report_name`
+    report_name = "report.html"
+    with open(report_name, "w") as outfile:
         outfile.write(html_out)
+    print("HTML Report generated at: {}".format(os.path.abspath(report_name)))
+    return os.path.abspath(report_name), valid_result_uuids
 
+
+def generate_PDF_report(html_report_path=None, username="", password=None, environment="production", model_list=[], model_instance_list=[], test_list=[], test_instance_list=[], result_list=[], collab_id=None, client_obj=None):
+    params = locals()
+    try:
+        from weasyprint import HTML
+    except ImportError:
+        print("Please install the following package: weasyprint")
+        return
+    if not html_report_path:
+        params.pop("html_report_path")
+        html_report_path, valid_result_uuids = generate_HTML_report(**params)
+    with open(html_report_path, 'r') as f:
+        valid_result_uuids = None
+        html_string = f.read()
+
+    filepath = os.path.splitext(os.path.abspath(html_report_path))[0] + ".pdf"
+    HTML(string=html_string).write_pdf(filepath, stylesheets=["mycss.css"])
+    report_path = os.path.abspath(filepath)
+    print("PDF Report generated at: {}".format(report_path))
+    return report_path, valid_result_uuids
 
 def generate_report(username="", password=None, environment="production", result_list=[], only_combined=True, client_obj=None):
     """Generates and downloads a PDF report of test results
