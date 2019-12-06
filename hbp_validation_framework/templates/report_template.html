@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+    <title>HBP Validation Framework</title>
+    <meta name="viewport" content="width = device-width, initial-scale = 1">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Merriweather">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.20/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://appukuttan-shailesh.github.io/live_paper.css">
+    <style>
+        .tabs .tab a {
+            color: #000;
+            background-color: #ffe082;
+        }
+        /*Black color to the text and background color specified*/
+
+        .tabs .tab a:hover {
+            background-color: #ffc107;
+            color: #000;
+        }
+        /*Text color on hover*/
+
+        .tabs .tab a.active {
+            background-color: #ff9800;
+            color: #000;
+        }
+        /*Background and text color when a tab is active*/
+
+        .tabs .indicator {
+            background-color: #000;
+        }
+        /*Color of underline*/
+
+        .firstColumnBold td:first-child {
+            font-weight: bold;
+        }
+    </style>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.3/js/materialize.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://appukuttan-shailesh.github.io/ellipsis.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#html_table_result_summary').DataTable({
+                "order": [
+                    [0, "asc"]
+                ],
+                "searching": false,
+                "lengthChange": false,
+                "paging": false,
+                "info": false,
+                columnDefs: [{
+                    targets: 1,
+                    render: $.fn.dataTable.render.ellipsis(10)
+                }, {
+                    targets: [2, 3],
+                    render: $.fn.dataTable.render.ellipsis(18)
+                }]
+            });
+        });
+    </script>
+</head>
+
+<body class="container">
+    <br />
+    <div class="box rounded centered">
+        <a href="#" id="link_pagetop" class="waves-effect waves-light" style="text-align:center; color:black">
+            <table>
+                <tbody>
+                    <tr>
+                        <td>
+                            <img class="hbp-icon-small" src="https://appukuttan-shailesh.github.io/hbp_diamond_120.png" alt="Human Brain Project logo">
+                        </td>
+                        <td>
+                            <span class="title-style subtitle" style="padding-left:5px;">
+                                    HBP Validation Framework Report
+                                </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </a>
+        <h5 class="title-style">{{ report_name[:-5] }}</h5>
+    </div>
+
+    <div>
+        <table style="table-layout:fixed; width:100%;">
+            <tr>
+                <td><strong>Report Name: </strong> {{ report_name }} </td>
+                <td style="text-align:right"><strong>Created Date: </strong> {{ created_date }} </td>
+            </tr>
+        </table>
+        <br />
+        <strong>Contains info for following results:</strong>
+        <br />
+        <table id="html_table_result_summary">
+            <colgroup>
+                <col id="html_table_result_summary_col1">
+                    <col id="html_table_result_summary_col2">
+                        <col id="html_table_result_summary_col3">
+                            <col id="html_table_result_summary_col4">
+                                <col id="html_table_result_summary_col5">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Result UUID</th>
+                    <th>Model (version)</th>
+                    <th>Test (version)</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in result_summary_table %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    {% if entry["result_id"] is iterable and entry["result_id"] is not string %}
+                    <td><a href='#link_{{ entry["result_id"][0] }}'>{{ entry["result_id"][0] }}</a></td>
+                    <td><a href='{{ entry["model_label"][1] }}' target="_blank">{{ entry["model_label"][0] }}</a></td>
+                    <td><a href='{{ entry["test_label"][1] }}' target="_blank">{{ entry["test_label"][0] }}</a></td>
+                    <td><a href='{{ entry["score"][1] }}' target="_blank">{{ entry["score"][0]|round(3) }}</a></td>
+                    {% else %}
+                    <td>{{ entry["result_id"] }}</td>
+                    <td>{{ entry["model_label"] }}</td>
+                    <td>{{ entry["test_label"] }}</td>
+                    <td>{{ entry["score"]|round(3) }}</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <br />
+    <div class="rainbow-row">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+    </div>
+    {% for result in list_results %}
+    <br />
+    <h6 style="font-weight: bold;">{{ loop.index }})&nbsp;Result UUID:&nbsp;<a id="link_{{result['id']}}">{{ result["id"] }} </a></h6>
+    <div class="row">
+        <div class="col s12">
+            <br />
+            <ul class="tabs">
+                <li class="tab col s3"><a class="active" href="#result_{{result['id']}}">Result Info</a></li>
+                <li class="tab col s3"><a href="#files_{{result['id']}}">Result Files</a></li>
+                <li class="tab col s3"><a href="#model_{{result['id']}}">Model Info</a></li>
+                <li class="tab col s3"><a href="#test_{{result['id']}}">Test Info</a></li>
+            </ul>
+        </div>
+        <div id="result_{{result['id']}}" class="col s12">
+            <br />
+            <table style="table-layout:fixed; width:100%; word-break: break-all;" class="firstColumnBold">
+                <colgroup>
+                    <col style="width: 25%;" />
+                    <col>
+                </colgroup>
+                <tr class="card-panel orange lighten-4">
+                    <th style="text-align:center" colspan="2">Result</th>
+                </tr>
+                <tr>
+                    <td>id</td>
+                    <td><a href="{{ result_summary_table[loop.index-1]["score"][1] }}" target="_blank">{{ list_results[loop.index-1]["id"] }}</a></td>
+                </tr>
+                <tr>
+                    <td>uri</td>
+                    <td>{{ list_results[loop.index-1]["uri"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>score</td>
+                    <td>{{ list_results[loop.index-1]["score"] }}</td>
+                </tr>
+                <tr>
+                    <td>normalized_score</td>
+                    <td>{{ list_results[loop.index-1]["normalized_score"] }}</td>
+                </tr>
+                <tr>
+                    <td>passed</td>
+                    <td>{{ list_results[loop.index-1]["passed"] }}</td>
+                </tr>
+                <tr>
+                    <td>timestamp</td>
+                    <td>{{ list_results[loop.index-1]["timestamp"] }}</td>
+                </tr>
+                <tr>
+                    <td>project</td>
+                    <td>{{ list_results[loop.index-1]["project"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2" style="text-align:right; padding-right: 50px;"><a href="#link_{{result['id']}}" title="Go to top of this result"><i class="material-icons">open_in_browser</i></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#link_pagetop" title="Go to top of page"><i class="material-icons">vertical_align_top</i></a></td>
+                </tr>
+            </table>
+        </div>
+        <div id="files_{{result['id']}}" class="col s12">
+            <br />
+            <table style="table-layout:fixed; width:100%; word-break: break-all;" class="firstColumnBold">
+                <colgroup>
+                    <col style="width: 25%;" />
+                    <col>
+                </colgroup>
+                <tr class="card-panel orange lighten-4">
+                    <th style="text-align:center" colspan="2">Result Related Files</th>
+                </tr>
+                {% if result["results_storage"]|length == 0 %}
+                <tr>
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="text-align:center">No files associated with this result!</td>
+                </tr>
+                <tr>
+                    <td colspan="2"></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2"></td>
+                </tr>
+                {% for file in result["results_storage"] %}
+                <tr>
+                    <td>File {{ loop.index }}: </td>
+                    <td>{{ file["download_url"] }}</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <td colspan="2"></td>
+                </tr>
+                {% endif %}
+                <tr class="brown lighten-5">
+                    <td colspan="2" style="text-align:right; padding-right: 50px;"><a href="#link_{{result['id']}}" title="Go to top of this result"><i class="material-icons">open_in_browser</i></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#link_pagetop" title="Go to top of page"><i class="material-icons">vertical_align_top</i></a></td>
+                </tr>
+            </table>
+        </div>
+        <div id="model_{{result['id']}}" class="col s12">
+            <br />
+            <table style="table-layout:fixed; width:100%; word-break: break-all;" class="firstColumnBold">
+                <colgroup>
+                    <col style="width: 25%;" />
+                    <col>
+                </colgroup>
+                <tr class="card-panel orange lighten-4">
+                    <th style="text-align:center" colspan="2">Model</th>
+                </tr>
+                <tr>
+                    <td>id</td>
+                    <td><a href="{{ result_summary_table[loop.index-1]["model_label"][1] }}" target="_blank">{{ list_models[loop.index-1]["id"] }}</a></td>
+                </tr>
+                <tr>
+                    <td>uri</td>
+                    <td>{{ list_models[loop.index-1]["uri"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>name</td>
+                    <td>{{ list_models[loop.index-1]["name"] }}</td>
+                </tr>
+                <tr>
+                    <td>alias</td>
+                    <td>{{ list_models[loop.index-1]["alias"] }}</td>
+                </tr>
+                <tr>
+                    <td>author</td>
+                    <td>
+                        {% for name in list_models[loop.index-1]["author"] %} {{ name["given_name"] }} {{ name["family_name"] }} {{ ", " if not loop.last }} {% endfor %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>owner</td>
+                    <td>
+                        {% for name in list_models[loop.index-1]["owner"] %} {{ name["given_name"] }} {{ name["family_name"] }} {{ ", " if not loop.last }} {% endfor %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>organization</td>
+                    <td>{{ list_models[loop.index-1]["organization"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>description</td>
+                    <td><span> {{ list_models[loop.index-1]["description"] }}</span></td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>private</td>
+                    <td>{{ list_models[loop.index-1]["private"] }}</td>
+                </tr>
+                <tr>
+                    <td>collab_id</td>
+                    <td>{{ list_models[loop.index-1]["app"]["collab_id"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>species</td>
+                    <td>{{ list_models[loop.index-1]["species"] }}</td>
+                </tr>
+                <tr>
+                    <td>brain_region</td>
+                    <td>{{ list_models[loop.index-1]["brain_region"] }}</td>
+                </tr>
+                <tr>
+                    <td>cell_type</td>
+                    <td>{{ list_models[loop.index-1]["cell_type"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>model_scope</td>
+                    <td>{{ list_models[loop.index-1]["model_scope"] }}</td>
+                </tr>
+                <tr>
+                    <td>abstraction_level</td>
+                    <td>{{ list_models[loop.index-1]["abstraction_level"] }}</td>
+                </tr>
+                <tr>
+                    <td colspan="2"></td>
+                </tr>
+                <tr class="card-panel orange lighten-4">
+                    <th style="text-align:center" colspan="2">Model Instance</th>
+                </tr>
+                <tr>
+                    <td>id</td>
+                    <td><a href="{{ result_summary_table[loop.index-1]["model_label"][1] }}" target="_blank">{{ list_model_instances[loop.index-1]["id"] }}</a></td>
+                </tr>
+                <tr>
+                    <td>uri</td>
+                    <td>{{ list_model_instances[loop.index-1]["uri"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>version</td>
+                    <td>{{ list_model_instances[loop.index-1]["version"] }}</td>
+                </tr>
+                <tr>
+                    <td>source</td>
+                    <td><a href="{{ list_model_instances[loop.index-1]["source"] }}">{{ list_model_instances[loop.index-1]["source"] }}</a></td>
+                </tr>
+                <tr>
+                    <td>license</td>
+                    <td>{{ list_model_instances[loop.index-1]["license"] }}</td>
+                </tr>
+                <tr>
+                    <td>timestamp</td>
+                    <td>{{ list_model_instances[loop.index-1]["timestamp"] }}</td>
+                </tr>
+                <tr>
+                    <td>hash</td>
+                    <td>{{ list_model_instances[loop.index-1]["hash"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>description</td>
+                    <td>{{ list_model_instances[loop.index-1]["description"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>code_format</td>
+                    <td>{{ list_model_instances[loop.index-1]["code_format"] }}</td>
+                </tr>
+                <tr>
+                    <td>parameters</td>
+                    <td>{{ list_model_instances[loop.index-1]["parameters"] }}</td>
+                </tr>
+                <tr>
+                    <td>morphology</td>
+                    <td style="word-break: break-all;">{{ list_model_instances[loop.index-1]["morphology"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2" style="text-align:right; padding-right: 50px;"><a href="#link_{{result['id']}}" title="Go to top of this result"><i class="material-icons">open_in_browser</i></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#link_pagetop" title="Go to top of page"><i class="material-icons">vertical_align_top</i></a></td>
+                </tr>
+            </table>
+        </div>
+        <div id="test_{{result['id']}}" class="col s12">
+            <br />
+            <table style="table-layout:fixed; width:100%; word-break: break-all;" class="firstColumnBold">
+                <colgroup>
+                    <col style="width: 25%;" />
+                    <col>
+                </colgroup>
+                <tr class="card-panel orange lighten-4">
+                    <th style="text-align:center" colspan="2">Test</th>
+                </tr>
+                <tr>
+                    <td>id</td>
+                    <td><a href="{{ result_summary_table[loop.index-1]["test_label"][1] }}" target="_blank">{{ list_tests[loop.index-1]["id"] }}</a></td>
+                </tr>
+                <tr>
+                    <td>uri</td>
+                    <td>{{ list_tests[loop.index-1]["uri"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>name</td>
+                    <td>{{ list_tests[loop.index-1]["name"] }}</td>
+                </tr>
+                <tr>
+                    <td>alias</td>
+                    <td>{{ list_tests[loop.index-1]["alias"] }}</td>
+                </tr>
+                <tr>
+                    <td>author</td>
+                    <td>
+                        {% for name in list_tests[loop.index-1]["author"] %} {{ name["given_name"] }} {{ name["family_name"] }} {{ ", " if not loop.last }} {% endfor %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>creation_date</td>
+                    <td>{{ list_tests[loop.index-1]["creation_date"] }}</td>
+                </tr>
+                <tr>
+                    <td>status</td>
+                    <td><span> {{ list_tests[loop.index-1]["status"] }}</span></td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>species</td>
+                    <td>{{ list_tests[loop.index-1]["species"] }}</td>
+                </tr>
+                <tr>
+                    <td>brain_region</td>
+                    <td>{{ list_tests[loop.index-1]["brain_region"] }}</td>
+                </tr>
+                <tr>
+                    <td>cell_type</td>
+                    <td>{{ list_tests[loop.index-1]["cell_type"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>data_location</td>
+                    <td><a href='{{ list_tests[loop.index-1]["data_location"] }}' target="_blank">{{ list_tests[loop.index-1]["data_location"] }}</a></td>
+                </tr>
+                <tr>
+                    <td>data_type</td>
+                    <td>{{ list_tests[loop.index-1]["data_type"] }}</td>
+                </tr>
+                <tr>
+                    <td>data_modality</td>
+                    <td>{{ list_tests[loop.index-1]["data_modality"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>test_type</td>
+                    <td>{{ list_tests[loop.index-1]["test_type"] }}</td>
+                </tr>
+                <tr>
+                    <td>score_type</td>
+                    <td>{{ list_tests[loop.index-1]["score_type"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>protocol</td>
+                    <td>{{ list_tests[loop.index-1]["protocol"] }}</td>
+                </tr>
+                <tr>
+                    <td colspan="2"></td>
+                </tr>
+                <tr class="card-panel orange lighten-4">
+                    <th style="text-align:center" colspan="2">Test Instance</th>
+                </tr>
+                <tr>
+                    <td>id</td>
+                    <td><a href="{{ result_summary_table[loop.index-1]["test_label"][1] }}">{{ list_test_instances[loop.index-1]["id"] }}</a></td>
+                </tr>
+                <tr>
+                    <td>uri</td>
+                    <td>{{ list_test_instances[loop.index-1]["uri"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>version</td>
+                    <td>{{ list_test_instances[loop.index-1]["version"] }}</td>
+                </tr>
+                <tr>
+                    <td>repository</td>
+                    <td><a href="{{ list_test_instances[loop.index-1]["repository"] }}">{{ list_test_instances[loop.index-1]["source"] }}</a></td>
+                </tr>
+                <tr>
+                    <td>path</td>
+                    <td>{{ list_test_instances[loop.index-1]["path"] }}</td>
+                </tr>
+                <tr>
+                    <td>timestamp</td>
+                    <td>{{ list_test_instances[loop.index-1]["timestamp"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>parameters</td>
+                    <td>{{ list_test_instances[loop.index-1]["parameters"] }}</td>
+                </tr>
+                <tr>
+                    <td>description</td>
+                    <td>{{ list_test_instances[loop.index-1]["description"] }}</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2" style="text-align:right; padding-right: 50px;"><a href="#link_{{result['id']}}" title="Go to top of this result"><i class="material-icons">open_in_browser</i></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#link_pagetop" title="Go to top of page"><i class="material-icons">vertical_align_top</i></a></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <br />
+    <div class="rainbow-row">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+    </div>
+    {% endfor %}
+
+    <br />
+    <br />
+</body>
+
+</html>
