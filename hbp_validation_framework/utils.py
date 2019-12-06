@@ -601,7 +601,6 @@ def generate_HTML_report(username="", password=None, environment="production", m
         outfile.write(html_out)
     return os.path.abspath(report_name), valid_result_uuids
 
-
 def generate_PDF_report(html_report_path=None, username="", password=None, environment="production", model_list=[], model_instance_list=[], test_list=[], test_instance_list=[], result_list=[], collab_id=None, only_results=False, client_obj=None):
     """Generates a PDF report for specified test results
 
@@ -708,7 +707,7 @@ def generate_PDF_report(html_report_path=None, username="", password=None, envir
                                          "margin":{"top":'0.25in', "right":'0.25in', "bottom":'0.25in', "left":'0.25in'}}},
                        goto="temp")
     return filepath, valid_result_uuids
-
+   
 def generate_score_matrix(username="", password=None, environment="production", model_list=[], model_instance_list=[], test_list=[], test_instance_list=[], result_list=[], collab_id=None, client_obj=None):
     """Generates a styled pandas dataframe with score matrix
 
