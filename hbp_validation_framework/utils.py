@@ -666,7 +666,7 @@ def generate_PDF_report(html_report_path=None, username="", password=None, envir
         try:
             from bs4 import BeautifulSoup
         except ImportError:
-            print("To use 'only_results=True', please install the following package: BeautifulSoup4")
+            print("To use 'only_results=True', please install the following package: beautifulsoup4")
             return
 
     valid_result_uuids = None
