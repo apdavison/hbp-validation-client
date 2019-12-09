@@ -491,7 +491,7 @@ def generate_HTML_report(username="", password=None, environment="production", m
     try:
         from jinja2 import Environment, FileSystemLoader
     except ImportError:
-        print("Please install the following package: jinja2")
+        print("Please install the following package: Jinja2")
         return
 
     if client_obj:
@@ -694,8 +694,6 @@ def generate_PDF_report(html_report_path=None, username="", password=None, envir
             item.decompose()
         html_string = html_soup
 
-    with open("t1.html", "w") as f:
-        f.write(str(html_string))
     filepath = os.path.splitext(os.path.abspath(html_report_path))[0] + ".pdf"
     content = save_pdf(output_file=filepath,
                        html=html_string,
