@@ -232,7 +232,7 @@ def run_test_offline(model="", test_config_file=""):
     test_cls = getattr(test_module, cls_name)
 
     # Read observation data required by test
-    with open(os.path.join(base_folder, test_info["test_observation_file"]), 'r') as file:
+    with open(os.path.join(base_folder, test_info["test_observation_file"]), 'rb') as file:
         observation_data = file.read()
     content_type = mimetypes.guess_type(test_info["test_observation_file"])[0]
     if content_type == "application/json":
