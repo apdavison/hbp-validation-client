@@ -368,7 +368,8 @@ def upload_test_result(username="", password=None, environment="production", tes
     # if duplicate_results:
     #     raise Exception("An identical result has already been registered on the validation framework.\nExisting Result UUID = {}".format(", ".join(duplicate_results)))
 
-    collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name, datetime.now().strftime("%Y%m%d-%H%M%S"))
+    # `.replace(" ", "_")` used to avoid Collab storage path errors due to spaces
+    collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name.replace(" ", "_"), datetime.now().strftime("%Y%m%d-%H%M%S"))
     collab_storage = CollabDataStore(collab_id=storage_collab_id,
                                      base_folder=collab_folder,
                                      auth=test_library.auth)

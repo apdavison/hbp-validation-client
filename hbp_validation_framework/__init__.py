@@ -70,7 +70,7 @@ class BaseClient(object):
         self.environment = environment
         if environment == "production":
             self.url = "https://validation-v1.brainsimulation.eu"
-            self.client_id = "3ae21f28-0302-4d28-8581-15853ad6107d" # Prod ID
+            self.client_id = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c" # Prod ID
         elif environment == "integration":
             self.url = "https://validation-staging.brainsimulation.eu"
             self.client_id = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c"
@@ -780,7 +780,7 @@ class TestLibrary(BaseClient):
         test_json = test_json["tests"][0]
         test_json["score_type"] = "Other"
         for key in test_data:
-            if test_data[key] is None:
+            if test_data[key] is None and key in test_json.keys():
                 test_data[key] = test_json[key]
         if test_data["alias"] == "":
             test_data["alias"] = None
