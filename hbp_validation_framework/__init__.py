@@ -64,7 +64,8 @@ class BaseClient(object):
 
     def __init__(self, username=None,
                  password=None,
-                 environment="production"):
+                 environment="production",
+                 token=None):
         self.username = username
         self.verify = True
         self.environment = environment
@@ -92,7 +93,9 @@ class BaseClient(object):
                         raise KeyError("Cannot load environment info: config.json does not contain environment = {}".format(environment))
             else:
                 raise IOError("Cannot load environment info: config.json not found in the current directory.")
-        if password is None:
+        if self.token:
+            pass
+        elif password is None:
             self.token = None
             if have_collab_token_handler:
                     # if are we running in a Jupyter notebook within the Collaboratory
@@ -390,8 +393,8 @@ class TestLibrary(BaseClient):
     >>> test_library = TestLibrary(hbp_username)
     """
 
-    def __init__(self, username=None, password=None, environment="production"):
-        super(TestLibrary, self).__init__(username, password, environment)
+    def __init__(self, username=None, password=None, environment="production", token=None):
+        super(TestLibrary, self).__init__(username, password, environment, token)
         self._set_app_info()
 
     def _set_app_info(self):
@@ -1493,8 +1496,8 @@ class ModelCatalog(BaseClient):
     >>> model_catalog = ModelCatalog(hbp_username)
     """
 
-    def __init__(self, username=None, password=None, environment="production"):
-        super(ModelCatalog, self).__init__(username, password, environment)
+    def __init__(self, username=None, password=None, environment="production", token=None):
+        super(ModelCatalog, self).__init__(username, password, environment, token)
         self._set_app_info()
 
     def _set_app_info(self):
