@@ -93,7 +93,7 @@ class BaseClient(object):
                         raise KeyError("Cannot load environment info: config.json does not contain environment = {}".format(environment))
             else:
                 raise IOError("Cannot load environment info: config.json not found in the current directory.")
-        if self.token:
+        if hasattr(self, "token") and self.token:
             pass
         elif password is None:
             self.token = None
