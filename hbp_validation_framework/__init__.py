@@ -69,6 +69,7 @@ class BaseClient(object):
         self.username = username
         self.verify = True
         self.environment = environment
+        self.token = token
         if environment == "production":
             self.url = "https://validation-v1.brainsimulation.eu"
             self.client_id = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c" # Prod ID
@@ -93,7 +94,7 @@ class BaseClient(object):
                         raise KeyError("Cannot load environment info: config.json does not contain environment = {}".format(environment))
             else:
                 raise IOError("Cannot load environment info: config.json not found in the current directory.")
-        if hasattr(self, "token") and self.token:
+        if self.token:
             pass
         elif password is None:
             self.token = None
