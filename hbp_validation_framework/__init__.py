@@ -69,6 +69,7 @@ class BaseClient(object):
         self.username = username
         self.verify = True
         self.environment = environment
+        self.token = token
         if environment == "production":
             self.url = "https://validation-v1.brainsimulation.eu"
             self.client_id = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c" # Prod ID
@@ -93,7 +94,7 @@ class BaseClient(object):
                         raise KeyError("Cannot load environment info: config.json does not contain environment = {}".format(environment))
             else:
                 raise IOError("Cannot load environment info: config.json not found in the current directory.")
-        if hasattr(self, "token") and self.token:
+        if self.token:
             pass
         elif password is None:
             self.token = None
@@ -374,23 +375,28 @@ class TestLibrary(BaseClient):
 
         .. code-block:: JSON
 
-        {
-            "prod": {
-                "url": "https://validation-v1.brainsimulation.eu",
-                "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
-            },
-            "dev_test": {
-                "url": "https://localhost:8000",
-                "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
-                "verify_ssl": false
+            {
+                "prod": {
+                    "url": "https://validation-v1.brainsimulation.eu",
+                    "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
+                },
+                "dev_test": {
+                    "url": "https://localhost:8000",
+                    "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
+                    "verify_ssl": false
+                }
             }
-        }
+
+    token : string, optional
+        You may directly input a valid authenticated token from Collaboratory v1 or v2.
+        In case of Collab v2 token, you should use the `access_token` (not `refresh_token`).
 
     Examples
     --------
     Instantiate an instance of the TestLibrary class
 
-    >>> test_library = TestLibrary(hbp_username)
+    >>> test_library = TestLibrary(username="<<hbp_username>>", password="<<hbp_password>>")
+    >>> test_library = TestLibrary(token="<<token>>")
     """
 
     def __init__(self, username=None, password=None, environment="production", token=None):
@@ -1477,23 +1483,28 @@ class ModelCatalog(BaseClient):
 
         .. code-block:: JSON
 
-        {
-            "prod": {
-                "url": "https://validation-v1.brainsimulation.eu",
-                "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
-            },
-            "dev_test": {
-                "url": "https://localhost:8000",
-                "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
-                "verify_ssl": false
+            {
+                "prod": {
+                    "url": "https://validation-v1.brainsimulation.eu",
+                    "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
+                },
+                "dev_test": {
+                    "url": "https://localhost:8000",
+                    "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
+                    "verify_ssl": false
+                }
             }
-        }
+
+    token : string, optional
+        You may directly input a valid authenticated token from Collaboratory v1 or v2.
+        In case of Collab v2 token, you should use the `access_token` (not `refresh_token`).
 
     Examples
     --------
     Instantiate an instance of the ModelCatalog class
 
-    >>> model_catalog = ModelCatalog(hbp_username)
+    >>> model_catalog = ModelCatalog(username="<<hbp_username>>", password="<<hbp_password>>")
+    >>> model_catalog = ModelCatalog(token="<<token>>")
     """
 
     def __init__(self, username=None, password=None, environment="production", token=None):
