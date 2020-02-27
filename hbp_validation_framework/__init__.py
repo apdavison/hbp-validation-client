@@ -389,7 +389,7 @@ class TestLibrary(BaseClient):
 
     token : string, optional
         You may directly input a valid authenticated token from Collaboratory v1 or v2.
-        In case of Collab v2 token, you should use the `access_token` (not `refresh_token`).
+        Note: you should use the `access_token` and NOT `refresh_token`.
 
     Examples
     --------
@@ -1497,7 +1497,7 @@ class ModelCatalog(BaseClient):
 
     token : string, optional
         You may directly input a valid authenticated token from Collaboratory v1 or v2.
-        In case of Collab v2 token, you should use the `access_token` (not `refresh_token`).
+        Note: you should use the `access_token` and NOT `refresh_token`.
 
     Examples
     --------
