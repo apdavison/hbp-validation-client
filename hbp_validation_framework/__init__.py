@@ -29,6 +29,7 @@ import getpass
 import requests
 from requests.auth import AuthBase
 from .datastores import URI_SCHEME_MAP
+from nameparser import HumanName
 
 try:
     from pathlib import Path
@@ -78,7 +79,7 @@ class BaseClient(object):
             self.client_id = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c"
         elif environment == "dev":
             self.url = "https://validation-dev.brainsimulation.eu"
-            self.client_id = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
+            self.client_id = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c" # Dev ID
         else:
             if os.path.isfile('config.json') and os.access('config.json', os.R_OK):
                 with open('config.json') as config_file:
@@ -163,6 +164,20 @@ class BaseClient(object):
             return True
         else:
             return False
+
+    def _format_people_name(self, names):
+        # converts a string of people names separated by semi-colons
+        # into a list of dicts. Each list element will correspond to a 
+        # single person, and consist of keys `given_name` and `family_name`
+        output_names_list = []
+        if names:
+            input_names_list = names.split(";")
+            for name in input_names_list:
+                parsed_name = HumanName(name.strip())
+                output_names_list.append({"given_name": " ".join(filter(None, [parsed_name.first, parsed_name.middle])), "family_name": parsed_name.last})
+        else:
+            output_names_list.append({"given_name": "", "family_name": ""})
+        return output_names_list
 
     def exists_in_collab_else_create(self, collab_id):
         """
@@ -375,28 +390,23 @@ class TestLibrary(BaseClient):
 
         .. code-block:: JSON
 
-            {
-                "prod": {
-                    "url": "https://validation-v1.brainsimulation.eu",
-                    "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
-                },
-                "dev_test": {
-                    "url": "https://localhost:8000",
-                    "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
-                    "verify_ssl": false
-                }
+        {
+            "prod": {
+                "url": "https://validation-v1.brainsimulation.eu",
+                "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
+            },
+            "dev_test": {
+                "url": "https://localhost:8000",
+                "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
+                "verify_ssl": false
             }
-
-    token : string, optional
-        You may directly input a valid authenticated token from Collaboratory v1 or v2.
-        Note: you should use the `access_token` and NOT `refresh_token`.
+        }
 
     Examples
     --------
     Instantiate an instance of the TestLibrary class
 
-    >>> test_library = TestLibrary(username="<<hbp_username>>", password="<<hbp_password>>")
-    >>> test_library = TestLibrary(token="<<token>>")
+    >>> test_library = TestLibrary(hbp_username)
     """
 
     def __init__(self, username=None, password=None, environment="production", token=None):
@@ -610,10 +620,11 @@ class TestLibrary(BaseClient):
         tests = requests.get(url, auth=self.auth, verify=self.verify).json()
         return tests["tests"]
 
-    def add_test(self, name="", alias=None, version="", author="", species="",
-                      age="", brain_region="", cell_type="", data_modality="",
-                      test_type="", score_type="", protocol="", data_location="",
-                      data_type="", publication="", repository="", path=""):
+    def add_test(self, name=None, alias=None, version=None, author=None,
+                 species=None, age=None, brain_region=None, cell_type=None,
+                 data_modality=None, test_type=None, score_type=None, protocol=None,
+                 data_location=None, data_type=None, publication=None, status=None,
+                 repository=None, path=None, description=None, parameters=None):
         """Register a new test on the test library.
 
         This allows you to add a new test to the test library. A test instance
@@ -651,10 +662,16 @@ class TestLibrary(BaseClient):
             The type of reference data (observation).
         publication : string
             Publication or comment (e.g. "Unpublished") to be associated with observation.
+        status : status
+            Indicates the developmental stage of this test
         repository : string
             URL of Python package repository (e.g. GitHub).
         path : string
             Python path (not filesystem path) to test source code within Python package.
+        description : string, optional
+            Text describing this specific test instance.
+        parameters : string, optional
+            Any additional parameters to be submitted to test, or used by it, at runtime.
 
         Returns
         -------
@@ -671,29 +688,23 @@ class TestLibrary(BaseClient):
                                 repository="https://github.com/appukuttan-shailesh/morphounit.git", path="morphounit.tests.CellDensityTest")
         """
 
-        values = self.get_attribute_options()
-
-        if species not in values["species"]:
-            raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
-        if brain_region not in values["brain_region"]:
-            raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
-        if cell_type not in values["cell_type"]:
-            raise Exception("cell_type = '" +cell_type+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if data_modality not in values["data_modalities"]:
-            raise Exception("data_modality = '" +data_modality+"' is invalid.\nValue has to be one of these: " + str(values["data_modality"]))
-        if test_type not in values["test_type"]:
-            raise Exception("test_type = '" +test_type+"' is invalid.\nValue has to be one of these: " + str(values["test_type"]))
-        if score_type not in values["score_type"]:
-            raise Exception("score_type = '" +score_type+"' is invalid.\nValue has to be one of these: " + str(values["score_type"]))
-
-        if alias == "":
-            alias = None
-
         test_data = locals()
         test_data.pop("self")
         code_data = {}
-        for key in ["version", "repository", "path", "values"]:
+        for key in ["version", "repository", "path", "description", "parameters"]:
             code_data[key] = test_data.pop(key)
+
+        values = self.get_attribute_options()
+
+        for key in ["cell_type", "brain_region", "species", "data_modality", "test_type", "score_type"]:
+            valid_key = key
+            if key == "data_modality":
+                valid_key = "data_modalities"
+            if test_data[key] not in values[valid_key]:
+                raise Exception(key+" = '" +test_data[key]+"' is invalid.\nValue has to be one of these: " + str(values[valid_key]))
+
+        # format names of authors and owners as required by API
+        test_data["author"] = self._format_people_name(test_data["author"])
 
         url = self.url + "/tests/?format=json"
         test_json = {
@@ -702,6 +713,7 @@ class TestLibrary(BaseClient):
                     }
 
         headers = {'Content-type': 'application/json'}
+        print(json.dumps(test_json)) # TODO: remove
         response = requests.post(url, data=json.dumps(test_json),
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
@@ -710,10 +722,10 @@ class TestLibrary(BaseClient):
         else:
             raise Exception("Error in adding test. Response = " + str(response.json()))
 
-    def edit_test(self, name=None, test_id="", alias=None, author=None,
-                  species=None, age=None, brain_region=None, cell_type=None, data_modality=None,
-                  test_type=None, score_type=None, protocol=None, data_location=None,
-                  data_type=None, publication=None):
+    def edit_test(self, name="", test_id="", alias="", author="",
+                  species="", age="", brain_region="", cell_type="",
+                  data_modality="", test_type="", score_type="", protocol="",
+                  data_location="", data_type="", publication="", status=""):
         """Edit an existing test in the test library.
 
         To update an existing test, the `test_id` must be provided. Any of the
@@ -752,6 +764,8 @@ class TestLibrary(BaseClient):
             The type of reference data (observation).
         publication : string
             Publication or comment (e.g. "Unpublished") to be associated with observation.
+        status : status
+            Indicates the developmental stage of this test
 
         Note
         ----
@@ -779,6 +793,10 @@ class TestLibrary(BaseClient):
             test_data.pop(key)
 
         # assign existing values for parameters not specified
+        # Note: "" signifies to keep existing value; None signifies no value
+        #       except for 'description' as it cannot be None.
+
+        # fetch existing entry
         url = self.url + "/tests/?id=" + test_id + "&format=json"
         test_json = requests.get(url, auth=self.auth, verify=self.verify)
         if test_json.status_code != 200:
@@ -787,32 +805,31 @@ class TestLibrary(BaseClient):
         if len(test_json["tests"]) == 0:
             raise Exception("Error in retrieving test definition. Possibly invalid input data.")
         test_json = test_json["tests"][0]
-        test_json["score_type"] = "Other"
+
+        # assign existing values for parameters not specified
         for key in test_data:
-            if test_data[key] is None and key in test_json.keys():
+            if test_data[key] is "":
                 test_data[key] = test_json[key]
-        if test_data["alias"] == "":
-            test_data["alias"] = None
+            elif key in ["author"]:
+                # format names of authors and owners as required by API
+                test_data[key] = self._format_people_name(test_data[key])
+        # if test_data["alias"] == "":
+        #     test_data["alias"] = None
 
         values = self.get_attribute_options()
 
-        if test_data["species"] not in values["species"]:
-            raise Exception("species = '" +test_data["species"]+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
-        if test_data["brain_region"] not in values["brain_region"]:
-            raise Exception("brain_region = '" +test_data["brain_region"]+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
-        if test_data["cell_type"] not in values["cell_type"]:
-            raise Exception("cell_type = '" +test_data["cell_type"]+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if test_data["data_modality"] not in values["data_modalities"]:
-            raise Exception("data_modality = '" +test_data["data_modality"]+"' is invalid.\nValue has to be one of these: " + str(values["data_modality"]))
-        if test_data["test_type"] not in values["test_type"]:
-            raise Exception("test_type = '" +test_data["test_type"]+"' is invalid.\nValue has to be one of these: " + str(values["test_type"]))
-        if test_data["score_type"] not in values["score_type"]:
-            raise Exception("score_type = '" +test_data["score_type"]+"' is invalid.\nValue has to be one of these: " + str(values["score_type"]))
+        for key in ["cell_type", "brain_region", "species", "data_modality", "test_type", "score_type"]:
+            valid_key = key
+            if key == "data_modality":
+                valid_key = "data_modalities"
+            if test_data[key] not in values[valid_key]:
+                raise Exception(key+" = '" +test_data[key]+"' is invalid.\nValue has to be one of these: " + str(values[valid_key]))
 
         url = self.url + "/tests/?format=json"
         test_json = test_data   # retaining similar structure as other methods
 
         headers = {'Content-type': 'application/json'}
+        print(json.dumps(test_json)) # TODO: remove
         response = requests.put(url, data=json.dumps(test_json),
                                 auth=self.auth, headers=headers,
                                 verify=self.verify)
@@ -1227,7 +1244,11 @@ class TestLibrary(BaseClient):
         else:
             raise Exception("Specified attribute '{}' is invalid. Valid attributes: {}".format(param, valid_params))
         data = requests.get(url, auth=self.auth, verify=self.verify).json()
-        return ast.literal_eval(json.dumps(data))
+        data = ast.literal_eval(json.dumps(data))
+        #  add `None` as valid value for every parameter
+        for key, val in data.items():
+            data[key].append(None)
+        return data
 
     def get_result(self, result_id="", order=""):
         """Retrieve a test result.
@@ -1483,28 +1504,23 @@ class ModelCatalog(BaseClient):
 
         .. code-block:: JSON
 
-            {
-                "prod": {
-                    "url": "https://validation-v1.brainsimulation.eu",
-                    "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
-                },
-                "dev_test": {
-                    "url": "https://localhost:8000",
-                    "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
-                    "verify_ssl": false
-                }
+        {
+            "prod": {
+                "url": "https://validation-v1.brainsimulation.eu",
+                "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
+            },
+            "dev_test": {
+                "url": "https://localhost:8000",
+                "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
+                "verify_ssl": false
             }
-
-    token : string, optional
-        You may directly input a valid authenticated token from Collaboratory v1 or v2.
-        Note: you should use the `access_token` and NOT `refresh_token`.
+        }
 
     Examples
     --------
     Instantiate an instance of the ModelCatalog class
 
-    >>> model_catalog = ModelCatalog(username="<<hbp_username>>", password="<<hbp_password>>")
-    >>> model_catalog = ModelCatalog(token="<<token>>")
+    >>> model_catalog = ModelCatalog(hbp_username)
     """
 
     def __init__(self, username=None, password=None, environment="production", token=None):
@@ -1676,9 +1692,9 @@ class ModelCatalog(BaseClient):
             raise Exception("Error in list_models():\n{}".format(response.content))
         return models["models"]
 
-    def register_model(self, app_id="", name="", alias=None, author="", organization="", private=False,
-                       species="", brain_region="", cell_type="", model_scope="", abstraction_level="", owner="", project="",
-                       license="", description="", instances=[], images=[]):
+    def register_model(self, app_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=False,
+                       species=None, brain_region=None, cell_type=None, model_scope=None, abstraction_level=None, project=None,
+                       license=None, description="", instances=[], images=[]):
         """Register a new model in the model catalog.
 
         This allows you to add a new model to the model catalog. Model instances
@@ -1759,28 +1775,22 @@ class ModelCatalog(BaseClient):
                                  "caption":"HBP Logo"}])
         """
 
+        model_data = locals()
+        for key in ["self", "app_id", "instances", "images"]:
+            model_data.pop(key)
+
         values = self.get_attribute_options()
 
-        if cell_type not in values["cell_type"]:
-            raise Exception("cell_type = '" +cell_type+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if model_scope not in values["model_scope"]:
-            raise Exception("model_scope = '" +model_scope+"' is invalid.\nValue has to be one of these: " + str(values["model_scope"]))
-        if abstraction_level not in values["abstraction_level"]:
-            raise Exception("abstraction_level = '" +abstraction_level+"' is invalid.\nValue has to be one of these: " + str(values["abstraction_level"]))
-        if brain_region not in values["brain_region"]:
-            raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
-        if species not in values["species"]:
-            raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
-        values["organization"].append("")   # allow blank organization field
-        if organization not in values["organization"]:
-            raise Exception("organization = '" +organization+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
+        for key in ["cell_type", "brain_region", "species", "model_scope", "abstraction_level", "organization"]:
+            if model_data[key] not in values[key]:
+                raise Exception(key+" = '" +model_data[key]+"' is invalid.\nValue has to be one of these: " + str(values[key]))
 
         if private not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
 
-        model_data = locals()
-        for key in ["self", "app_id", "instances", "images", "values"]:
-            model_data.pop(key)
+        # format names of authors and owners as required by API
+        model_data["author"] = self._format_people_name(model_data["author"])
+        model_data["owner"] = self._format_people_name(model_data["owner"])
 
         url = self.url + "/models/?app_id="+app_id+"&format=json"
         model_json = {
@@ -1789,6 +1799,7 @@ class ModelCatalog(BaseClient):
                         "model_image":images
                      }
         headers = {'Content-type': 'application/json'}
+        # print(json.dumps(model_json)) # TODO: remove
         response = requests.post(url, data=json.dumps(model_json),
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
@@ -1797,8 +1808,9 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Error in adding model. Response = " + str(response.content))
 
-    def edit_model(self, model_id="", app_id=None, name=None, alias=None, author=None, organization=None, private=None, cell_type=None,
-                   model_scope=None, abstraction_level=None, brain_region=None, species=None, owner="", project="", license="", description=None):
+    def edit_model(self, model_id="", app_id="", name="", alias="", author="", owner="", organization="", private="",
+                   species="", brain_region="", cell_type="", model_scope="", abstraction_level="", project="",
+                   license="", description=None):
         """Edit an existing model on the model catalog.
 
         This allows you to edit a new model to the model catalog.
@@ -1872,6 +1884,10 @@ class ModelCatalog(BaseClient):
             model_data.pop(key)
 
         # assign existing values for parameters not specified
+        # Note: "" signifies to keep existing value; None signifies no value
+        #       except for 'description' as it cannot be None.
+
+        # fetch existing entry
         url = self.url + "/models/?id=" + model_id + "&format=json"
         model_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_json.status_code != 200:
@@ -1880,29 +1896,23 @@ class ModelCatalog(BaseClient):
         if len(model_json["models"]) == 0:
             raise Exception("Error in retrieving model description. Possibly invalid input data.")
         model_json = model_json["models"][0]
+
+        # assign existing values for parameters not specified
         for key in model_data:
-            if model_data[key] is None:
+            if model_data[key] is "" or (key=="description" and model_data[key] is None):
                 model_data[key] = model_json[key]
-        if app_id is None:
-            app_id = model_json["app"]["id"]
-        if model_data["alias"] == "":
-            model_data["alias"] = None
+            elif key in ["author", "owner"]:
+                # format names of authors and owners as required by API
+                model_data[key] = self._format_people_name(model_data[key])
+        if app_id is "":
+            app_id = str(model_json["app"]["collab_id"])
 
         values = self.get_attribute_options()
 
-        if model_data["cell_type"] not in values["cell_type"]:
-            raise Exception("cell_type = '" +model_data["cell_type"]+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if model_data["model_scope"] not in values["model_scope"]:
-            raise Exception("model_scope = '" +model_data["model_scope"]+"' is invalid.\nValue has to be one of these: " + str(values["model_scope"]))
-        if model_data["abstraction_level"] not in values["abstraction_level"]:
-            raise Exception("abstraction_level = '" +model_data["abstraction_level"]+"' is invalid.\nValue has to be one of these: " + str(values["abstraction_level"]))
-        if model_data["brain_region"] not in values["brain_region"]:
-            raise Exception("brain_region = '" +model_data["brain_region"]+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
-        if model_data["species"] not in values["species"]:
-            raise Exception("species = '" +model_data["species"]+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
-        values["organization"].append("")   # allow blank organization field
-        if model_data["organization"] not in values["organization"]:
-            raise Exception("organization = '" +model_data["organization"]+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
+        for key in ["cell_type", "brain_region", "species", "model_scope", "abstraction_level", "organization"]:
+            if model_data[key] not in values[key]:
+                raise Exception(key+" = '" +model_data[key]+"' is invalid.\nValue has to be one of these: " + str(values[key]))        
+
         if model_data["private"] not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
 
@@ -1911,11 +1921,12 @@ class ModelCatalog(BaseClient):
                         "models": [model_data]
                      }
         headers = {'Content-type': 'application/json'}
+        print(json.dumps(model_json)) # TODO: remove
         response = requests.put(url, data=json.dumps(model_json),
                                 auth=self.auth, headers=headers,
                                 verify=self.verify)
         if response.status_code == 202:
-            return response.json()["uuid"]
+            return response.json()
         else:
             raise Exception("Error in updating model. Response = " + str(response))
 
@@ -1999,7 +2010,11 @@ class ModelCatalog(BaseClient):
         else:
             raise Exception("Specified attribute '{}' is invalid. Valid attributes: {}".format(param, valid_params))
         data = requests.get(url, auth=self.auth, verify=self.verify).json()
-        return ast.literal_eval(json.dumps(data))
+        data = ast.literal_eval(json.dumps(data))
+        #  add `None` as valid value for every parameter
+        for key, val in data.items():
+            data[key].append(None)
+        return data
 
     def get_model_instance(self, instance_path="", instance_id="", model_id="", alias="", version=""):
         """Retrieve an existing model instance.
