@@ -76,27 +76,30 @@ class CollabDataStore(object):
         self.doc_client = ApiClient.new(auth.token)
         self._authorized = True
 
-    def _translate_URL_to_UUID(self, path):
+    def _translate_URL_to_UUID(self, url):
         """
-        Can take a path such as `collab://5165/hippoCircuit_20171027-142713`
+        Can take a path such as:
+        `https://collab-storage-redirect.brainsimulation.eu/5165/hippoCircuit_20171027-142713`
         with 5165 being the Collab ID and the latter part being the collab path,
         and translate this to the UUID on the HBP Collaboratory storage.
         """
         if not self.authorized:
             self.authorize(self._auth)
+        path = url.split("https://collab-storage-redirect.brainsimulation.eu")[1]
         entity = self.doc_client.get_entity_by_query(path=path)
         return entity["uuid"]
 
     def _translate_UUID_to_URL(self, uuid):
         """
         Can take a UUID on the HBP Collaboratory storage path and translate this
-        to a path such as `collab://5165/hippoCircuit_20171027-142713` with 5165
-        being the Collab ID and the latter part being the collab storage path.
+        to a path such as:
+        `https://collab-storage-redirect.brainsimulation.eu/5165/hippoCircuit_20171027-142713`
+        with 5165 being the Collab ID and the latter part being the collab storage path.
         """
         if not self.authorized:
             self.authorize(self._auth)
         path = self.doc_client.get_entity_path(uuid)
-        return "collab:/{}".format(path)
+        return "https://collab-storage-redirect.brainsimulation.eu{}".format(path)
 
     def upload_data(self, file_paths):
         if not self.authorized:
@@ -107,43 +110,35 @@ class CollabDataStore(object):
         project_id = projects_in_collab[0]["uuid"]
         base_folder_id = self._make_folders(self.base_folder, parent=project_id)
 
+        # determine common sub-path to use as base directory
+        # we retain directory structure below this common sub-path
         if len(file_paths) > 1:
-            common_base_dir = os.path.dirname(os.path.commonprefix(file_paths))
+            common_base_dir = os.path.commonpath(file_paths)
         else:
             common_base_dir = os.path.dirname(file_paths[0])
+
         relative_paths = [os.path.relpath(p, common_base_dir) for p in file_paths]
 
-        cached_folders = {}  # avoid unnecessary network calls
+        uploaded_file_paths = []
         for local_path, relative_path in zip(file_paths, relative_paths):
+            if os.path.dirname(relative_path):
+                parent = self._make_folders(os.path.dirname(relative_path), parent=base_folder_id)
+            else:
+                parent = base_folder_id
 
-            parent = base_folder_id
-            folder_path = os.path.dirname(relative_path)
-
-            # temporary fix: all files in a single directory in Collab storage
-            # if subdirs, then saved filename = `subdir1_subdir2_....subdirN_filename`
-            name = ""
-            if folder_path:  # if there are subdirectories...
-                for subdir in folder_path.split("/"):
-                    name  = name + subdir + "_"
-                """
-                if folder_path in cached_folders:
-                    parent = cached_folders[folder_path]
-                else:
-                    parent = self._make_folders(folder_path, parent=parent)
-                    cached_folders[folder_path] = parent
-                """
-
-            name = name + os.path.basename(relative_path)
+            filename = os.path.basename(relative_path)
             content_type = mimetypes.guess_type(local_path)[0]
-            file_entity = self.doc_client.create_file(name, content_type, parent)
+            file_entity = self.doc_client.create_file(filename, content_type, parent)
             etag = self.doc_client.upload_file_content(file_entity['uuid'],
                                                        source=local_path)
-
-        return "collab:/{}".format(self.doc_client.get_entity_path(base_folder_id))
+            uploaded_file_paths.append("https://collab-storage-redirect.brainsimulation.eu{}"
+                                       .format(self.doc_client.get_entity_path(file_entity['uuid'])))
+        return uploaded_file_paths
 
     def _make_folders(self, folder_path, parent):
         for i, folder_name in enumerate(folder_path.split(os.path.sep)):
-            folders = self.doc_client.list_folder_content(parent, entity_type="folder")["results"]
+            # might not retrieve all entries; increase page size further if required (unlikely)
+            folders = self.doc_client.list_folder_content(parent, entity_type="folder", page_size=10000)["results"]
             folder_exists = False
             for f in folders:
                 if folder_name in f["name"]:
