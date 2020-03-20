@@ -154,8 +154,8 @@ class CollabDataStore(object):
         if not self.authorized:
             self.authorize(self._auth)
         # need to support other formats besides JSON
-        if remote_path.startswith("collab:/"):
-            remote_path = remote_path[len("collab:/"):]
+        if remote_path.startswith("https://collab-storage-redirect.brainsimulation.eu"):
+            remote_path = remote_path[len("https://collab-storage-redirect.brainsimulation.eu"):]
 
         entity = self.doc_client.get_entity_by_query(path=remote_path)
         if entity["entity_type"] == 'file':

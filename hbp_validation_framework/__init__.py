@@ -683,7 +683,7 @@ class TestLibrary(BaseClient):
         >>> test = test_library.add_test(name="Cell Density Test", alias="", version="1.0", author="Shailesh Appukuttan",
                                 species="Mus musculus", age="TBD", brain_region="Hippocampus", cell_type="Other",
                                 data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
-                                data_location="collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json",
+                                data_location="https://www.domainName.com/observations/test_data/cell_density_Halasy_1996.json",
                                 data_type="Mean, SD", publication="Halasy et al., 1996",
                                 repository="https://github.com/appukuttan-shailesh/morphounit.git", path="morphounit.tests.CellDensityTest")
         """
@@ -781,7 +781,7 @@ class TestLibrary(BaseClient):
         --------
         test = test_library.edit_test(name="Cell Density Test", test_id="7b63f87b-d709-4194-bae1-15329daf3dec", alias="CDT-6", author="Shailesh Appukuttan", publication="Halasy et al., 1996",
                                       species="Mus musculus", brain_region="Hippocampus", cell_type="Other", age="TBD", data_modality="electron microscopy",
-                                      test_type="network structure", score_type="Other", protocol="To be filled sometime later", data_location="collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json", data_type="Mean, SD")
+                                      test_type="network structure", score_type="Other", protocol="To be filled sometime later", data_location="https://www.domainName.com/observations/test_data/cell_density_Halasy_1996.json", data_type="Mean, SD")
         """
 
         if test_id == "":
