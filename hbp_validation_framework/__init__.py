@@ -681,7 +681,7 @@ class TestLibrary(BaseClient):
         Examples
         --------
         >>> test = test_library.add_test(name="Cell Density Test", alias="", version="1.0", author="Shailesh Appukuttan",
-                                species="Mouse (Mus musculus)", age="TBD", brain_region="Hippocampus", cell_type="Other",
+                                species="Mus musculus", age="TBD", brain_region="Hippocampus", cell_type="Other",
                                 data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
                                 data_location="collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json",
                                 data_type="Mean, SD", publication="Halasy et al., 1996",
@@ -780,7 +780,7 @@ class TestLibrary(BaseClient):
         Examples
         --------
         test = test_library.edit_test(name="Cell Density Test", test_id="7b63f87b-d709-4194-bae1-15329daf3dec", alias="CDT-6", author="Shailesh Appukuttan", publication="Halasy et al., 1996",
-                                      species="Mouse (Mus musculus)", brain_region="Hippocampus", cell_type="Other", age="TBD", data_modality="electron microscopy",
+                                      species="Mus musculus", brain_region="Hippocampus", cell_type="Other", age="TBD", data_modality="electron microscopy",
                                       test_type="network structure", score_type="Other", protocol="To be filled sometime later", data_location="collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json", data_type="Mean, SD")
         """
 
@@ -1660,7 +1660,6 @@ class ModelCatalog(BaseClient):
         * abstraction_level
         * owner
         * project
-        * license
 
         Parameters
         ----------
@@ -1679,7 +1678,7 @@ class ModelCatalog(BaseClient):
         >>> models = model_catalog.list_models(cell_type="Pyramidal Cell", brain_region="Hippocampus")
         """
 
-        valid_filters = ["app_id", "collab_id", "name", "alias", "author", "organization", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "owner", "project", "license"]
+        valid_filters = ["app_id", "collab_id", "name", "alias", "author", "organization", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "owner", "project"]
         params = locals()["filters"]
         for filter in params:
             if filter not in valid_filters:
@@ -1693,8 +1692,8 @@ class ModelCatalog(BaseClient):
         return models["models"]
 
     def register_model(self, app_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=False,
-                       species=None, brain_region=None, cell_type=None, model_scope=None, abstraction_level=None, project=None,
-                       license=None, description="", instances=[], images=[]):
+                       species=None, brain_region=None, cell_type=None, model_scope=None, abstraction_level=None,
+                       description="", instances=[], images=[]):
         """Register a new model in the model catalog.
 
         This allows you to add a new model to the model catalog. Model instances
@@ -1712,6 +1711,8 @@ class ModelCatalog(BaseClient):
             User-assigned unique identifier to be associated with model description.
         author : string
             Name of person creating the model description.
+        owner : string
+            Specifies the owner of the model. Need not necessarily be the same as the author.
         organization : string, optional
             Option to tag model with organization info.
         private : boolean
@@ -1726,12 +1727,6 @@ class ModelCatalog(BaseClient):
             Specifies the type of the model.
         abstraction_level : string
             Specifies the model abstraction level.
-        owner : string
-            Specifies the owner of the model. Need not necessarily be the same as the author.
-        project : string
-            Can be used to indicate the project to which the model belongs.
-        license : string
-            Indicates the license applicable for this model.
         description : string
             Provides a description of the model.
         instances : list, optional
@@ -1748,22 +1743,18 @@ class ModelCatalog(BaseClient):
         --------
         (without instances and images)
 
-        >>> model = model_catalog.register_model(app_id="39968", name="Test Model - B2",
-                        alias="Model vB2", author="Shailesh Appukuttan", organization="HBP-SP6",
-                        private=False, cell_type="Granule Cell", model_scope="Single cell model",
-                        abstraction_level="Spiking neurons",
-                        brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
-                        owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
+        >>> model = model_catalog.register_model(app_id="39968", name="Test Model - B2", alias="Model vB2",
+                        author="Shailesh Appukuttan", owner="Andrew Davison", organization="HBP-SP6", private=False,
+                        species="Mus musculus", brain_region="basal ganglia", cell_type="granule cell",
+                        model_scope="single cell", abstraction_level="spiking neurons",
                         description="This is a test entry")
 
         (with instances and images)
 
-        >>> model = model_catalog.register_model(app_id="39968", name="Test Model - C2",
-                        alias="Model vC2", author="Shailesh Appukuttan", organization="HBP-SP6",
-                        private=False, cell_type="Granule Cell", model_scope="Single cell model",
-                        abstraction_level="Spiking neurons",
-                        brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
-                        owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
+        >>> model = model_catalog.register_model(app_id="39968", name="Test Model - C2", alias="Model vC2",
+                        author="Shailesh Appukuttan", owner="Andrew Davison", organization="HBP-SP6", private=False,
+                        species="Mus musculus", brain_region="basal ganglia", cell_type="granule cell",
+                        model_scope="single cell", abstraction_level="spiking neurons",
                         description="This is a test entry! Please ignore.",
                         instances=[{"source":"https://www.abcde.com",
                                     "version":"1.0", "parameters":""},
@@ -1799,7 +1790,7 @@ class ModelCatalog(BaseClient):
                         "model_image":images
                      }
         headers = {'Content-type': 'application/json'}
-        # print(json.dumps(model_json)) # TODO: remove
+        print(json.dumps(model_json)) # TODO: remove
         response = requests.post(url, data=json.dumps(model_json),
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
@@ -1809,8 +1800,8 @@ class ModelCatalog(BaseClient):
             raise Exception("Error in adding model. Response = " + str(response.content))
 
     def edit_model(self, model_id="", app_id="", name="", alias="", author="", owner="", organization="", private="",
-                   species="", brain_region="", cell_type="", model_scope="", abstraction_level="", project="",
-                   license="", description=None):
+                   species="", brain_region="", cell_type="", model_scope="", abstraction_level="",
+                   description=None):
         """Edit an existing model on the model catalog.
 
         This allows you to edit a new model to the model catalog.
@@ -1830,6 +1821,8 @@ class ModelCatalog(BaseClient):
             User-assigned unique identifier to be associated with model description.
         author : string
             Name of person creating the model description.
+        owner : string
+            Specifies the owner of the model. Need not necessarily be the same as the author.
         organization : string, optional
             Option to tag model with organization info.
         private : boolean
@@ -1844,12 +1837,6 @@ class ModelCatalog(BaseClient):
             Specifies the type of the model.
         abstraction_level : string
             Specifies the model abstraction level.
-        owner : string
-            Specifies the owner of the model. Need not necessarily be the same as the author.
-        project : string
-            Can be used to indicate the project to which the model belongs.
-        license : string
-            Indicates the license applicable for this model.
         description : string
             Provides a description of the model.
 
@@ -1865,13 +1852,11 @@ class ModelCatalog(BaseClient):
 
         Examples
         --------
-        >>> model = model_catalog.edit_model(app_id="39968", name="Test Model - B2",
-                        model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5",
-                        alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
-                        private=False, cell_type="Granule Cell", model_scope="Single cell model",
-                        abstraction_level="Spiking neurons",
-                        brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
-                        owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
+        >>> model = model_catalog.edit_model(model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5",
+                        app_id="39968", name="Test Model - B2", alias="Model-B2",
+                        author="Shailesh Appukuttan", owner="Andrew Davison", organization="HBP-SP6", private=False,
+                        species="Mus musculus", brain_region="basal ganglia", cell_type="granule cell",
+                        model_scope="single cell", abstraction_level="spiking neurons",
                         description="This is a test entry")
         """
 
@@ -2209,7 +2194,7 @@ class ModelCatalog(BaseClient):
         model_instances_json = model_instances_json.json()
         return model_instances_json["instances"]
 
-    def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters="", code_format="", hash="", morphology=""):
+    def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters="", code_format="", hash="", morphology="", license=""):
         """Register a new model instance.
 
         This allows to add a new instance of an existing model in the model catalog.
@@ -2235,6 +2220,8 @@ class ModelCatalog(BaseClient):
             Similar to a checksum; can be used to identify model instances from their implementation.
         morphology : string / list, optional
             URL(s) to the morphology file(s) employed in this model.
+        license : string
+            Indicates the license applicable for this model instance.
 
         Returns
         -------
@@ -2255,7 +2242,8 @@ class ModelCatalog(BaseClient):
                                                   parameters="",
                                                   code_format="py",
                                                   hash="",
-                                                  morphology="")
+                                                  morphology="",
+                                                  license="BSD 3-Clause")
         """
 
         instance_data = locals()
@@ -2328,7 +2316,7 @@ class ModelCatalog(BaseClient):
             model_instance_uuid = model_obj.model_instance_uuid
         return model_instance_uuid
 
-    def edit_model_instance(self, instance_id="", model_id="", alias="", source=None, version=None, description=None, parameters=None, code_format=None, hash=None, morphology=None):
+    def edit_model_instance(self, instance_id="", model_id="", alias="", source=None, version=None, description=None, parameters=None, code_format=None, hash=None, morphology=None, license=None):
         """Edit an existing model instance.
 
         This allows to edit an instance of an existing model in the model catalog.
@@ -2365,6 +2353,8 @@ class ModelCatalog(BaseClient):
             Similar to a checksum; can be used to identify model instances from their implementation.
         morphology : string / list, optional
             URL(s) to the morphology file(s) employed in this model.
+        license : string
+            Indicates the license applicable for this model instance.
 
         Returns
         -------
@@ -2380,7 +2370,8 @@ class ModelCatalog(BaseClient):
                                                 parameters="",
                                                 code_format="py",
                                                 hash="",
-                                                morphology="")
+                                                morphology="",
+                                                license="BSD 3-Clause")
         """
 
         if instance_id == "" and (model_id == "" or not version) and (alias == "" or not version):
