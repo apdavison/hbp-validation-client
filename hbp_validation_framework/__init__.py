@@ -1396,6 +1396,7 @@ class TestLibrary(BaseClient):
                       }
 
         headers = {'Content-type': 'application/json'}
+        print(json.dumps([result_json]))
         response = requests.post(url, data=json.dumps([result_json]),
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
