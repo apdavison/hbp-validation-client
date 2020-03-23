@@ -1381,7 +1381,7 @@ class TestLibrary(BaseClient):
             if "figures" in test_result.related_data:
                 files_to_upload.extend(test_result.related_data["figures"])
             if files_to_upload:
-                results_storage.append(data_store.upload_data(files_to_upload))
+                results_storage.extend(data_store.upload_data(files_to_upload))
 
         url = self.url + "/results/?format=json"
         result_json = {
