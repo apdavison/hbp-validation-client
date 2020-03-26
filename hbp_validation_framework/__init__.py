@@ -211,6 +211,8 @@ class BaseClient(object):
             response = requests.post(url, data=json.dumps(app_info),
                                      auth=HBPAuth(self.token), headers=headers,
                                      verify=self.verify)
+            if "id" not in response.json().keys():
+                raise Exception("Error! User is not a member of Collab ID: {}".format(collab_id))
             app_nav_id = response.json()["id"]
             print ("New {} app created in this Collab. App nav ID: {}".format(self.app_name,app_nav_id))
         return app_nav_id
