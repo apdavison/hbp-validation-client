@@ -167,8 +167,24 @@ class BaseClient(object):
 
     def _format_people_name(self, names):
         # converts a string of people names separated by semi-colons
-        # into a list of dicts. Each list element will correspond to a 
+        # into a list of dicts. Each list element will correspond to a
         # single person, and consist of keys `given_name` and `family_name`
+
+        # list input - multiple persons
+        if isinstance(names, list):
+            if all("given_name" in entry.keys() for entry in names) and all("family_name" in entry.keys() for entry in names):
+                return names
+            else:
+                raise ValueError("Name input as list but without required keys: given_name, family_name")
+
+        # dict input - single person
+        if isinstance(names, dict):
+            if "given_name" in names.keys() and "family_name" in names.keys():
+                return [names]
+            else:
+                raise ValueError("Name input as dict but without required keys: given_name, family_name")
+
+        # string input - multiple persons
         output_names_list = []
         if names:
             input_names_list = names.split(";")
