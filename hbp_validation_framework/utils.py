@@ -243,8 +243,11 @@ def run_test_offline(model="", test_config_file=""):
     # Create the :class:`sciunit.Test` instance
     params = test_info["params"]
     test_instance_parameters = test_info["test_instance_parameters"]
-    if isinstance(eval(test_instance_parameters), dict):
-        params.update(eval(test_instance_parameters))
+    try:
+        if isinstance(eval(test_instance_parameters), dict):
+            params.update(eval(test_instance_parameters))
+    except:
+        pass
     test = test_cls(observation=observation_data, **params)
     test.uuid = test_info["test_instance_id"]
 
