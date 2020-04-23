@@ -36,7 +36,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
 
-    result_id = test_library.register_result(score, project = "52468") # Collab ID = 52468
+    result_id = test_library.register_result(score, project="model-validation")
     assert isinstance(uuid.UUID(result_id, version=4), uuid.UUID)
 
 
@@ -44,73 +44,14 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
 2. Get a test result
 """
 
-#2.1) With valid details - default order = results
+#2.1) With valid details
 def test_get_result_valid_order_default(testLibrary, myResultID):
     test_library = testLibrary
     result_id = myResultID
     sleep(30)
     result = test_library.get_result(result_id=result_id)
     assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "results"
-
-#2.2) With valid details - order = test
-def test_get_result_valid_order_test(testLibrary, myResultID):
-    test_library = testLibrary
-    result_id = myResultID
-    sleep(20)
-    result = test_library.get_result(result_id=result_id, order="test")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "tests"
-
-#2.3) With valid details - order = model
-def test_get_result_valid_order_model(testLibrary, myResultID):
-    test_library = testLibrary
-    result_id = myResultID
-    sleep(20)
-    result = test_library.get_result(result_id=result_id, order="model")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "models"
-
-#2.4) With valid details - order = test_code
-def test_get_result_valid_order_test_code(testLibrary, myResultID):
-    test_library = testLibrary
-    result_id = myResultID
-    sleep(20)
-    result = test_library.get_result(result_id=result_id, order="test_code")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "test_codes"
-
-#2.5) With valid details - order = model_instance
-def test_get_result_valid_order_model_instance(testLibrary, myResultID):
-    test_library = testLibrary
-    result_id = myResultID
-    sleep(20)
-    result = test_library.get_result(result_id=result_id, order="model_instance")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "model_instances"
-
-#2.6) With valid details - order = score_type
-def test_get_result_valid_order_score_type(testLibrary, myResultID):
-    test_library = testLibrary
-    result_id = myResultID
-    sleep(20)
-    result = test_library.get_result(result_id=result_id, order="score_type")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "score_type"
-
-#2.7) With invalid order
-def test_get_result_invalid_order(testLibrary, myResultID):
-    test_library = testLibrary
-    result_id = myResultID
-    with pytest.raises(Exception) as excinfo:
-        result = test_library.get_result(result_id=result_id, order="abcde")
-    assert "order needs to be specified from" in str(excinfo.value)
+    assert result["id"] == result_id
 
 
 """
@@ -118,69 +59,9 @@ def test_get_result_invalid_order(testLibrary, myResultID):
 """
 
 #3.1) With valid details - default order = results
-def test_list_results_valid_order_default(testLibrary, myTestID, myResultID):
+def test_list_results_valid(testLibrary, myTestID, myResultID):
     test_library = testLibrary
     test_id = myTestID
     sleep(20)
     result = test_library.list_results(test_id=test_id)
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "results"
-
-#3.2) With valid details - order = test
-def test_list_results_valid_order_test(testLibrary, myTestID, myResultID):
-    test_library = testLibrary
-    test_id = myTestID
-    sleep(20)
-    result = test_library.list_results(test_id=test_id, order="test")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "tests"
-
-#3.3) With valid details - order = model
-def test_list_results_valid_order_model(testLibrary, myTestID, myResultID):
-    test_library = testLibrary
-    test_id = myTestID
-    sleep(20)
-    result = test_library.list_results(test_id=test_id, order="model")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "models"
-
-#3.4) With valid details - order = test_code
-def test_list_results_valid_order_test_code(testLibrary, myTestID, myResultID):
-    test_library = testLibrary
-    test_id = myTestID
-    sleep(20)
-    result = test_library.list_results(test_id=test_id, order="test_code")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "test_codes"
-
-#3.5) With valid details - order = model_instance
-def test_list_results_valid_order_model_instance(testLibrary, myTestID, myResultID):
-    test_library = testLibrary
-    test_id = myTestID
-    sleep(20)
-    result = test_library.list_results(test_id=test_id, order="model_instance")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "model_instances"
-
-#3.6) With valid details - order = score_type
-def test_list_results_valid_order_score_type(testLibrary, myTestID, myResultID):
-    test_library = testLibrary
-    test_id = myTestID
-    sleep(20)
-    result = test_library.list_results(test_id=test_id, order="score_type")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "score_type"
-
-#3.7) With invalid order
-def test_list_results_invalid_order(testLibrary, myTestID, myResultID):
-    test_library = testLibrary
-    test_id = myTestID
-    with pytest.raises(Exception) as excinfo:
-        result = test_library.list_results(test_id=test_id, order="abcde")
-    assert "order needs to be specified from" in str(excinfo.value)
+    assert isinstance(result, list)

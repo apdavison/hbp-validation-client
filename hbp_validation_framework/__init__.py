@@ -1,7 +1,7 @@
 """
 A Python package for working with the Human Brain Project Model Validation Framework.
 
-Andrew Davison and Shailesh Appukuttan, CNRS, 2017
+Andrew Davison and Shailesh Appukuttan, CNRS, 2017-2020
 
 License: BSD 3-clause, see LICENSE.txt
 
@@ -12,18 +12,18 @@ from importlib import import_module
 import platform
 try:  # Python 3
     from urllib.request import urlopen
-    from urllib.parse import urlparse, urlencode, parse_qs
+    from urllib.parse import urlparse, urlencode, parse_qs, quote
     from urllib.error import URLError
 except ImportError:  # Python 2
     from urllib2 import urlopen, URLError
     from urlparse import urlparse, parse_qs
-    from urllib import urlencode
+    from urllib import urlencode, quote
 try:
     raw_input
 except NameError:
     raw_input = input
 import socket
-import json
+import json, simplejson
 import ast
 import getpass
 import requests
@@ -42,6 +42,24 @@ except ImportError:
     have_collab_token_handler = False
 
 TOKENFILE = os.path.expanduser("~/.hbptoken")
+
+
+class ResponseError(Exception):
+    pass
+
+
+def handle_response_error(message, response):
+    try:
+        structured_error_message = response.json()
+    except simplejson.errors.JSONDecodeError:
+        structured_error_message = None
+    if structured_error_message:
+        response_text = str(structured_error_message)  # temporary, to be improved
+    else:
+        response_text = response.text
+    full_message = "{}. Response = {}".format(message, response_text)
+    raise ResponseError(full_message)
+
 
 class HBPAuth(AuthBase):
     """Attaches OIDC Bearer Authentication to the given Request object."""
@@ -71,7 +89,7 @@ class BaseClient(object):
         self.environment = environment
         self.token = token
         if environment == "production":
-            self.url = "https://validation-v1.brainsimulation.eu"
+            self.url = "https://validation-v2.brainsimulation.eu"
             self.client_id = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c" # Prod ID
         elif environment == "integration":
             self.url = "https://validation-staging.brainsimulation.eu"
@@ -333,6 +351,20 @@ class BaseClient(object):
         obj._set_app_info()
         return obj
 
+    def _get_attribute_options(self, param, valid_params):
+        if param in ("", "all"):
+            params = valid_params[:]
+        elif param in valid_params:
+            params = [param]
+        else:
+            raise Exception("Specified attribute '{}' is invalid. Valid attributes: {}".format(param, valid_params))
+        attribute_options = {}
+        for param in params:
+            url = self.url + "/" + param.replace("_", "-") + "/"
+            data = requests.get(url, auth=self.auth, verify=self.verify).json()
+            attribute_options[param] = data
+        return attribute_options
+
 
 class TestLibrary(BaseClient):
     """Client for the HBP Validation Test library.
@@ -471,18 +503,14 @@ class TestLibrary(BaseClient):
                 raise Exception("Error in local file path specified by test_path.")
         else:
             if test_id:
-                url = self.url + "/tests/?id=" + test_id + "&format=json"
+                url = self.url + "/tests/" + test_id
             else:
-                url = self.url + "/tests/?alias=" + alias + "&format=json"
+                url = self.url + "/tests/" + quote(alias)
             test_json = requests.get(url, auth=self.auth, verify=self.verify)
 
         if test_json.status_code != 200:
-            raise Exception("Error in retrieving test. Response = " + str(test_json))
-        test_json = test_json.json()
-        if len(test_json["tests"]) == 1:
-            return test_json["tests"][0]
-        else:
-            raise Exception("Error in retrieving test definition. Possibly invalid input data.")
+            handle_response_error("Error in retrieving test", test_json)
+        return test_json.json()
 
     def get_validation_test(self, test_path="", instance_path="", instance_id ="", test_id = "", alias="", version="", **params):
         """Retrieve a specific test instance as a Python class (sciunit.Test instance).
@@ -606,11 +634,16 @@ class TestLibrary(BaseClient):
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
 
         params = locals()["filters"]
-        url = self.url + "/tests/?"+urlencode(params)+"&format=json"
-        tests = requests.get(url, auth=self.auth, verify=self.verify).json()
-        return tests["tests"]
+        url = self.url + "/tests/"
+        if params:
+            url += "?" + urlencode(params)
+        response = requests.get(url, auth=self.auth, verify=self.verify)
+        if response.status_code != 200:
+            handle_response_error("Error listing tests", response)
+        tests = response.json()
+        return tests
 
-    def add_test(self, name="", alias=None, version="", author="", species="",
+    def add_test(self, name="", alias="", version="", author="", species="",
                       age="", brain_region="", cell_type="", data_modality="",
                       test_type="", score_type="", protocol="", data_location="",
                       data_type="", publication="", repository="", path=""):
@@ -679,7 +712,7 @@ class TestLibrary(BaseClient):
             raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
         if cell_type not in values["cell_type"]:
             raise Exception("cell_type = '" +cell_type+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if data_modality not in values["data_modalities"]:
+        if data_modality not in values["data_modality"]:
             raise Exception("data_modality = '" +data_modality+"' is invalid.\nValue has to be one of these: " + str(values["data_modality"]))
         if test_type not in values["test_type"]:
             raise Exception("test_type = '" +test_type+"' is invalid.\nValue has to be one of these: " + str(values["test_type"]))
@@ -691,26 +724,29 @@ class TestLibrary(BaseClient):
 
         test_data = locals()
         test_data.pop("self")
+        test_data["description"] = test_data.pop("protocol")
+        for key in ("author", "data_location"):
+            if not isinstance(test_data[key], list):
+                test_data[key] = [test_data[key]]
         code_data = {}
         for key in ["version", "repository", "path", "values"]:
-            code_data[key] = test_data.pop(key)
+            value = test_data.pop(key)
+            if value:
+                code_data[key] = value
+        if code_data:
+            test_data["instances"] = [code_data]
 
-        url = self.url + "/tests/?format=json"
-        test_json = {
-                        "test_data": test_data,
-                        "code_data": code_data
-                    }
-
+        url = self.url + "/tests/"
         headers = {'Content-type': 'application/json'}
-        response = requests.post(url, data=json.dumps(test_json),
+        response = requests.post(url, data=json.dumps(test_data),
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
         if response.status_code == 201:
-            return response.json()["uuid"]
+            return response.json()["id"]
         else:
-            raise Exception("Error in adding test. Response = " + str(response.json()))
+            handle_response_error("Error in adding test", response)
 
-    def edit_test(self, name=None, test_id="", alias=None, author=None,
+    def edit_test(self, name=None, test_id="", alias="", author=None,
                   species=None, age=None, brain_region=None, cell_type=None, data_modality=None,
                   test_type=None, score_type=None, protocol=None, data_location=None,
                   data_type=None, publication=None):
@@ -773,53 +809,34 @@ class TestLibrary(BaseClient):
         if test_id == "":
             raise Exception("Test ID needs to be provided for editing a test.")
 
-        id = test_id   # as needed by API
-        test_data = locals()
-        for key in ["self", "test_id"]:
-            test_data.pop(key)
-
-        # assign existing values for parameters not specified
-        url = self.url + "/tests/?id=" + test_id + "&format=json"
-        test_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if test_json.status_code != 200:
-            raise Exception("Error in retrieving test. Response = " + str(test_json))
-        test_json = test_json.json()
-        if len(test_json["tests"]) == 0:
-            raise Exception("Error in retrieving test definition. Possibly invalid input data.")
-        test_json = test_json["tests"][0]
-        test_json["score_type"] = "Other"
-        for key in test_data:
-            if test_data[key] is None and key in test_json.keys():
-                test_data[key] = test_json[key]
-        if test_data["alias"] == "":
-            test_data["alias"] = None
+        test_data = {}
+        args = locals()
+        for field in ("name", "alias", "author", "species", "age", "brain_region", "cell_type",
+                      "data_modality", "test_type", "score_type", "protocol", "data_location",
+                      "data_type"):  # todo: handle publicaton
+            value = args[field]
+            if value:
+                test_data[field] = value
 
         values = self.get_attribute_options()
+        for field in ("species", "brain_region", "cell_type", "data_modality", "test_type", "score_type"):
+            if field in test_data and test_data[field] not in values[field]:
+                raise Exception(field + " = '"  + test_data[field] + "' is invalid.\n"
+                                "Value has to be one of these: " + values[field])
 
-        if test_data["species"] not in values["species"]:
-            raise Exception("species = '" +test_data["species"]+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
-        if test_data["brain_region"] not in values["brain_region"]:
-            raise Exception("brain_region = '" +test_data["brain_region"]+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
-        if test_data["cell_type"] not in values["cell_type"]:
-            raise Exception("cell_type = '" +test_data["cell_type"]+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if test_data["data_modality"] not in values["data_modalities"]:
-            raise Exception("data_modality = '" +test_data["data_modality"]+"' is invalid.\nValue has to be one of these: " + str(values["data_modality"]))
-        if test_data["test_type"] not in values["test_type"]:
-            raise Exception("test_type = '" +test_data["test_type"]+"' is invalid.\nValue has to be one of these: " + str(values["test_type"]))
-        if test_data["score_type"] not in values["score_type"]:
-            raise Exception("score_type = '" +test_data["score_type"]+"' is invalid.\nValue has to be one of these: " + str(values["score_type"]))
+        for field in ("author", "data_location"):
+            if not isinstance(test_data[field], list):
+                test_data[field] = [test_data[field]]
 
-        url = self.url + "/tests/?format=json"
-        test_json = test_data   # retaining similar structure as other methods
-
+        url = self.url + "/tests/" + test_id
         headers = {'Content-type': 'application/json'}
-        response = requests.put(url, data=json.dumps(test_json),
+        response = requests.put(url, data=json.dumps(test_data),
                                 auth=self.auth, headers=headers,
                                 verify=self.verify)
-        if response.status_code == 202:
-            return response.json()["uuid"]
+        if response.status_code == 200:
+            return response.json()["id"]
         else:
-            raise Exception("Error in editing test. Response = " + str(response.json()))
+            handle_response_error("Error in editing test", response)
 
     def delete_test(self, test_id="", alias=""):
         """ONLY FOR SUPERUSERS: Delete a specific test definition by its test_id or alias.
@@ -850,15 +867,15 @@ class TestLibrary(BaseClient):
         if test_id == "" and alias == "":
             raise Exception("test ID or alias needs to be provided for deleting a test.")
         elif test_id != "":
-            url = self.url + "/tests/?id=" + test_id + "&format=json"
+            url = self.url + "/tests/" + test_id
         else:
-            url = self.url + "/tests/?alias=" + alias + "&format=json"
+            url = self.url + "/tests/" + quote(alias)
 
         test_json = requests.delete(url, auth=self.auth, verify=self.verify)
         if test_json.status_code == 403:
-            raise Exception("Only SuperUser accounts can delete data. Response = " + str(test_json))
+            handle_response_error("Only SuperUser accounts can delete data", test_json)
         elif test_json.status_code != 200:
-            raise Exception("Error in deleting test. Response = " + str(test_json))
+            handle_response_error("Error in deleting test", test_json)
 
     def get_test_instance(self, instance_path="", instance_id="", test_id="", alias="", version=""):
         """Retrieve a specific test instance definition from the test library.
@@ -907,27 +924,28 @@ class TestLibrary(BaseClient):
             else:
                 raise Exception("Error in local file path specified by instance_path.")
         else:
+            test_identifier = test_id or alias
             if instance_id:
-                url = self.url + "/test-instances/?id=" + instance_id + "&format=json"
+                url = self.url + "/tests/query/instances/" + instance_id
             elif test_id and version:
-                url = self.url + "/test-instances/?test_definition_id=" + test_id + "&version=" + version + "&format=json"
+                url = self.url + "/tests/" + test_id + "/instances/?version=" + version
             elif alias and version:
-                url = self.url + "/test-instances/?test_alias=" + alias + "&version=" + version + "&format=json"
+                url = self.url + "/tests/" + quote(alias) + "/instances/?version=" + version
             elif test_id and not version:
-                url = self.url + "/test-instances/?test_definition_id=" + test_id + "&format=json"
+                url = self.url + "/tests/" + test_id + "/instances/latest"
             else:
-                url = self.url + "/test-instances/?test_alias=" + alias + "&format=json"
-            test_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
+                url = self.url + "/tests/" + quote(alias) + "/instances/latest"
+            response = requests.get(url, auth=self.auth, verify=self.verify)
 
-        if test_instance_json.status_code != 200:
-            raise Exception("Error in retrieving test instance. Response = " + str(test_instance_json.content))
-        test_instance_json = test_instance_json.json()
-        if len(test_instance_json["test_codes"]) == 1:
-            return test_instance_json["test_codes"][0]
-        elif len(test_instance_json["test_codes"]) > 1:
-            return max(test_instance_json["test_codes"], key=lambda x:x['timestamp'])
-        else:
-            raise Exception("Error in retrieving test instance. Possibly invalid input data.")
+        if response.status_code != 200:
+            handle_response_error("Error in retrieving test instance", response)
+        test_instance_json = response.json()
+        if isinstance(test_instance_json, list):  # can have multiple instances with the same version but different parameters
+            if len(test_instance_json) == 1:
+                test_instance_json = test_instance_json[0]
+            elif len(test_instance_json) > 1:
+                return max(test_instance_json, key=lambda x: x['timestamp'])
+        return test_instance_json
 
     def list_test_instances(self, instance_path="", test_id="", alias=""):
         """Retrieve list of test instances belonging to a specified test.
@@ -965,15 +983,15 @@ class TestLibrary(BaseClient):
                 test_instances_json = json.load(fp)
         else:
             if test_id:
-                url = self.url + "/test-instances/?test_definition_id=" + test_id + "&format=json"
+                url = self.url + "/tests/" + test_id + "/instances/"
             else:
-                url = self.url + "/test-instances/?test_alias=" + alias + "&format=json"
-            test_instances_json = requests.get(url, auth=self.auth, verify=self.verify)
+                url = self.url + "/tests/" + quote(alias) + "/instances/"
+            response = requests.get(url, auth=self.auth, verify=self.verify)
 
-        if test_instances_json.status_code != 200:
-            raise Exception("Error in retrieving test instances. Response = " + str(test_instances_json))
-        test_instances_json = test_instances_json.json()
-        return test_instances_json["test_codes"]
+        if response.status_code != 200:
+            handle_response_error("Error in retrieving test instances", response)
+        test_instances_json = response.json()
+        return test_instances_json
 
     def add_test_instance(self, test_id="", alias="", repository="", path="", version="", description="", parameters=""):
         """Register a new test instance.
@@ -1016,27 +1034,32 @@ class TestLibrary(BaseClient):
                                         version="3.0")
         """
 
-        test_definition_id = test_id    # as needed by API
-        instance_data = locals()
-        for key in ["self", "test_id"]:
-            instance_data.pop(key)
+        instance_data = {}
+        if repository:
+            instance_data["repository"] = repository
+        if path:
+            instance_data["path"] = path
+        if version:
+            instance_data["version"] = version
+        if description:
+            instance_data["description"] = description
+        if parameters:
+            instance_data["parameters"] = parameters
 
-        if test_definition_id == "" and alias == "":
-            raise Exception("test_id needs to be provided for finding the test.")
-            #raise Exception("test_id or alias needs to be provided for finding the test.")
-        elif test_definition_id != "":
-            url = self.url + "/test-instances/?format=json"
+        test_definition_id = test_id or alias
+        if not test_definition_id:
+            raise Exception("test_id or alias needs to be provided for finding the test.")
         else:
-            raise Exception("alias is not currently implemented for this feature.")
-            #url = self.url + "/test-instances/?alias=" + alias + "&format=json"
+            url = self.url + "/tests/" + test_definition_id + "/instances/"
+
         headers = {'Content-type': 'application/json'}
-        response = requests.post(url, data=json.dumps([instance_data]),
+        response = requests.post(url, data=json.dumps(instance_data),
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
         if response.status_code == 201:
-            return response.json()["uuid"][0]
+            return response.json()["id"]
         else:
-            raise Exception("Error in adding test instance. Response = " + str(response))
+            handle_response_error("Error in adding test instance", response)
 
     def edit_test_instance(self, instance_id="", test_id="", alias="", repository=None, path=None, version=None, description=None, parameters=None):
         """Edit an existing test instance.
@@ -1085,46 +1108,33 @@ class TestLibrary(BaseClient):
                                         version="4.0")
         """
 
-        if instance_id == "" and (test_id == "" or not version) and (alias == "" or not version):
+        test_identifier = test_id or alias
+        if instance_id == "" and (test_identifier == "" or version is None):
             raise Exception("instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance.")
 
-        if instance_id:
-            id = instance_id                # as needed by API
-        if test_id:
-            test_definition_id = test_id    # as needed by API
-        if alias:
-            test_alias = alias              # as needed by API
+        instance_data = {}
+        args = locals()
+        for field in ("repository", "path", "version", "description", "parameters"):
+            value = args[field]
+            if value:
+                instance_data[field] = value
 
-        instance_data = locals()
-        for key in ["self", "test_id", "alias"]:
-            instance_data.pop(key)
-
-        # assign existing values for parameters not specified
         if instance_id:
-            url = self.url + "/test-instances/?id=" + instance_id + "&format=json"
-        elif test_id and version:
-            url = self.url + "/test-instances/?test_definition_id=" + test_id + "&version=" + version + "&format=json"
+            url = self.url + "/tests/query/instances/" + instance_id
         else:
-            url = self.url + "/test-instances/?test_alias=" + alias + "&version=" + version + "&format=json"
-        test_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if test_instance_json.status_code != 200:
-            raise Exception("Error in retrieving test instance. Response = " + str(test_instance_json))
-        test_instance_json = test_instance_json.json()
-        if len(test_instance_json["test_codes"]) == 0:
-            raise Exception("Error in retrieving test instance. Possibly invalid input data.")
-        test_instance_json = test_instance_json["test_codes"][0]
-        for key in instance_data:
-            if instance_data[key] is None:
-                instance_data[key] = test_instance_json[key]
+            url = self.url + "/tests/" + test_identifier + "/instances/?version=" + version
+            response0 = requests.get(url, auth=self.auth, verify=self.verify)
+            if response0.status_code != 200:
+                raise Exception("Invalid test identifier and/or version")
+            url = self.url + "/tests/query/instances/" + response0.json()[0]["id"]  # todo: handle more than 1 instance in response
 
-        url = self.url + "/test-instances/?format=json"
         headers = {'Content-type': 'application/json'}
-        response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers,
+        response = requests.put(url, data=json.dumps(instance_data), auth=self.auth, headers=headers,
                                 verify=self.verify)
-        if response.status_code == 202:
-            return response.json()["uuid"][0]
+        if response.status_code == 200:
+            return response.json()["id"]
         else:
-            raise Exception("Error in editing test instance. Response = " + str(response.content))
+            handle_response_error("Error in editing test instance", response)
 
     def delete_test_instance(self, instance_id="", test_id="", alias="", version=""):
         """ONLY FOR SUPERUSERS: Delete an existing test instance.
@@ -1157,47 +1167,52 @@ class TestLibrary(BaseClient):
         >>> test_library.delete_model_instance(alias="B1", version="1.0")
         """
 
-        if instance_id == "" and (test_id == "" or version == "") and (alias == "" or version == ""):
+        test_identifier = test_id or alias
+        if instance_id == "" and (test_identifier == "" or version == ""):
             raise Exception("instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance.")
 
         if instance_id:
-            id = instance_id    # as needed by API
-        if test_id:
-            test_definition_id = test_id    # as needed by API
-        if alias:
-            test_alias = alias  # as needed by API
-
-        if instance_id:
-            url = self.url + "/test-instances/?id=" + instance_id + "&format=json"
-        elif test_id and version:
-            url = self.url + "/test-instances/?test_definition_id=" + test_id + "&version=" + version + "&format=json"
+            url = self.url + "/tests/query/instances/" + instance_id
         else:
-            url = self.url + "/test-instances/?test_alias=" + alias + "&version=" + version + "&format=json"
-        test_instance_json = requests.delete(url, auth=self.auth, verify=self.verify)
-        if test_instance_json.status_code == 403:
-            raise Exception("Only SuperUser accounts can delete data. Response = " + str(test_instance_json))
-        elif test_instance_json.status_code != 200:
-            raise Exception("Error in deleting test instance. Response = " + str(test_instance_json))
+            url = self.url + "/tests/" + test_identifier + "/instances/" + version
+            response0 = requests.get(url, auth=self.auth, verify=self.verify)
+            if response0.status_code != 200:
+                raise Exception("Invalid test identifier and/or version")
+            url = self.url + "/tests/query/instances/" + response0.json()[0]["id"]
+        response = requests.delete(url, auth=self.auth, verify=self.verify)
+        if response.status_code == 403:
+            handle_response_error("Only SuperUser accounts can delete data", response)
+        elif response.status_code != 200:
+            handle_response_error("Error in deleting test instance", response)
 
-    def _load_reference_data(self, uri):
+    def _load_reference_data(self, uri_list):
         # Load the reference data ("observations").
-        parse_result = urlparse(uri)
-        datastore = URI_SCHEME_MAP[parse_result.scheme](auth=self.auth)
-        observation_data = datastore.load_data(uri)
-        return observation_data
+        observation_data = []
+        return_single = False
+        if not isinstance(uri_list, list):
+            uri_list = [uri_list]
+            return_single = True
+        for uri in uri_list:
+            parse_result = urlparse(uri)
+            datastore = URI_SCHEME_MAP[parse_result.scheme](auth=self.auth)
+            observation_data.append(datastore.load_data(uri))
+        if return_single:
+            return observation_data[0]
+        else:
+            return observation_data
 
     def get_attribute_options(self, param=""):
         """Retrieve valid values for test attributes.
 
         Will return the list of valid values (where applicable) for various test attributes.
-	The following test attributes can be specified:
+        The following test attributes can be specified:
 
-	* cell_type
-	* test_type
-	* score_type
-	* brain_region
-	* data_modalities
-	* species
+        * cell_type
+        * test_type
+        * score_type
+        * brain_region
+        * data_modality
+        * species
 
         If an attribute is specified, then only values that correspond to it will be returned,
         else values for all attributes are returned.
@@ -1215,21 +1230,15 @@ class TestLibrary(BaseClient):
         Examples
         --------
         >>> data = test_library.get_attribute_options()
-        >>> data = test_library.get_attribute_options("cell_type")
+        >>> data = test_library.get_attribute_options("cell types")
         """
+        valid_params = ["cell_type", "test_type", "score_type", "brain_region", "recording_modality", "species"]
+        options = self._get_attribute_options(param, valid_params)
+        if "recording_modality" in options:
+            options["data_modality"] = options["recording_modality"]  # for backwards compatibility with v1
+        return options
 
-        if param == "":
-            param = "all"
-
-        valid_params = ["cell_type", "test_type", "score_type", "brain_region", "model_scope", "abstraction_level", "data_modalities", "species", "organization", "all"]
-        if param in valid_params:
-            url = self.url + "/authorizedcollabparameterrest/?python_client=true&parameters="+param+"&format=json"
-        else:
-            raise Exception("Specified attribute '{}' is invalid. Valid attributes: {}".format(param, valid_params))
-        data = requests.get(url, auth=self.auth, verify=self.verify).json()
-        return ast.literal_eval(json.dumps(data))
-
-    def get_result(self, result_id="", order=""):
+    def get_result(self, result_id=""):
         """Retrieve a test result.
 
         This allows to retrieve the test result score and other related information.
@@ -1239,9 +1248,6 @@ class TestLibrary(BaseClient):
         ----------
         result_id : UUID
             System generated unique identifier associated with result.
-        order : string, optional
-            Determines how the result should be structured. Valid values are
-            "test", "model" or "". Default is "" and provides concise  result summary.
 
         Returns
         -------
@@ -1251,25 +1257,19 @@ class TestLibrary(BaseClient):
         Examples
         --------
         >>> result = test_library.get_result(result_id="901ac0f3-2557-4ae3-bb2b-37617312da09")
-        >>> result = test_library.get_result(result_id="901ac0f3-2557-4ae3-bb2b-37617312da09", order="test")
         """
 
-        valid_orders = ["test", "model", "test_code", "model_instance", "score_type", ""]
         if not result_id:
             raise Exception("result_id needs to be provided for finding a specific result.")
-        elif order not in valid_orders:
-            raise Exception("order needs to be specified from: {}".format(valid_orders))
         else:
-            url = self.url + "/results/?id=" + result_id + "&order=" + order + "&format=json"
-        result_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if result_json.status_code != 200:
-            raise Exception("Error in retrieving result. Response = " + str(result_json) + ".\nContent = " + str(result_json.content))
-        result_json = result_json.json()
-        # Unlike other "get_" methods, we do not return "[key][0]" as the key can vary
-        # based on the parameter "order". Retaining this key is potentially useful.
+            url = self.url + "/results/" + result_id
+        response = requests.get(url, auth=self.auth, verify=self.verify)
+        if response.status_code != 200:
+            handle_response_error("Error in retrieving result", response)
+        result_json = response.json()
         return result_json
 
-    def list_results(self, order="", **filters):
+    def list_results(self, **filters):
         """Retrieve test results satisfying specified filters.
 
         This allows to retrieve a list of test results with their scores
@@ -1277,9 +1277,6 @@ class TestLibrary(BaseClient):
 
         Parameters
         ----------
-        order : string, optional
-            Determines how the result should be structured. Valid values are
-            "test", "model" or "". Default is "" and provides concise  result summary.
         **filters : variable length keyword arguments
             To be used to filter the results metadata.
 
@@ -1291,21 +1288,18 @@ class TestLibrary(BaseClient):
         Examples
         --------
         >>> results = test_library.list_results()
-        >>> results = test_library.list_results(order="test", test_id="7b63f87b-d709-4194-bae1-15329daf3dec")
+        >>> results = test_library.list_results(test_id="7b63f87b-d709-4194-bae1-15329daf3dec")
         >>> results = test_library.list_results(id="901ac0f3-2557-4ae3-bb2b-37617312da09")
-        >>> results = test_library.list_results(model_version_id="f32776c7-658f-462f-a944-1daf8765ec97", order="test")
+        >>> results = test_library.list_results(model_version_id="f32776c7-658f-462f-a944-1daf8765ec97")
         """
 
-        valid_orders = ["test", "model", "test_code", "model_instance", "score_type", ""]
-        if order not in valid_orders:
-            raise Exception("order needs to be specified from: {}".format(valid_orders))
-        else:
-            params = locals()["filters"]
-            url = self.url + "/results/?" + "order=" + order + "&" + urlencode(params) + "&format=json"
-        result_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if result_json.status_code != 200:
-            raise Exception("Error in retrieving results. Response = " + str(result_json) + ".\nContent = " + str(result_json.content))
-        result_json = result_json.json()
+        url = self.url + "/results/"
+        if filters:
+            url += "?" + urlencode(filters)
+        response = requests.get(url, auth=self.auth, verify=self.verify)
+        if response.status_code != 200:
+            handle_response_error("Error in retrieving results", response)
+        result_json = response.json()
         return result_json
 
     def register_result(self, test_result, data_store=None, project=None):
@@ -1362,27 +1356,27 @@ class TestLibrary(BaseClient):
             if files_to_upload:
                 results_storage.append(data_store.upload_data(files_to_upload))
 
-        url = self.url + "/results/?format=json"
+        url = self.url + "/results/"
         result_json = {
                         "model_version_id": model_instance_uuid,
                         "test_code_id": test_result.test.uuid,
                         "results_storage": results_storage,
                         "score": int(test_result.score) if isinstance(test_result.score, bool) else test_result.score,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
-                        "platform": str(self._get_platform()), # database accepts a string
-                        "project": project,
+                        #"platform": str(self._get_platform()), # not currently supported in v2
+                        "project_id": project,
                         "normalized_score": int(test_result.score) if isinstance(test_result.score, bool) else test_result.score,
                       }
 
         headers = {'Content-type': 'application/json'}
-        response = requests.post(url, data=json.dumps([result_json]),
+        response = requests.post(url, data=json.dumps(result_json),
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
         if response.status_code == 201:
             print("Result registered successfully!")
-            return response.json()["uuid"][0]
+            return response.json()["id"]
         else:
-            raise Exception(response.content)
+            handle_response_error("Error registering result", response)
 
     def delete_result(self, result_id=""):
         """ONLY FOR SUPERUSERS: Delete a result on the validation framework.
@@ -1407,12 +1401,12 @@ class TestLibrary(BaseClient):
         if not result_id:
             raise Exception("result_id needs to be provided for finding a specific result.")
         else:
-            url = self.url + "/results/?id=" + result_id + "&format=json"
+            url = self.url + "/results/" + result_id
         model_image_json = requests.delete(url, auth=self.auth, verify=self.verify)
         if model_image_json.status_code == 403:
-            raise Exception("Only SuperUser accounts can delete data. Response = " + str(model_image_json))
+            handle_response_error("Only SuperUser accounts can delete data", model_image_json)
         elif model_image_json.status_code != 200:
-            raise Exception("Error in deleting result. Response = " + str(model_image_json))
+            handle_response_error("Error in deleting result", model_image_json)
 
     def _get_platform(self):
         """
@@ -1608,23 +1602,20 @@ class ModelCatalog(BaseClient):
         if model_id == "" and alias == "":
             raise Exception("Model ID or alias needs to be provided for finding a model.")
         elif model_id != "":
-            url = self.url + "/models/?id=" + model_id + "&format=json"
+            url = self.url + "/models/" + model_id
         else:
-            url = self.url + "/models/?alias=" + alias + "&format=json"
+            url = self.url + "/models/" + quote(alias)
 
         model_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_json.status_code != 200:
-            raise Exception("Error in retrieving model. Response = " + str(model_json))
+            handle_response_error("Error in retrieving model", model_json)
         model_json = model_json.json()
 
-        if len(model_json["models"]) == 1:
-            if instances == False:
-                model_json["models"][0].pop("instances")
-            if images == False:
-                model_json["models"][0].pop("images")
-            return model_json["models"][0]
-        else:
-            raise Exception("Error in retrieving model description. Possibly invalid input data.")
+        if instances is False:
+            model_json.pop("instances")
+        if images is False:
+            model_json.pop("images")
+        return model_json
 
     def list_models(self, **filters):
         """Retrieve list of model descriptions satisfying specified filters.
@@ -1668,15 +1659,17 @@ class ModelCatalog(BaseClient):
         for filter in params:
             if filter not in valid_filters:
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
-        url = self.url + "/models/?"+urlencode(params)+"&format=json"
+        if "collab_id" in params:
+            params["project_id"] = params.pop("collab_id")
+        url = self.url + "/models/?" + urlencode(params)
         response = requests.get(url, auth=self.auth, verify=self.verify)
         try:
             models = response.json()
-        except json.JSONDecodeError:
-            raise Exception("Error in list_models():\n{}".format(response.content))
-        return models["models"]
+        except (json.JSONDecodeError, simplejson.JSONDecodeError):
+            handle_response_error("Error in list_models()", response)
+        return models
 
-    def register_model(self, app_id="", name="", alias=None, author="", organization="", private=False,
+    def register_model(self, collab_id="", name="", alias="", author="", organization="", private=False,
                        species="", brain_region="", cell_type="", model_scope="", abstraction_level="", owner="", project="",
                        license="", description="", instances=[], images=[]):
         """Register a new model in the model catalog.
@@ -1687,9 +1680,9 @@ class ModelCatalog(BaseClient):
 
         Parameters
         ----------
-        app_id : string
-            Specifies the ID of the host model catalog app on the HBP Collaboratory.
-            (the model would belong to this app)
+        collab_id : string
+            Specifies the ID of the host collab in the HBP Collaboratory.
+            (the model would belong to this collab)
         name : string
             Name of the model description to be created.
         alias : string, optional
@@ -1732,7 +1725,7 @@ class ModelCatalog(BaseClient):
         --------
         (without instances and images)
 
-        >>> model = model_catalog.register_model(app_id="39968", name="Test Model - B2",
+        >>> model = model_catalog.register_model(collab_id="39968", name="Test Model - B2",
                         alias="Model vB2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_scope="Single cell model",
                         abstraction_level="Spiking neurons",
@@ -1742,7 +1735,7 @@ class ModelCatalog(BaseClient):
 
         (with instances and images)
 
-        >>> model = model_catalog.register_model(app_id="39968", name="Test Model - C2",
+        >>> model = model_catalog.register_model(collab_id="39968", name="Test Model - C2",
                         alias="Model vC2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_scope="Single cell model",
                         abstraction_level="Spiking neurons",
@@ -1771,33 +1764,29 @@ class ModelCatalog(BaseClient):
             raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
         if species not in values["species"]:
             raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
-        values["organization"].append("")   # allow blank organization field
-        if organization not in values["organization"]:
-            raise Exception("organization = '" +organization+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
 
         if private not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
 
         model_data = locals()
-        for key in ["self", "app_id", "instances", "images", "values"]:
+        for key in ["self", "values"]:
             model_data.pop(key)
+        for key in ["author", "owner"]:
+            if not isinstance(model_data[key], list):
+                model_data[key] = [model_data[key]]
+        model_data["project_id"] = model_data.pop("collab_id")  # renamed in v2
 
-        url = self.url + "/models/?app_id="+app_id+"&format=json"
-        model_json = {
-                        "model": model_data,
-                        "model_instance":instances,
-                        "model_image":images
-                     }
+        url = self.url + "/models/"
         headers = {'Content-type': 'application/json'}
-        response = requests.post(url, data=json.dumps(model_json),
+        response = requests.post(url, data=json.dumps(model_data),
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
         if response.status_code == 201:
-            return response.json()["uuid"]
+            return response.json()["id"]
         else:
-            raise Exception("Error in adding model. Response = " + str(response.content))
+            handle_response_error("Error in adding model", response)
 
-    def edit_model(self, model_id="", app_id=None, name=None, alias=None, author=None, organization=None, private=None, cell_type=None,
+    def edit_model(self, model_id="", collab_id=None, name=None, alias="", author=None, organization=None, private=None, cell_type=None,
                    model_scope=None, abstraction_level=None, brain_region=None, species=None, owner="", project="", license="", description=None):
         """Edit an existing model on the model catalog.
 
@@ -1809,9 +1798,9 @@ class ModelCatalog(BaseClient):
         ----------
         model_id : UUID
             System generated unique identifier associated with model description.
-        app_id : string
-            Specifies the ID of the host model catalog app on the HBP Collaboratory.
-            (the model would belong to this app)
+        collab_id : string
+            Specifies the ID of the host collab in the HBP Collaboratory.
+            (the model would belong to this collab)
         name : string
             Name of the model description to be created.
         alias : string, optional
@@ -1853,7 +1842,7 @@ class ModelCatalog(BaseClient):
 
         Examples
         --------
-        >>> model = model_catalog.edit_model(app_id="39968", name="Test Model - B2",
+        >>> model = model_catalog.edit_model(collab_id="39968", name="Test Model - B2",
                         model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5",
                         alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_scope="Single cell model",
@@ -1862,62 +1851,43 @@ class ModelCatalog(BaseClient):
                         owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
                         description="This is a test entry")
         """
-
         if model_id == "":
             raise Exception("Model ID needs to be provided for editing a model.")
 
-        id = model_id   # as needed by API
-        model_data = locals()
-        for key in ["self", "app_id", "model_id"]:
-            model_data.pop(key)
+        model_data = {}
+        args = locals()
+        for field in ("collab_id", "name", "alias", "author", "organization", "private",
+                      "cell_type", "model_scope", "abstraction_level", "brain_region",
+                      "species", "owner", "project", "license", "description"):
+            value = args[field]
+            if value:
+                model_data[field] = value
 
-        # assign existing values for parameters not specified
-        url = self.url + "/models/?id=" + model_id + "&format=json"
-        model_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if model_json.status_code != 200:
-            raise Exception("Error in retrieving model. Response = " + str(model_json))
-        model_json = model_json.json()
-        if len(model_json["models"]) == 0:
-            raise Exception("Error in retrieving model description. Possibly invalid input data.")
-        model_json = model_json["models"][0]
-        for key in model_data:
-            if model_data[key] is None:
-                model_data[key] = model_json[key]
-        if app_id is None:
-            app_id = model_json["app"]["id"]
+        values = self.get_attribute_options()
+        for field in ("species", "brain_region", "cell_type", "abstraction_level", "model_scope"):
+            if field in model_data and model_data[field] not in values[field]:
+                raise Exception(field + " = '"  + model_data[field] + "' is invalid.\n"
+                                "Value has to be one of these: " + values[field])
+
+        for field in ("author", "owner"):
+            if not isinstance(model_data[field], list):
+                model_data[field] = [model_data[field]]
+
         if model_data["alias"] == "":
             model_data["alias"] = None
 
-        values = self.get_attribute_options()
-
-        if model_data["cell_type"] not in values["cell_type"]:
-            raise Exception("cell_type = '" +model_data["cell_type"]+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if model_data["model_scope"] not in values["model_scope"]:
-            raise Exception("model_scope = '" +model_data["model_scope"]+"' is invalid.\nValue has to be one of these: " + str(values["model_scope"]))
-        if model_data["abstraction_level"] not in values["abstraction_level"]:
-            raise Exception("abstraction_level = '" +model_data["abstraction_level"]+"' is invalid.\nValue has to be one of these: " + str(values["abstraction_level"]))
-        if model_data["brain_region"] not in values["brain_region"]:
-            raise Exception("brain_region = '" +model_data["brain_region"]+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
-        if model_data["species"] not in values["species"]:
-            raise Exception("species = '" +model_data["species"]+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
-        values["organization"].append("")   # allow blank organization field
-        if model_data["organization"] not in values["organization"]:
-            raise Exception("organization = '" +model_data["organization"]+"' is invalid.\nValue has to be one of these: " + str(values["organization"]))
-        if model_data["private"] not in [True, False]:
+        if model_data.get("private", False) not in (True, False):
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
 
-        url = self.url + "/models/?app_id="+app_id+"&format=json"
-        model_json = {
-                        "models": [model_data]
-                     }
         headers = {'Content-type': 'application/json'}
-        response = requests.put(url, data=json.dumps(model_json),
+        url = self.url + "/models/" + model_id
+        response = requests.put(url, data=json.dumps(model_data),
                                 auth=self.auth, headers=headers,
                                 verify=self.verify)
-        if response.status_code == 202:
-            return response.json()["uuid"]
+        if response.status_code == 200:
+            return response.json()["id"]
         else:
-            raise Exception("Error in updating model. Response = " + str(response))
+            handle_response_error("Error in updating model", response)
 
     def delete_model(self, model_id="", alias=""):
         """ONLY FOR SUPERUSERS: Delete a specific model description by its model_id or alias.
@@ -1948,15 +1918,15 @@ class ModelCatalog(BaseClient):
         if model_id == "" and alias == "":
             raise Exception("Model ID or alias needs to be provided for deleting a model.")
         elif model_id != "":
-            url = self.url + "/models/?id=" + model_id + "&format=json"
+            url = self.url + "/models/" + model_id
         else:
-            url = self.url + "/models/?alias=" + alias + "&format=json"
+            url = self.url + "/models/" + quote(alias)
 
         model_json = requests.delete(url, auth=self.auth, verify=self.verify)
         if model_json.status_code == 403:
-            raise Exception("Only SuperUser accounts can delete data. Response = " + str(model_json))
+            handle_response_error("Only SuperUser accounts can delete data", model_json)
         elif model_json.status_code != 200:
-            raise Exception("Error in deleting model. Response = " + str(model_json))
+            handle_response_error("Error in deleting model", model_json)
 
     def get_attribute_options(self, param=""):
         """Retrieve valid values for attributes.
@@ -1987,19 +1957,10 @@ class ModelCatalog(BaseClient):
         Examples
         --------
         >>> data = model_catalog.get_attribute_options()
-        >>> data = model_catalog.get_attribute_options("cell_type")
+        >>> data = model_catalog.get_attribute_options("cell types")
         """
-
-        if param == "":
-            param = "all"
-
-        valid_params = ["cell_type", "test_type", "score_type", "brain_region", "model_scope", "abstraction_level", "data_modalities", "species", "organization", "all"]
-        if param in valid_params:
-            url = self.url + "/authorizedcollabparameterrest/?python_client=true&parameters="+param+"&format=json"
-        else:
-            raise Exception("Specified attribute '{}' is invalid. Valid attributes: {}".format(param, valid_params))
-        data = requests.get(url, auth=self.auth, verify=self.verify).json()
-        return ast.literal_eval(json.dumps(data))
+        valid_params = ["cell_type", "brain_region", "model_scope", "abstraction_level", "species"]
+        return self._get_attribute_options(param, valid_params)
 
     def get_model_instance(self, instance_path="", instance_id="", model_id="", alias="", version=""):
         """Retrieve an existing model instance.
@@ -2043,19 +2004,20 @@ class ModelCatalog(BaseClient):
                 model_instance_json = json.load(fp)
         else:
             if instance_id:
-                url = self.url + "/model-instances/?id=" + instance_id + "&format=json"
+                url = self.url + "/models/query/instances/" + instance_id
             elif model_id and version:
-                url = self.url + "/model-instances/?model_id=" + model_id + "&version=" + version + "&format=json"
+                url = self.url + "/models/" + model_id + "/instances/?version=" + version
             else:
-                url = self.url + "/model-instances/?model_alias=" + alias + "&version=" + version + "&format=json"
+                url = self.url + "/models/" + quote(alias) + "/instances/?version=" + version
             model_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_instance_json.status_code != 200:
-            raise Exception("Error in retrieving model instance. Response = " + str(model_instance_json))
+            handle_response_error("Error in retrieving model instance", model_instance_json)
         model_instance_json = model_instance_json.json()
-        if len(model_instance_json["instances"]) == 1:
-            return model_instance_json["instances"][0]
-        else:
-            raise Exception("Error in retrieving model instance. Possibly invalid input data.")
+        # if specifying a version, this can return multiple instances, since instances
+        # can have the same version but different parameters
+        if len(model_instance_json) == 1:
+            return model_instance_json[0]
+        return model_instance_json
 
     def download_model_instance(self, instance_path="", instance_id="", model_id="", alias="", version="", local_directory="."):
         """Download files/directory corresponding to an existing model instance.
@@ -2185,12 +2147,12 @@ class ModelCatalog(BaseClient):
                 model_instances_json = json.load(fp)
         else:
             if model_id:
-                url = self.url + "/model-instances/?model_id=" + model_id + "&format=json"
+                url = self.url + "/models/" + model_id
             else:
-                url = self.url + "/model-instances/?model_alias=" + alias + "&format=json"
+                url = self.url + "/models/" + quote(alias)
             model_instances_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_instances_json.status_code != 200:
-            raise Exception("Error in retrieving model instances. Response = " + str(model_instances_json))
+            handle_response_error("Error in retrieving model instances", model_instances_json)
         model_instances_json = model_instances_json.json()
         return model_instances_json["instances"]
 
@@ -2247,25 +2209,24 @@ class ModelCatalog(BaseClient):
         instance_data.pop("self")
 
         for key, val in instance_data.items():
-            if val is None:
-                instance_data[key] = ""
+            if val == "":
+                instance_data[key] = None
 
         if model_id == "" and alias == "":
             raise Exception("Model ID needs to be provided for finding the model.")
             #raise Exception("Model ID or alias needs to be provided for finding the model.")
         elif model_id != "":
-            url = self.url + "/model-instances/?format=json"
+            url = self.url + "/models/" + model_id + "/instances/"
         else:
-            raise Exception("alias is not currently implemented for this feature.")
-            #url = self.url + "/model-instances/?alias=" + alias + "&format=json"
+            url = self.url + "/models/" + quote(alias) + "/instances/"
         headers = {'Content-type': 'application/json'}
-        response = requests.post(url, data=json.dumps([instance_data]),
+        response = requests.post(url, data=json.dumps(instance_data),
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
         if response.status_code == 201:
-            return response.json()["uuid"][0]
+            return response.json()["id"]
         else:
-            raise Exception("Error in adding model instance. Response = " + str(response))
+            handle_response_error("Error in adding model instance", response)
 
     def find_model_instance_else_add(self, model_obj):
         """Find existing model instance; else create a new instance
@@ -2302,7 +2263,7 @@ class ModelCatalog(BaseClient):
                 raise AttributeError("Model object does not have a 'model_version' attribute")
             try:
                 model_instance_uuid = self.get_model_instance(model_id=model_obj.model_uuid,
-                                                                     version=model_obj.model_version)['id']
+                                                              version=model_obj.model_version)['id']
             except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
                 # so we create a new instance
                 model_instance_uuid = self.add_model_instance(model_id=model_obj.model_uuid,
@@ -2371,40 +2332,31 @@ class ModelCatalog(BaseClient):
         if instance_id == "" and (model_id == "" or not version) and (alias == "" or not version):
             raise Exception("instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.")
 
-        if instance_id:
-            id = instance_id    # as needed by API
-        if alias:
-            model_alias = alias # as needed by API
-        instance_data = locals()
-        for key in ["self", "instance_id", "alias"]:
-            instance_data.pop(key)
+        instance_data = {key:value for key, value in locals().items()
+                         if value is not None}
 
         # assign existing values for parameters not specified
         if instance_id:
-            url = self.url + "/model-instances/?id=" + instance_id + "&format=json"
-        elif model_id and version:
-            url = self.url + "/model-instances/?model_id=" + model_id + "&version=" + version + "&format=json"
+            url = self.url + "/models/query/instances/" + instance_id
         else:
-            url = self.url + "/model-instances/?model_alias=" + alias + "&version=" + version + "&format=json"
-        model_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if model_instance_json.status_code != 200:
-            raise Exception("Error in retrieving model instance. Response = " + str(model_instance_json))
-        model_instance_json = model_instance_json.json()
-        if len(model_instance_json["instances"]) == 0:
-            raise Exception("Error in retrieving model instance. Possibly invalid input data.")
-        model_instance_json = model_instance_json["instances"][0]
-        for key in instance_data:
-            if instance_data[key] is None:
-                instance_data[key] = model_instance_json.get(key, None)
+            model_identifier = quote(model_id or alias)
+            response0 = requests.get(self.url + f"/models/{model_identifier}/instances/?version={version}",
+                                     auth=self.auth, verify=self.verify)
+            if response0.status_code != 200:
+                raise Exception("Invalid model_id, alias and/or version")
+            model_data = response0.json()[0]  # to fix: in principle, can have multiple instances with same version but different parameters
+            url = self.url + f"/models/{model_identifier}/instances/{model_data['id']}"
 
-        url = self.url + "/model-instances/?format=json"
+        for key in ["self", "instance_id", "alias", "model_id"]:
+            instance_data.pop(key)
+
         headers = {'Content-type': 'application/json'}
-        response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers,
+        response = requests.put(url, data=json.dumps(instance_data), auth=self.auth, headers=headers,
                                 verify=self.verify)
-        if response.status_code == 202:
-            return response.json()["uuid"][0]
+        if response.status_code == 200:
+            return response.json()["id"]
         else:
-            raise Exception("Error in editing model instance. Response = " + str(response.json()))
+            handle_response_error("Error in editing model instance at {}".format(url), response)
 
     def delete_model_instance(self, instance_id="", model_id="", alias="", version=""):
         """ONLY FOR SUPERUSERS: Delete an existing model instance.
@@ -2446,226 +2398,17 @@ class ModelCatalog(BaseClient):
             model_alias = alias # as needed by API
 
         if instance_id:
-            url = self.url + "/model-instances/?id=" + instance_id + "&format=json"
-        elif model_id and version:
-            url = self.url + "/model-instances/?model_id=" + model_id + "&version=" + version + "&format=json"
+            if model_id:
+                url = self.url + "/models/" + model_id + "/instances/" + instance_id
+            else:
+                url = self.url + "/models/query/instances/" + instance_id
         else:
-            url = self.url + "/model-instances/?model_alias=" + alias + "&version=" + version + "&format=json"
+            raise NotImplementedError("Need to retrieve instance to get id")
         model_instance_json = requests.delete(url, auth=self.auth, verify=self.verify)
         if model_instance_json.status_code == 403:
-            raise Exception("Only SuperUser accounts can delete data. Response = " + str(model_instance_json))
+            handle_response_error("Only SuperUser accounts can delete data", model_instance_json)
         elif model_instance_json.status_code != 200:
-            raise Exception("Error in deleting model instance. Response = " + str(model_instance_json))
-
-    def get_model_image(self, image_id=""):
-        """Retrieve image info from a model description.
-
-        This allows to retrieve image (figure) info from the model catalog.
-        The `image_id` needs to be specified as input parameter.
-
-        Parameters
-        ----------
-        image_id : UUID
-            System generated unique identifier associated with image (figure).
-
-        Returns
-        -------
-        dict
-            Information about the image (figure) retrieved.
-
-        Examples
-        --------
-        >>> model_image = model_catalog.get_model_image(image_id="2b45e7d4-a7a1-4a31-a287-aee7072e3e75")
-        """
-
-        if not image_id:
-            raise Exception("image_id needs to be provided for finding a specific model image (figure).")
-        else:
-            url = self.url + "/images/?id=" + image_id + "&format=json"
-        model_image_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if model_image_json.status_code != 200:
-            raise Exception("Error in retrieving model images (figures). Response = " + str(model_image_json))
-        model_image_json = model_image_json.json()
-        if len(model_image_json["images"]) == 1:
-            return model_image_json["images"][0]
-        else:
-            raise Exception("Error in retrieving model image. Possibly invalid input data.")
-        return model_image_json["images"][0]
-
-    def list_model_images(self, model_id="", alias=""):
-        """Retrieve all images (figures) associated with a model.
-
-        This can be retrieved in the following ways (in order of priority):
-
-        1. specify `model_id`
-        2. specify `alias` (of the model)
-
-        Parameters
-        ----------
-        model_id : UUID
-            System generated unique identifier associated with model description.
-        alias : string
-            User-assigned unique identifier associated with model description.
-
-        Returns
-        -------
-        list
-            List of dicts containing information about the model images (figures).
-
-        Examples
-        --------
-        >>> model_images = model_catalog.list_model_images(model_id="196b89a3-e672-4b96-8739-748ba3850254")
-        """
-
-        if model_id == "" and alias == "":
-            raise Exception("model_id or alias needs to be provided for finding model images.")
-        elif model_id:
-            url = self.url + "/images/?model_id=" + model_id + "&format=json"
-        else:
-            url = self.url + "/images/?model_alias=" + alias + "&format=json"
-        model_images_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if model_images_json.status_code != 200:
-            raise Exception("Error in retrieving model images (figures). Response = " + str(model_images_json.content))
-        model_images_json = model_images_json.json()
-        return model_images_json["images"]
-
-    def add_model_image(self, model_id="", alias="", url="", caption=""):
-        """Add a new image (figure) to a model description.
-
-        This allows to add a new image (figure) to an existing model in the model catalog.
-        The `model_id` needs to be specified as input parameter.
-
-        Parameters
-        ----------
-        model_id : UUID
-            System generated unique identifier associated with model description.
-        alias : string
-            User-assigned unique identifier associated with model description.
-        url : string
-            Url of image (figure) to be added.
-        caption : string
-            Caption to be associated with the image (figure).
-
-        Returns
-        -------
-        UUID
-            UUID of the image (figure) that was added.
-
-        Note
-        ----
-        * `alias` is not currently implemented in the API; kept for future use.
-        * TODO: Either model_id or alias needs to be provided, with model_id taking precedence over alias.
-        * TODO: Allow image (figure) to be located locally
-
-        Examples
-        --------
-        >>> image_id = model_catalog.add_model_image(model_id="196b89a3-e672-4b96-8739-748ba3850254",
-                                               url="http://www.neuron.yale.edu/neuron/sites/default/themes/xchameleon/logo.png",
-                                               caption="NEURON Logo")
-        """
-
-        image_data = locals()
-        image_data.pop("self")
-        image_data.pop("alias")
-
-        if model_id == "" and alias == "":
-            raise Exception("Model ID needs to be provided for finding the model.")
-            #raise Exception("Model ID or alias needs to be provided for finding the model.")
-        elif model_id != "":
-            url = self.url + "/images/?format=json"
-        else:
-            raise Exception("alias is not currently implemented for this feature.")
-            #url = self.url + "/images/?alias=" + alias + "&format=json"
-        headers = {'Content-type': 'application/json'}
-        response = requests.post(url, data=json.dumps([image_data]),
-                                 auth=self.auth, headers=headers,
-                                 verify=self.verify)
-        if response.status_code == 201:
-            return response.json()["uuid"][0]
-        else:
-            raise Exception("Error in adding image (figure). Response = " + str(response))
-
-    def edit_model_image(self, image_id="", url=None, caption=None):
-        """Edit an existing image (figure) metadata.
-
-        This allows to edit the metadata of an image (figure) in the model catalog.
-        The `image_id` needs to be specified as input parameter.
-        Only the parameters being updated need to be specified.
-
-        Parameters
-        ----------
-        image_id : UUID
-            System generated unique identifier associated with image (figure).
-
-        Returns
-        -------
-        UUID
-            UUID of the image (figure) that was edited.
-
-        Examples
-        --------
-        >>> image_id = model_catalog.edit_model_image(image_id="2b45e7d4-a7a1-4a31-a287-aee7072e3e75", caption = "Some Logo", url="http://www.somesite.com/logo.png")
-        """
-
-        if image_id == "":
-            raise Exception("Image ID needs to be provided for finding the image (figure).")
-
-        id = image_id
-        image_data = locals()
-        for key in ["self", "image_id"]:
-            image_data.pop(key)
-
-        # assign existing values for parameters not specified
-        url = self.url + "/images/?id=" + image_id + "&format=json"
-        model_image_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if model_image_json.status_code != 200:
-            raise Exception("Error in retrieving model images (figures). Response = " + str(model_image_json))
-        model_image_json = model_image_json.json()
-        if len(model_image_json["images"]) == 0:
-            raise Exception("Error in retrieving model image. Possibly invalid input data.")
-        model_image_json = model_image_json["images"][0]
-        for key in image_data:
-            if image_data[key] is None:
-                image_data[key] = model_image_json[key]
-
-        url = self.url + "/images/?format=json"
-        headers = {'Content-type': 'application/json'}
-        response = requests.put(url, data=json.dumps([image_data]), auth=self.auth, headers=headers,
-                                verify=self.verify)
-        if response.status_code == 202:
-            return response.json()["uuid"][0]
-        else:
-            raise Exception("Error in editing image (figure). Response = " + str(response.json()))
-
-    def delete_model_image(self, image_id=""):
-        """ONLY FOR SUPERUSERS: Delete an image from a model description.
-
-        This allows to delete an image (figure) info from the model catalog.
-        The `image_id` needs to be specified as input parameter.
-
-        Parameters
-        ----------
-        image_id : UUID
-            System generated unique identifier associated with image (figure).
-
-        Note
-        ----
-        * This feature is only for superusers!
-
-        Examples
-        --------
-        >>> model_catalog.delete_model_image(image_id="2b45e7d4-a7a1-4a31-a287-aee7072e3e75")
-        """
-
-        if not image_id:
-            raise Exception("image_id needs to be provided for finding a specific model image (figure).")
-        else:
-            url = self.url + "/images/?id=" + image_id + "&format=json"
-        model_image_json = requests.delete(url, auth=self.auth, verify=self.verify)
-        if model_image_json.status_code == 403:
-            raise Exception("Only SuperUser accounts can delete data. Response = " + str(model_image_json))
-        elif model_image_json.status_code != 200:
-            raise Exception("Error in deleting model image. Response = " + str(model_image_json))
+            handle_response_error("Error in deleting model instance", model_instance_json)
 
 
 def _have_internet_connection():

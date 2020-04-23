@@ -5,6 +5,15 @@ from datetime import datetime
 from time import sleep
 from hbp_validation_framework import ModelCatalog, TestLibrary, sample
 
+
+HBP_USERNAME = os.environ.get('HBP_USER')
+HBP_PASSWORD = os.environ.get('HBP_PASS')
+TOKEN = os.environ.get("HBP_AUTH_TOKEN")
+HBP_USERNAME_NORMAL_USER = os.environ.get('HBP_USER_NORMAL')
+HBP_PASSWORD_NORMAL_USER = os.environ.get('HBP_PASS_NORMAL')
+TOKEN_NORMAL_USER = os.environ.get("HBP_AUTH_TOKEN_NORMAL")
+
+
 """
 1. Verify superuser delete privileges
 """
@@ -12,9 +21,16 @@ from hbp_validation_framework import ModelCatalog, TestLibrary, sample
 #1.1) Super user - Delete model, model_instance, model_image, test, test_instance and result
 def test_delete_superUser(request):
     ENVIRONMENT = request.config.getoption("--environment")
-    model_catalog = ModelCatalog(username=os.environ.get('HBP_USER'), password=os.environ.get('HBP_PASS'), environment=ENVIRONMENT)
+
+    if HBP_USERNAME and HBP_PASSWORD:
+        model_catalog = ModelCatalog(username=HBP_USERNAME, password=HBP_PASSWORD, environment=ENVIRONMENT)
+    elif TOKEN:
+        model_catalog = ModelCatalog(token=TOKEN, environment=ENVIRONMENT)
+    else:
+        raise Exception("Credentials not provided. Please define environment variables (HBP_AUTH_TOKEN or HBP_USER and HBP_PASS")
+
     model_name = "Model_{}_{}_py{}_superuser1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
-    model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
+    model_id = model_catalog.register_model(collab_id="model-validation", name="IGNORE - Test Model - " + model_name,
                    alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
@@ -42,18 +58,19 @@ def test_delete_superUser(request):
 
     sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
-    test_instance_id = test["codes"][0]["id"]
+    test_instance_id = test["instances"][0]["id"]
     test = test_library.get_validation_test(test_id=test_id)
 
     score = test.judge(model)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
-    result_id = test_library.register_result(score, project = "52468") # Collab ID = 52468
+    result_id = test_library.register_result(score, project = "model-validation") # Collab ID = model-validation
 
     test_library.delete_result(result_id=result_id)
     sleep(20)
-    result = test_library.get_result(result_id=result_id)
-    assert len(result["results"]) == 0
+    with pytest.raises(Exception) as excinfo:
+        result = test_library.get_result(result_id=result_id)
+    assert "not found" in str(excinfo.value)
 
     model_catalog.delete_model_instance(instance_id=model_instance_id)
     sleep(20)
@@ -82,14 +99,22 @@ def test_delete_superUser(request):
     sleep(20)
     with pytest.raises(Exception) as excinfo:
         test = test_library.get_test_definition(test_id=test_id)
-    assert "Error in retrieving test definition." in str(excinfo.value)
+    assert "Error in retrieving test" in str(excinfo.value)
+
 
 #1.2) Normal user - Delete model, model_instance, model_image, test, test_instance and result
+@pytest.mark.xfail  # test to be updated for v2 ...
 def test_delete_normalUser(request):
     ENVIRONMENT = request.config.getoption("--environment")
-    model_catalog = ModelCatalog(username=os.environ.get('HBP_USER_NORMAL'), password=os.environ.get('HBP_PASS_NORMAL'), environment=ENVIRONMENT)
+    if HBP_USERNAME_NORMAL_USER and HBP_PASSWORD_NORMAL_USER:
+        model_catalog = ModelCatalog(username=HBP_USERNAME_NORMAL_USER,
+                                     password=HBP_PASSWORD_NORMAL_USER, environment=ENVIRONMENT)
+    elif TOKEN:
+        model_catalog = ModelCatalog(token=TOKEN_NORMAL_USER, environment=ENVIRONMENT)
+    else:
+        raise Exception("Credentials not provided. Please define environment variables (HBP_AUTH_TOKEN or HBP_USER and HBP_PASS")
     model_name = "Model_{}_{}_py{}_normaluser1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
-    model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
+    model_id = model_catalog.register_model(collab_id="model-validation", name="IGNORE - Test Model - " + model_name,
                    alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
@@ -116,13 +141,14 @@ def test_delete_normalUser(request):
                     version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
     sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
-    test_instance_id = test["codes"][0]["id"]
+    test_instance_id = test["instances"][0]["id"]
     test = test_library.get_validation_test(test_id=test_id)
 
     score = test.judge(model)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
-    result_id = test_library.register_result(score, project="52468") # Collab ID = 52468
+
+    result_id = test_library.register_result(score, project="model-validation") # Collab ID = model-validation
 
     with pytest.raises(Exception) as excinfo:
         test_library.delete_result(result_id=result_id)

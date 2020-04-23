@@ -52,14 +52,14 @@ def test_getTest_invalid_id_value(testLibrary):
     test_library = testLibrary
     with pytest.raises(Exception) as excinfo:
         test = test_library.get_test_definition(test_id=str(uuid.uuid4()))
-    assert "Error in retrieving test definition." in str(excinfo.value)
+    assert "Error in retrieving test" in str(excinfo.value)
 
 #1.7) Using invalid alias
 def test_getTest_invalid_alias(testLibrary):
     test_library = testLibrary
     with pytest.raises(Exception) as excinfo:
         test = test_library.get_test_definition(alias="<>(@#%^)")
-    assert "Error in retrieving test definition." in str(excinfo.value)
+    assert "Error in retrieving test" in str(excinfo.value)
 
 #1.8) Using empty test_id
 def test_getTest_empty_id(testLibrary):
@@ -112,7 +112,7 @@ def test_getList_invalid_filter(testLibrary):
 #2.5) Filter with no matches
 def test_getList_nomatch(testLibrary):
     test_library = testLibrary
-    tests = test_library.list_tests(cell_type="ABCDE")
+    tests = test_library.list_tests(data_type="ABCDE")
     assert isinstance(tests, list)
     assert len(tests) == 0
 
@@ -173,7 +173,7 @@ def test_addtest_missingParam(testLibrary):
                         data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                         data_type="Mean, SD", publication="Testing et al., 2019",
                         version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
-    assert "This field may not be blank." in str(excinfo.value)
+    assert "field required" in str(excinfo.value)
 
 #4.3) Invalid value for parameter (brain_region)
 def test_addtest_invalidParam(testLibrary):
@@ -229,7 +229,7 @@ def test_addtest_repeat_alias_nodetails(testLibrary):
                         data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                         data_type="Mean, SD", publication="Testing et al., 2019",
                         version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
-    assert "validation test definition with this alias already exists." in str(excinfo.value)
+    assert "already exists" in str(excinfo.value)
 
 #4.7) Invalid test with no instances
 def test_addtest_valid_withalias_withdetails(testLibrary):
@@ -268,7 +268,6 @@ def test_editTest_invalid_noID(testLibrary):
     assert str(excinfo.value) == "Test ID needs to be provided for editing a test."
 
 #5.2) Valid change - test_id
-# @pytest.mark.xfail # see https://github.com/HumanBrainProject/hbp-validation-framework/issues/241
 def test_editTest_valid(testLibrary):
     test_library = testLibrary
     test_name = "Test_{}_{}_py{}_edit2".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), test_library.environment, platform.python_version())
@@ -311,7 +310,7 @@ def test_editTest_invalid_duplicate_alias(testLibrary):
                         data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
                         data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                         data_type="Mean, SD", publication="Testing et al., 2019")
-    assert "validation test definition with this alias already exists" in str(excinfo.value)
+    assert "already exists" in str(excinfo.value)
 
 #5.4) Invalid change - version info
 def test_editTest_invalid_version_info(testLibrary):
@@ -351,4 +350,4 @@ def test_getValidationTest_testID(testLibrary):
     sleep(30)
     test = test_library.get_validation_test(test_id=test_id)
     assert isinstance(test, sciunit.Test)
-    assert "test.txt" in test.observation
+    assert "test.txt" in test.observation[0]

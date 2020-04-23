@@ -7,30 +7,45 @@ from time import sleep
 
 HBP_USERNAME = os.environ.get('HBP_USER')
 HBP_PASSWORD = os.environ.get('HBP_PASS')
+TOKEN = os.environ.get("HBP_AUTH_TOKEN")  ###
+
 
 def pytest_addoption(parser):
     parser.addoption(
         "--environment", action="store", default="production", help="options: production or dev"
     )
 
+
 @pytest.fixture(scope="session")
 def modelCatalog(request):
    ENVIRONMENT = request.config.getoption("--environment")
-   model_catalog = ModelCatalog(username=HBP_USERNAME, password=HBP_PASSWORD, environment=ENVIRONMENT)
+   if HBP_USERNAME and HBP_PASSWORD:
+      model_catalog = ModelCatalog(username=HBP_USERNAME, password=HBP_PASSWORD, environment=ENVIRONMENT)
+   elif TOKEN:
+      model_catalog = ModelCatalog(token=TOKEN, environment=ENVIRONMENT)
+   else:
+      raise Exception("Credentials not provided. Please define environment variables (HBP_AUTH_TOKEN or HBP_USER and HBP_PASS")
    return model_catalog
+
 
 @pytest.fixture(scope="session")
 def testLibrary(request):
    ENVIRONMENT = request.config.getoption("--environment")
-   test_library = TestLibrary(username=HBP_USERNAME, password=HBP_PASSWORD, environment=ENVIRONMENT)
+   if HBP_USERNAME and HBP_PASSWORD:
+      test_library = TestLibrary(username=HBP_USERNAME, password=HBP_PASSWORD, environment=ENVIRONMENT)
+   elif TOKEN:
+      test_library = TestLibrary(token=TOKEN, environment=ENVIRONMENT)
+   else:
+      raise Exception("Credentials not provided. Please define environment variables (HBP_AUTH_TOKEN or HBP_USER and HBP_PASS")
    return test_library
+
 
 @pytest.fixture(scope="session")
 def myModelID(modelCatalog):
    model_catalog = modelCatalog
    model_name = "Model_{}_{}_py{}".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
    # todo: need to test with both "single cell" and "network" as model_scope, since these have different KG representations
-   model_id = model_catalog.register_model(app_id="359330", name="IGNORE - Test Model - " + model_name,
+   model_id = model_catalog.register_model(collab_id="model-validation", name="IGNORE - Test Model - " + model_name,
                    alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
@@ -64,6 +79,7 @@ def myTestID(testLibrary):
    isinstance_id = testLibrary.add_test_instance(test_id=test_id, version="2.0", repository="http://www.12345.com", path="hbp_validation_framework.sample.SampleTest", parameters="", description="")
    return test_id
 
+
 @pytest.fixture(scope="session")
 def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
    model_catalog = modelCatalog
@@ -87,13 +103,15 @@ def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
    score = test.judge(model)
    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
    folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
-   result_id = test_library.register_result(score, project = "52468") # Collab ID = 52468
+   result_id = test_library.register_result(score, project="model-validation") # Collab ID for testing
    return result_id
+
 
 def pytest_sessionfinish(session, exitstatus):
    ENVIRONMENT = session.config.getoption("--environment")
-   model_catalog = ModelCatalog(username=HBP_USERNAME, password=HBP_PASSWORD, environment=ENVIRONMENT)
-   models = model_catalog.list_models(app_id="359330", author={"family_name": "Tester", "given_name": "Validation"})
+   #model_catalog = ModelCatalog(username=HBP_USERNAME, password=HBP_PASSWORD, environment=ENVIRONMENT)
+   model_catalog = ModelCatalog(token=TOKEN, environment=ENVIRONMENT)
+   models = model_catalog.list_models(collab_id="model-validation", author={"family_name": "Tester", "given_name": "Validation"})
    for model in models:
       if "IGNORE - Test Model - " in model["name"]:
          model_catalog.delete_model(model["id"])

@@ -166,11 +166,12 @@ def prepare_run_test_offline(username="", password=None, environment="production
     test_instance_path = test_instance_json["path"]
 
     # Download test observation to local storage
-    test_observation_path = test_library.get_test_definition(test_id=test_id)["data_location"]
-    parse_result = urlparse(test_observation_path)
-    datastore = URI_SCHEME_MAP[parse_result.scheme](auth=test_library.auth)
     base_folder = os.path.join(os.getcwd(), "hbp_validation_framework", test_id, datetime.now().strftime("%Y%m%d-%H%M%S"))
-    test_observation_file = datastore.download_data([test_observation_path], local_directory=base_folder)[0]
+    test_observation_paths = test_library.get_test_definition(test_id=test_id)["data_location"]
+    for test_observation_path in test_observation_paths:
+        parse_result = urlparse(test_observation_path)
+        datastore = URI_SCHEME_MAP[parse_result.scheme](auth=test_library.auth)
+        test_observation_file = datastore.download_data([test_observation_path], local_directory=base_folder)[0]
 
     # Create test config required for offline execution
     test_info = {}
@@ -344,7 +345,7 @@ def upload_test_result(username="", password=None, environment="production", tes
     model_instance_uuid = model_catalog.find_model_instance_else_add(score.model)
     model_instance_json = model_catalog.get_model_instance(instance_id=model_instance_uuid)
     model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
-    model_host_collab_id = model_json["app"]["collab_id"]
+    model_host_collab_id = model_json["project_id"]
     model_name = model_json["name"]
 
     if not storage_collab_id:
@@ -441,7 +442,9 @@ def run_test(username="", password=None, environment="production", model="", tes
     result_id, score = upload_test_result(username=username, password=password, environment=environment, test_result_file=test_result_file, storage_collab_id=storage_collab_id, register_result=register_result, client_obj=client_obj)
     return result_id, score
 
-def generate_HTML_report(username="", password=None, environment="production", model_list=[], model_instance_list=[], test_list=[], test_instance_list=[], result_list=[], collab_id=None, client_obj=None):
+def generate_HTML_report(username="", password=None, environment="production", model_list=[],
+                         model_instance_list=[], test_list=[], test_instance_list=[],
+                         result_list=[], collab_id=None, client_obj=None):
     """Generates an HTML report for specified test results
 
     This method will generate an HTML report for the specified test results.
@@ -533,10 +536,10 @@ def generate_HTML_report(username="", password=None, environment="production", m
     # extend results list to include all results corresponding to above
     # identified model instances and test instances
     for item in model_instance_list:
-        results_json = test_library.list_results(model_version_id=item)["results"]
+        results_json = test_library.list_results(model_version_id=item)
         result_list.extend([r["id"] for r in results_json])
     for item in test_instance_list:
-        results_json = test_library.list_results(test_code_id=item)["results"]
+        results_json = test_library.list_results(test_code_id=item)
         result_list.extend([r["id"] for r in results_json])
 
     # remove duplicate result UUIDs
@@ -553,15 +556,12 @@ def generate_HTML_report(username="", password=None, environment="production", m
     list_test_instances = []
     valid_result_uuids = []
     for r_id in result_list:
-        result = test_library.get_result(result_id = r_id)["results"]
-        if len(result) == 0:
-            continue    # invalid result UUID
-        result = result[0]
+        result = test_library.get_result(result_id=r_id)
         valid_result_uuids.append(r_id)
-        model_instance = result.pop("model_version")
-        test_instance = result.pop("test_code")
-        model = model_instance.pop("model")
-        test = test_instance.pop("test_definition")
+        model_instance = model_catalog.get_model_instance(instance_id=result["model_version_id"])
+        test_instance = test_library.get_test_instance(instance_id=result["test_code_id"])
+        model = model_catalog.get_model(model_id=model_instance["model_id"])
+        test = test_library.get_test_definition(test_id=test_instance["test_definition_id"])
 
         list_results.append(result)
         list_models.append(model)
@@ -575,9 +575,15 @@ def generate_HTML_report(username="", password=None, environment="production", m
             result_url = "https://collab.humanbrainproject.eu/#/collab/{}/nav/{}?state=result.{}".format(str(collab_id),str(VFapp_navID), r_id)
             model_url = "https://collab.humanbrainproject.eu/#/collab/{}/nav/{}?state=model.{}".format(str(collab_id),str(MCapp_navID), model["id"])
             test_url = "https://collab.humanbrainproject.eu/#/collab/{}/nav/{}?state=test.{}".format(str(collab_id),str(VFapp_navID), test["id"])
-            result_summary_table.append({"result_id":(r_id, result_url), "model_label":(model_label, model_url), "test_label":(test_label, test_url), "score":(result["score"], result_url)})
+            result_summary_table.append({"result_id": (r_id, result_url),
+                                         "model_label": (model_label, model_url),
+                                         "test_label": (test_label, test_url),
+                                         "score": (result["score"], result_url)})
         else:
-            result_summary_table.append({"result_id":(r_id), "model_label":(model_label), "test_label":(test_label), "score":(result["score"])})
+            result_summary_table.append({"result_id": (r_id),
+                                         "model_label": (model_label),
+                                         "test_label": (test_label),
+                                         "score": (result["score"])})
 
     timestamp = datetime.now()
     report_name = str("HBP_VF_Report_" + timestamp.strftime("%Y%m%d-%H%M%S") + ".html")
@@ -587,20 +593,24 @@ def generate_HTML_report(username="", password=None, environment="production", m
     template = env.get_template(os.path.basename(template_path))
 
     template_vars = {"report_name" : report_name,
-                    "created_date" : timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                    "result_summary_table" : result_summary_table,
-                    "list_results" : list_results,
-                    "list_models" : list_models,
-                    "list_model_instances" : list_model_instances,
-                    "list_tests" : list_tests,
-                    "list_test_instances" : list_test_instances}
+                     "created_date" : timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                     "result_summary_table" : result_summary_table,
+                     "list_results" : list_results,
+                     "list_models" : list_models,
+                     "list_model_instances" : list_model_instances,
+                     "list_tests" : list_tests,
+                     "list_test_instances" : list_test_instances}
     html_out = template.render(template_vars)
 
     with open(report_name, "w") as outfile:
         outfile.write(html_out)
     return os.path.abspath(report_name), valid_result_uuids
 
-def generate_PDF_report(html_report_path=None, username="", password=None, environment="production", model_list=[], model_instance_list=[], test_list=[], test_instance_list=[], result_list=[], collab_id=None, only_results=False, client_obj=None):
+
+def generate_PDF_report(html_report_path=None, username="", password=None,
+                        environment="production", model_list=[], model_instance_list=[],
+                        test_list=[], test_instance_list=[], result_list=[], collab_id=None,
+                        only_results=False, client_obj=None):
     """Generates a PDF report for specified test results
 
     This method will generate a PDF report for the specified test results.
