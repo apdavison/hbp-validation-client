@@ -16,7 +16,7 @@ template_files = package_files('hbp_validation_framework', 'templates')
 
 setup(
     name='hbp_validation_framework',
-    version='0.5.27',
+    version='0.5.28',
     packages=['hbp_validation_framework'],
     package_data={'': json_files+template_files},
     url='https://github.com/HumanBrainProject/hbp-validation-client',

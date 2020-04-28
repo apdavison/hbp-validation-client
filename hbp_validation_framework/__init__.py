@@ -1461,18 +1461,11 @@ class TestLibrary(BaseClient):
         # Use Sumatra?
         network_name = platform.node()
         bits, linkage = platform.architecture()
-        if _have_internet_connection():
-            try:
-                ip_addr = socket.gethostbyname(network_name)
-            except socket.gaierror:
-                ip_addr = "127.0.0.1"
-        else:
-            ip_addr = "127.0.0.1"
         return dict(architecture_bits=bits,
                     architecture_linkage=linkage,
                     machine=platform.machine(),
                     network_name=network_name,
-                    ip_addr=ip_addr,
+                    ip_addr=_get_ip_address(),
                     processor=platform.processor(),
                     release=platform.release(),
                     system_name=platform.system(),
@@ -2692,16 +2685,15 @@ class ModelCatalog(BaseClient):
             raise Exception("Error in deleting model image. Response = " + str(model_image_json))
 
 
-def _have_internet_connection():
+def _get_ip_address():
     """
     Not foolproof, but allows checking for an external connection with a short
     timeout, before trying socket.gethostbyname(), which has a very long
     timeout.
     """
-    test_address = 'http://74.125.113.99'  # google.com
     try:
-        urlopen(test_address, timeout=1)
-        return True
-    except (URLError, socket.timeout):
-        pass
-    return False
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except (OSError, URLError, socket.timeout, socket.gaierror):
+        return "127.0.0.1"
