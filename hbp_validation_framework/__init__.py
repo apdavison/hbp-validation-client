@@ -23,8 +23,8 @@ try:
 except NameError:
     raw_input = input
 import socket
+import re
 import json, simplejson
-import ast
 import getpass
 import requests
 from requests.auth import AuthBase
@@ -157,7 +157,7 @@ class BaseClient(object):
                         print("Authentication Failure! Password entered is possibly incorrect.")
                         raise
                 with open(TOKENFILE, "w") as fp:
-                    json.dump({username: self.config["auth"]["token"]}, fp)
+                    json.dump({username: self.config["token"]}, fp)
                 os.chmod(TOKENFILE, 0o600)
         else:
             try:
@@ -166,7 +166,7 @@ class BaseClient(object):
                 print("Authentication Failure! Password entered is possibly incorrect.")
                 raise
             with open(TOKENFILE, "w") as fp:
-                json.dump({username: self.config["auth"]["token"]}, fp)
+                json.dump({username: self.config["token"]}, fp)
             os.chmod(TOKENFILE, 0o600)
         self.auth = HBPAuth(self.token)
 
@@ -270,77 +270,45 @@ class BaseClient(object):
         """
         HBP authentication
         """
-        redirect_uri = self.url + '/complete/hbp/'
-
-        self.session = requests.Session()
-        # 1. login button on NMPI
-        rNMPI1 = self.session.get(self.url + "/login/hbp/?next=/config.json",
-                                  allow_redirects=False, verify=self.verify)
-        # 2. receives a redirect or some Javascript for doing an XMLHttpRequest
-        if rNMPI1.status_code in (302, 200):
-            # Get its new destination (location)
-            if rNMPI1.status_code == 302:
-                url = rNMPI1.headers.get('location')
-            else:
-                res = rNMPI1.content
-                if not isinstance(res, str):
-                    res = res.decode("ascii")
-                start = res.find("https://services.humanbrainproject.eu/oidc/authorize?")
-                url = res[start:res.find("}", start)]
-                query = parse_qs(urlparse(url).query)
-                state = query["state"][0]
-                if not state:
-                    raise Exception("Could not obtain state. Response was '{}'".format(res))
-                url = "https://services.humanbrainproject.eu/oidc/authorize?state={}&redirect_uri={}/complete/hbp/&response_type=code&client_id={}".format(state, self.url, self.client_id)
-            # get the exchange cookie
-            cookie = rNMPI1.headers.get('set-cookie').split(";")[0]
-            self.session.headers.update({'cookie': cookie})
-            # 3. request to the provided url at HBP
-            rHBP1 = self.session.get(url, allow_redirects=False, verify=self.verify)
-            # 4. receives a redirect to HBP login page
-            if rHBP1.status_code == 302:
-                # Get its new destination (location)
-                url = rHBP1.headers.get('location')
-                cookie = rHBP1.headers.get('set-cookie').split(";")[0]
-                self.session.headers.update({'cookie': cookie})
-                # 5. request to the provided url at HBP
-                rHBP2 = self.session.get(url, allow_redirects=False, verify=self.verify)
-                # 6. HBP responds with the auth form
-                if rHBP2.text:
-                    # 7. Request to the auth service url
-                    formdata = {
-                        'j_username': username,
-                        'j_password': password,
-                        'submit': 'Login',
-                        'redirect_uri': redirect_uri + '&response_type=code&client_id=nmpi'
-                    }
-                    headers = {'accept': 'application/json'}
-                    rNMPI2 = self.session.post("https://services.humanbrainproject.eu/oidc/j_spring_security_check",
-                                               data=formdata,
-                                               allow_redirects=True,
-                                               verify=self.verify,
-                                               headers=headers)
-                    # check good communication
-                    if rNMPI2.status_code == requests.codes.ok:
-                        # check success address
-                        if rNMPI2.url == self.url + '/config.json':
-                            res = rNMPI2.json()
-                            self.token = res['auth']['token']['access_token']
-                            self.config = res
-                        # unauthorized
-                        else:
-                            if 'error' in rNMPI2.url:
-                                raise Exception("Authentication Failure: No token retrieved." + rNMPI2.url)
-                            else:
-                                raise Exception("Unhandled error in Authentication." + rNMPI2.url)
-                    else:
-                        raise Exception("Communication error")
-                else:
-                    raise Exception("Something went wrong. No text.")
-            else:
-                raise Exception("Something went wrong. Status code {} from HBP, expected 302".format(rHBP1.status_code))
-        else:
-            raise Exception("Something went wrong. Status code {} from NMPI, expected 302".format(rNMPI1.status_code))
+        redirect_uri = self.url + '/auth'
+        session = requests.Session()
+        # log-in page of model validation service
+        r_login = session.get(self.url + "/login", allow_redirects=False)
+        if r_login.status_code != 302:
+            raise Exception(
+                "Something went wrong. Status code {} from login, expected 302"
+                .format(r_login.status_code))
+        # redirects to EBRAINS IAM log-in page
+        iam_auth_url = r_login.headers.get('location')
+        r_iam1 = session.get(iam_auth_url, allow_redirects=False)
+        if r_iam1.status_code != 200:
+            raise Exception(
+                "Something went wrong loading EBRAINS log-in page. Status code {}"
+                .format(r_iam1.status_code))
+        # fill-in and submit form
+        match = re.search(r'action=\"(?P<url>[^\"]+)\"', r_iam1.text)
+        if not match:
+            raise Exception("Received an unexpected page")
+        iam_authenticate_url = match['url'].replace("&amp;", "&")
+        r_iam2 = session.post(
+            iam_authenticate_url,
+            data={"username": username, "password": password},
+            headers={"Referer": iam_auth_url, "Host": "iam.ebrains.eu", "Origin": "https://iam.ebrains.eu"},
+            allow_redirects=False
+        )
+        if r_iam2.status_code != 302:
+            raise Exception(
+                "Something went wrong. Status code {} from authenticate, expected 302"
+                .format(r_iam2.status_code))
+        # redirects back to model validation service
+        r_val = session.get(r_iam2.headers['Location'])
+        if r_val.status_code != 200:
+            raise Exception(
+                "Something went wrong. Status code {} from final authentication step"
+                .format(r_val.status_code))
+        config = r_val.json()
+        self.token = config['token']['access_token']
+        self.config = config
 
     @classmethod
     def from_existing(cls, client):
