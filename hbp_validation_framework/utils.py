@@ -164,6 +164,7 @@ def prepare_run_test_offline(username="", password=None, environment="production
     test_id = test_instance_json["test_definition_id"]
     test_instance_id = test_instance_json["id"]
     test_instance_path = test_instance_json["path"]
+    test_instance_parameters = test_instance_json["parameters"]
 
     # Download test observation to local storage
     test_observation_path = test_library.get_test_definition(test_id=test_id)["data_location"]
@@ -177,6 +178,7 @@ def prepare_run_test_offline(username="", password=None, environment="production
     test_info["test_id"] = test_id
     test_info["test_instance_id"] = test_instance_id
     test_info["test_instance_path"] = test_instance_path
+    test_info["test_instance_parameters"] = test_instance_parameters
     test_info["test_observation_file"] = os.path.basename(os.path.realpath(test_observation_file))
     test_info["params"] = params
 
@@ -240,6 +242,12 @@ def run_test_offline(model="", test_config_file=""):
 
     # Create the :class:`sciunit.Test` instance
     params = test_info["params"]
+    test_instance_parameters = test_info["test_instance_parameters"]
+    try:
+        if isinstance(eval(test_instance_parameters), dict):
+            params.update(eval(test_instance_parameters))
+    except:
+        pass
     test = test_cls(observation=observation_data, **params)
     test.uuid = test_info["test_instance_id"]
 
@@ -327,14 +335,15 @@ def upload_test_result(username="", password=None, environment="production", tes
     >>> result_id, score = utils.upload_test_result(username="shailesh", test_result_file=test_result_file)
     """
 
-    if not register_result:
-        return None, None
     if not os.path.isfile(test_result_file) :
         raise Exception("'test_result_file' should direct to file containg the test result data.")
 
     # Load result info from file
     with open(test_result_file, 'rb') as file:
         score = pickle.load(file)
+
+    if not register_result:
+        return None, score
 
     # Register the result with the HBP validation framework
     if client_obj:
