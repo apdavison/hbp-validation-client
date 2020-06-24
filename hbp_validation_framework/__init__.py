@@ -601,10 +601,11 @@ class TestLibrary(BaseClient):
             if filter not in valid_filters:
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
 
-        params = locals()["filters"]
         url = self.url + "/tests/"
         if params:
-            url += "?" + urlencode(params)
+            url += "?" + urlencode(params) + "&size=100000"
+        else:
+            url += "?size=100000"
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code != 200:
             handle_response_error("Error listing tests", response)
@@ -951,9 +952,9 @@ class TestLibrary(BaseClient):
                 test_instances_json = json.load(fp)
         else:
             if test_id:
-                url = self.url + "/tests/" + test_id + "/instances/"
+                url = self.url + "/tests/" + test_id + "/instances/?size=100000"
             else:
-                url = self.url + "/tests/" + quote(alias) + "/instances/"
+                url = self.url + "/tests/" + quote(alias) + "/instances/?size=100000"
             response = requests.get(url, auth=self.auth, verify=self.verify)
 
         if response.status_code != 200:
@@ -1263,7 +1264,9 @@ class TestLibrary(BaseClient):
 
         url = self.url + "/results/"
         if filters:
-            url += "?" + urlencode(filters)
+            url += "?" + urlencode(filters) + "&size=100000"
+        else:
+            url += "?size=100000"
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code != 200:
             handle_response_error("Error in retrieving results", response)
@@ -1627,9 +1630,15 @@ class ModelCatalog(BaseClient):
         for filter in params:
             if filter not in valid_filters:
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
+
         if "collab_id" in params:
             params["project_id"] = params.pop("collab_id")
-        url = self.url + "/models/?" + urlencode(params)
+
+        url = self.url + "/models/"
+        if params:
+            url += "?" + urlencode(params) + "&size=100000"
+        else:
+            url += "?size=100000"
         response = requests.get(url, auth=self.auth, verify=self.verify)
         try:
             models = response.json()
@@ -2115,9 +2124,9 @@ class ModelCatalog(BaseClient):
                 model_instances_json = json.load(fp)
         else:
             if model_id:
-                url = self.url + "/models/" + model_id
+                url = self.url + "/models/" + model_id + "/instances/?size=100000"
             else:
-                url = self.url + "/models/" + quote(alias)
+                url = self.url + "/models/" + quote(alias) + "/instances/?size=100000"
             model_instances_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_instances_json.status_code != 200:
             handle_response_error("Error in retrieving model instances", model_instances_json)
