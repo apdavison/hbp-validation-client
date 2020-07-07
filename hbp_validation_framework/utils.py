@@ -161,7 +161,7 @@ def prepare_run_test_offline(username="", password=None, environment="production
 
     # Gather specified test info
     test_instance_json = test_library.get_test_instance(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version)
-    test_id = test_instance_json["test_definition_id"]
+    test_id = test_instance_json["test_id"]
     test_instance_id = test_instance_json["id"]
     test_instance_path = test_instance_json["path"]
 
@@ -356,7 +356,7 @@ def upload_test_result(username="", password=None, environment="production", tes
     # this (model instance, test instance) combination; if yes, don't register result
     # result_json = {
     #                 "model_instance_id": model_instance_uuid,
-    #                 "test_code_id": score.test.uuid,
+    #                 "test_instance_id": score.test.uuid,
     #                 "score": score.score,
     #                 "runtime": score.runtime,
     #                 "exectime": score.exec_timestamp#,
@@ -364,7 +364,7 @@ def upload_test_result(username="", password=None, environment="production", tes
     #               }
     # score.score_hash = str(hash(json.dumps(result_json, sort_keys=True, default = str)))
     test_library = TestLibrary.from_existing(model_catalog)
-    # results = test_library.list_results(model_version_id=model_instance_uuid, test_code_id=score.test.uuid)["results"]
+    # results = test_library.list_results(model_instance_id=model_instance_uuid, test_instance_id=score.test.uuid)["results"]
     # duplicate_results =  [x["id"] for x in results if x["hash"] == score.score_hash]
     # if duplicate_results:
     #     raise Exception("An identical result has already been registered on the validation framework.\nExisting Result UUID = {}".format(", ".join(duplicate_results)))
@@ -536,10 +536,10 @@ def generate_HTML_report(username="", password=None, environment="production", m
     # extend results list to include all results corresponding to above
     # identified model instances and test instances
     for item in model_instance_list:
-        results_json = test_library.list_results(model_version_id=item)
+        results_json = test_library.list_results(model_instance_id=item)
         result_list.extend([r["id"] for r in results_json])
     for item in test_instance_list:
-        results_json = test_library.list_results(test_code_id=item)
+        results_json = test_library.list_results(test_instance_id=item)
         result_list.extend([r["id"] for r in results_json])
 
     # remove duplicate result UUIDs
@@ -558,10 +558,10 @@ def generate_HTML_report(username="", password=None, environment="production", m
     for r_id in result_list:
         result = test_library.get_result(result_id=r_id)
         valid_result_uuids.append(r_id)
-        model_instance = model_catalog.get_model_instance(instance_id=result["model_version_id"])
-        test_instance = test_library.get_test_instance(instance_id=result["test_code_id"])
+        model_instance = model_catalog.get_model_instance(instance_id=result["model_instance_id"])
+        test_instance = test_library.get_test_instance(instance_id=result["test_instance_id"])
         model = model_catalog.get_model(model_id=model_instance["model_id"])
-        test = test_library.get_test_definition(test_id=test_instance["test_definition_id"])
+        test = test_library.get_test_definition(test_id=test_instance["test_id"])
 
         list_results.append(result)
         list_models.append(model)
@@ -816,10 +816,10 @@ def generate_score_matrix(username="", password=None, environment="production", 
     # extend results list to include all results corresponding to above
     # identified model instances and test instances
     for item in model_instance_list:
-        results_json = test_library.list_results(model_version_id=item)["results"]
+        results_json = test_library.list_results(model_instance_id=item)["results"]
         result_list.extend([r["id"] for r in results_json])
     for item in test_instance_list:
-        results_json = test_library.list_results(test_code_id=item)["results"]
+        results_json = test_library.list_results(test_instance_id=item)["results"]
         result_list.extend([r["id"] for r in results_json])
 
     # remove duplicate result UUIDs
@@ -833,21 +833,21 @@ def generate_score_matrix(username="", password=None, environment="production", 
     for r_id in result_list:
         result = test_library.get_result(result_id = r_id)["results"][0]
         # '#*#' is used as separator between score and result UUID (latter used for constructing hyperlink)
-        if result["test_code_id"] in results_dict.keys():
-            if result["model_version_id"] not in results_dict[result["test_code_id"]].keys():
-                results_dict[result["test_code_id"]][result["model_version_id"]] = [result["timestamp"], str(result["score"]) + "#*#" + r_id]
-            elif result["timestamp"] > results_dict[result["test_code_id"]][result["model_version_id"]][0]:
-                excluded_results.append(results_dict[result["test_code_id"]][result["model_version_id"]][1].split('#*#')[1])
-                results_dict[result["test_code_id"]][result["model_version_id"]] = [result["timestamp"], str(result["score"]) + "#*#" + r_id]
+        if result["test_instance_id"] in results_dict.keys():
+            if result["model_instance_id"] not in results_dict[result["test_instance_id"]].keys():
+                results_dict[result["test_instance_id"]][result["model_instance_id"]] = [result["timestamp"], str(result["score"]) + "#*#" + r_id]
+            elif result["timestamp"] > results_dict[result["test_instance_id"]][result["model_instance_id"]][0]:
+                excluded_results.append(results_dict[result["test_instance_id"]][result["model_instance_id"]][1].split('#*#')[1])
+                results_dict[result["test_instance_id"]][result["model_instance_id"]] = [result["timestamp"], str(result["score"]) + "#*#" + r_id]
             else:
                 excluded_results.append(r_id)
         else:
-            results_dict[result["test_code_id"]] = {result["model_version_id"]: [result["timestamp"], str(result["score"]) + "#*#" + r_id]}
+            results_dict[result["test_instance_id"]] = {result["model_instance_id"]: [result["timestamp"], str(result["score"]) + "#*#" + r_id]}
 
-        if result["model_version_id"] not in model_instances_dict.keys():
-            model_instances_dict[result["model_version_id"]] = None
-        if result["test_code_id"] not in model_instances_dict.keys():
-            test_instances_dict[result["test_code_id"]] = None
+        if result["model_instance_id"] not in model_instances_dict.keys():
+            model_instances_dict[result["model_instance_id"]] = None
+        if result["test_instance_id"] not in model_instances_dict.keys():
+            test_instances_dict[result["test_instance_id"]] = None
 
     # update results_dict values to contain only scores; remove timestamps
     for key_test_inst in results_dict.keys():
@@ -858,7 +858,7 @@ def generate_score_matrix(username="", password=None, environment="production", 
     for t_id in test_instances_dict.keys():
         test = test_library.get_test_instance(instance_id=t_id)
         test_version = test["version"]
-        test = test_library.get_test_definition(test_id=test["test_definition_id"])
+        test = test_library.get_test_definition(test_id=test["test_id"])
         test_name = test["alias"] if test["alias"] else test["name"]
         test_label = test_name + " (" + str(test_version) + ")"
         test_instances_dict[t_id] = test_label

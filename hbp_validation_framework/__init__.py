@@ -227,8 +227,8 @@ class BaseClient(object):
                   "app_type":"model_catalog",
                   "brain_region":"",
                   "cell_type":"",
-                  "collab_id":8123,
-                  "data_modalities":"",
+                  "project_id":8123,
+                  "recording_modality":"",
                   "model_scope":"",
                   "abstraction_level":"",
                   "organization":"",
@@ -404,6 +404,7 @@ class TestLibrary(BaseClient):
         self._set_app_info()
 
     def _set_app_info(self):
+        #  TODO: check if needs to be updated for Collab v2
         if self.environment == "production":
             self.app_id = 360
             self.app_name = "Validation Framework"
@@ -414,16 +415,17 @@ class TestLibrary(BaseClient):
             self.app_id = 432
             self.app_name = "Model Validation app (staging)"
 
-    def set_app_config(self, collab_id="", app_id="", only_if_new=False, data_modalities="", test_type="", species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
-        inputArgs = locals()
-        params = {}
-        params["url"] = self.url + "/parametersconfiguration-validation-app/parametersconfigurationrest/"
-        params["only_if_new"] = only_if_new
-        params["config"] = inputArgs
-        params["config"].pop("self")
-        params["config"].pop("only_if_new")
-        params["config"]["app_type"] = "validation_app"
-        self._configure_app_collab(params)
+    # def set_app_config(self, project_id="", only_if_new=False, recording_modality="", test_type="", species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
+    #     #  TODO: needs to be updated for Collab v2
+    #     inputArgs = locals()
+    #     params = {}
+    #     params["url"] = self.url + "/parametersconfiguration-validation-app/parametersconfigurationrest/"
+    #     params["only_if_new"] = only_if_new
+    #     params["config"] = inputArgs
+    #     params["config"].pop("self")
+    #     params["config"].pop("only_if_new")
+    #     params["config"]["app_type"] = "validation_app"
+    #     self._configure_app_collab(params)
 
     def get_test_definition(self, test_path="", test_id = "", alias=""):
         """Retrieve a specific test definition.
@@ -532,7 +534,7 @@ class TestLibrary(BaseClient):
             if instance_id:
                 # `instance_id` is sufficient for identifying both test and instance
                 test_instance_json = self.get_test_instance(instance_path=instance_path, instance_id=instance_id) # instance_path added just to maintain order of priority
-                test_id = test_instance_json["test_definition_id"]
+                test_id = test_instance_json["test_id"]
                 test_json = self.get_test_definition(test_path=test_path, test_id=test_id) # test_path added just to maintain order of priority
             else:
                 test_json = self.get_test_definition(test_path=test_path, test_id=test_id, alias=alias)
@@ -557,7 +559,7 @@ class TestLibrary(BaseClient):
         test_instance.uuid = test_instance_json["id"]
         return test_instance
 
-    def list_tests(self, **filters):
+    def list_tests(self, size=1000000, **filters):
         """Retrieve a list of test definitions satisfying specified filters.
 
         The filters may specify one or more attributes that belong
@@ -570,7 +572,7 @@ class TestLibrary(BaseClient):
         * age
         * brain_region
         * cell_type
-        * data_modality
+        * recording_modality
         * test_type
         * score_type
         * model_scope
@@ -580,6 +582,8 @@ class TestLibrary(BaseClient):
 
         Parameters
         ----------
+        size : positive integer
+            Max number of tests to be returned; default is set to 1000000.
         **filters : variable length keyword arguments
             To be used to filter test definitions from the test library.
 
@@ -595,17 +599,15 @@ class TestLibrary(BaseClient):
         >>> tests = test_library.list_tests(test_type="single cell activity", cell_type="Pyramidal Cell")
         """
 
-        valid_filters = ["name", "alias", "author", "species", "age", "brain_region", "cell_type", "data_modality", "test_type", "score_type", "model_scope", "abstraction_level", "data_type", "publication"]
+        # TODO: verify valid filters for v2 APIs
+        valid_filters = ["name", "alias", "author", "species", "age", "brain_region", "cell_type", "recording_modality", "test_type", "score_type", "model_scope", "abstraction_level", "data_type", "publication"]
         params = locals()["filters"]
         for filter in params:
             if filter not in valid_filters:
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
 
         url = self.url + "/tests/"
-        if params:
-            url += "?" + urlencode(params) + "&size=100000"
-        else:
-            url += "?size=100000"
+        url += "?" + urlencode(params) + "&size=" + size
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code != 200:
             handle_response_error("Error listing tests", response)
@@ -613,7 +615,7 @@ class TestLibrary(BaseClient):
         return tests
 
     def add_test(self, name="", alias="", version="", author="", species="",
-                      age="", brain_region="", cell_type="", data_modality="",
+                      age="", brain_region="", cell_type="", recording_modality="",
                       test_type="", score_type="", protocol="", data_location="",
                       data_type="", publication="", repository="", path=""):
         """Register a new test on the test library.
@@ -639,7 +641,7 @@ class TestLibrary(BaseClient):
             The brain region being targeted in the test.
         cell_type : string
             The type of cell being examined.
-        data_modality : string
+        recording_modality : string
             Specifies the type of observation used in the test.
         test_type : string
             Specifies the type of the test.
@@ -667,7 +669,7 @@ class TestLibrary(BaseClient):
         --------
         >>> test = test_library.add_test(name="Cell Density Test", alias="", version="1.0", author="Shailesh Appukuttan",
                                 species="Mouse (Mus musculus)", age="TBD", brain_region="Hippocampus", cell_type="Other",
-                                data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
+                                recording_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
                                 data_location="collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json",
                                 data_type="Mean, SD", publication="Halasy et al., 1996",
                                 repository="https://github.com/appukuttan-shailesh/morphounit.git", path="morphounit.tests.CellDensityTest")
@@ -681,8 +683,8 @@ class TestLibrary(BaseClient):
             raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
         if cell_type not in values["cell_type"]:
             raise Exception("cell_type = '" +cell_type+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if data_modality not in values["data_modality"]:
-            raise Exception("data_modality = '" +data_modality+"' is invalid.\nValue has to be one of these: " + str(values["data_modality"]))
+        if recording_modality not in values["recording_modality"]:
+            raise Exception("recording_modality = '" +recording_modality+"' is invalid.\nValue has to be one of these: " + str(values["recording_modality"]))
         if test_type not in values["test_type"]:
             raise Exception("test_type = '" +test_type+"' is invalid.\nValue has to be one of these: " + str(values["test_type"]))
         if score_type not in values["score_type"]:
@@ -716,7 +718,7 @@ class TestLibrary(BaseClient):
             handle_response_error("Error in adding test", response)
 
     def edit_test(self, name=None, test_id="", alias="", author=None,
-                  species=None, age=None, brain_region=None, cell_type=None, data_modality=None,
+                  species=None, age=None, brain_region=None, cell_type=None, recording_modality=None,
                   test_type=None, score_type=None, protocol=None, data_location=None,
                   data_type=None, publication=None):
         """Edit an existing test in the test library.
@@ -743,7 +745,7 @@ class TestLibrary(BaseClient):
             The brain region being targeted in the test.
         cell_type : string
             The type of cell being examined.
-        data_modality : string
+        recording_modality : string
             Specifies the type of observation used in the test.
         test_type : string
             Specifies the type of the test.
@@ -771,7 +773,7 @@ class TestLibrary(BaseClient):
         Examples
         --------
         test = test_library.edit_test(name="Cell Density Test", test_id="7b63f87b-d709-4194-bae1-15329daf3dec", alias="CDT-6", author="Shailesh Appukuttan", publication="Halasy et al., 1996",
-                                      species="Mouse (Mus musculus)", brain_region="Hippocampus", cell_type="Other", age="TBD", data_modality="electron microscopy",
+                                      species="Mouse (Mus musculus)", brain_region="Hippocampus", cell_type="Other", age="TBD", recording_modality="electron microscopy",
                                       test_type="network structure", score_type="Other", protocol="To be filled sometime later", data_location="collab://Validation Framework/observations/test_data/cell_density_Halasy_1996.json", data_type="Mean, SD")
         """
 
@@ -781,14 +783,14 @@ class TestLibrary(BaseClient):
         test_data = {}
         args = locals()
         for field in ("name", "alias", "author", "species", "age", "brain_region", "cell_type",
-                      "data_modality", "test_type", "score_type", "protocol", "data_location",
+                      "recording_modality", "test_type", "score_type", "protocol", "data_location",
                       "data_type"):  # todo: handle publicaton
             value = args[field]
             if value:
                 test_data[field] = value
 
         values = self.get_attribute_options()
-        for field in ("species", "brain_region", "cell_type", "data_modality", "test_type", "score_type"):
+        for field in ("species", "brain_region", "cell_type", "recording_modality", "test_type", "score_type"):
             if field in test_data and test_data[field] not in values[field]:
                 raise Exception(field + " = '"  + test_data[field] + "' is invalid.\n"
                                 "Value has to be one of these: " + values[field])
@@ -1015,11 +1017,11 @@ class TestLibrary(BaseClient):
         if parameters:
             instance_data["parameters"] = parameters
 
-        test_definition_id = test_id or alias
-        if not test_definition_id:
+        test_id = test_id or alias
+        if not test_id:
             raise Exception("test_id or alias needs to be provided for finding the test.")
         else:
-            url = self.url + "/tests/" + test_definition_id + "/instances/"
+            url = self.url + "/tests/" + test_id + "/instances/"
 
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps(instance_data),
@@ -1180,7 +1182,7 @@ class TestLibrary(BaseClient):
         * test_type
         * score_type
         * brain_region
-        * data_modality
+        * recording_modality
         * species
 
         If an attribute is specified, then only values that correspond to it will be returned,
@@ -1203,8 +1205,6 @@ class TestLibrary(BaseClient):
         """
         valid_params = ["cell_type", "test_type", "score_type", "brain_region", "recording_modality", "species"]
         options = self._get_attribute_options(param, valid_params)
-        if "recording_modality" in options:
-            options["data_modality"] = options["recording_modality"]  # for backwards compatibility with v1
         return options
 
     def get_result(self, result_id=""):
@@ -1238,7 +1238,7 @@ class TestLibrary(BaseClient):
         result_json = response.json()
         return result_json
 
-    def list_results(self, **filters):
+    def list_results(self, size=1000000, **filters):
         """Retrieve test results satisfying specified filters.
 
         This allows to retrieve a list of test results with their scores
@@ -1246,6 +1246,8 @@ class TestLibrary(BaseClient):
 
         Parameters
         ----------
+        size : positive integer
+            Max number of results to be returned; default is set to 1000000.
         **filters : variable length keyword arguments
             To be used to filter the results metadata.
 
@@ -1259,14 +1261,11 @@ class TestLibrary(BaseClient):
         >>> results = test_library.list_results()
         >>> results = test_library.list_results(test_id="7b63f87b-d709-4194-bae1-15329daf3dec")
         >>> results = test_library.list_results(id="901ac0f3-2557-4ae3-bb2b-37617312da09")
-        >>> results = test_library.list_results(model_version_id="f32776c7-658f-462f-a944-1daf8765ec97")
+        >>> results = test_library.list_results(model_instance_id="f32776c7-658f-462f-a944-1daf8765ec97")
         """
 
         url = self.url + "/results/"
-        if filters:
-            url += "?" + urlencode(filters) + "&size=100000"
-        else:
-            url += "?size=100000"
+        url += "?" + urlencode(filters) + "&size=" + size
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code != 200:
             handle_response_error("Error in retrieving results", response)
@@ -1329,8 +1328,8 @@ class TestLibrary(BaseClient):
 
         url = self.url + "/results/"
         result_json = {
-                        "model_version_id": model_instance_uuid,
-                        "test_code_id": test_result.test.uuid,
+                        "model_instance_id": model_instance_uuid,
+                        "test_instance_id": test_result.test.uuid,
                         "results_storage": results_storage,
                         "score": int(test_result.score) if isinstance(test_result.score, bool) else test_result.score,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
@@ -1477,6 +1476,7 @@ class ModelCatalog(BaseClient):
         self._set_app_info()
 
     def _set_app_info(self):
+        #  TODO: check if needs to be updated for Collab v2
         if self.environment == "production":
             self.app_id = 357
             self.app_name = "Model Catalog"
@@ -1487,57 +1487,59 @@ class ModelCatalog(BaseClient):
             self.app_id = 431
             self.app_name = "Model Catalog (staging)"
 
-    def set_app_config(self, collab_id="", app_id="", only_if_new=False, species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
-        inputArgs = locals()
-        params = {}
-        params["url"] = self.url + "/parametersconfiguration-model-catalog/parametersconfigurationrest/"
-        params["only_if_new"] = only_if_new
-        params["config"] = inputArgs
-        params["config"].pop("self")
-        params["config"].pop("only_if_new")
-        params["config"]["app_type"] = "model_catalog"
-        self._configure_app_collab(params)
+    # def set_app_config(self, project_id="", only_if_new=False, species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
+    #     #  TODO: needs to be updated for Collab v2
+    #     inputArgs = locals()
+    #     params = {}
+    #     params["url"] = self.url + "/parametersconfiguration-model-catalog/parametersconfigurationrest/"
+    #     params["only_if_new"] = only_if_new
+    #     params["config"] = inputArgs
+    #     params["config"].pop("self")
+    #     params["config"].pop("only_if_new")
+    #     params["config"]["app_type"] = "model_catalog"
+    #     self._configure_app_collab(params)
 
-    def set_app_config_minimal(self, collab_id="", app_id="", only_if_new=False):
-        inputArgs = locals()
-        species = []
-        brain_region = []
-        cell_type = []
-        model_scope = []
-        abstraction_level = []
-        organization = []
+    # def set_app_config_minimal(self, project_="", only_if_new=False):
+    #     #  TODO: needs to be updated for Collab v2
+    #     inputArgs = locals()
+    #     species = []
+    #     brain_region = []
+    #     cell_type = []
+    #     model_scope = []
+    #     abstraction_level = []
+    #     organization = []
 
-        models = self.list_models(app_id=app_id)
-        if len(models) == 0:
-            print("There are currently no models associated with this Model Catalog app.\nConfiguring filters to show all accessible data.")
+    #     models = self.list_models(app_id=app_id)
+    #     if len(models) == 0:
+    #         print("There are currently no models associated with this Model Catalog app.\nConfiguring filters to show all accessible data.")
 
-        for model in models:
-            if model["species"] not in species:
-                species.append(model["species"])
-            if model["brain_region"] not in brain_region:
-                brain_region.append(model["brain_region"])
-            if model["cell_type"] not in cell_type:
-                cell_type.append(model["cell_type"])
-            if model["model_scope"] not in model_scope:
-                model_scope.append(model["model_scope"])
-            if model["abstraction_level"] not in abstraction_level:
-                abstraction_level.append(model["abstraction_level"])
-            if model["organization"] not in organization:
-                organization.append(model["organization"])
+    #     for model in models:
+    #         if model["species"] not in species:
+    #             species.append(model["species"])
+    #         if model["brain_region"] not in brain_region:
+    #             brain_region.append(model["brain_region"])
+    #         if model["cell_type"] not in cell_type:
+    #             cell_type.append(model["cell_type"])
+    #         if model["model_scope"] not in model_scope:
+    #             model_scope.append(model["model_scope"])
+    #         if model["abstraction_level"] not in abstraction_level:
+    #             abstraction_level.append(model["abstraction_level"])
+    #         if model["organization"] not in organization:
+    #             organization.append(model["organization"])
 
-        filters = {}
-        for key in ["collab_id", "app_id", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "organization"]:
-            if isinstance(locals()[key], list):
-                filters[key] = ",".join(locals()[key])
-            else:
-                filters[key] = locals()[key]
+    #     filters = {}
+    #     for key in ["collab_id", "app_id", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "organization"]:
+    #         if isinstance(locals()[key], list):
+    #             filters[key] = ",".join(locals()[key])
+    #         else:
+    #             filters[key] = locals()[key]
 
-        params = {}
-        params["url"] = self.url + "/parametersconfiguration-model-catalog/parametersconfigurationrest/"
-        params["only_if_new"] = only_if_new
-        params["config"] = filters
-        params["config"]["app_type"] = "model_catalog"
-        self._configure_app_collab(params)
+    #     params = {}
+    #     params["url"] = self.url + "/parametersconfiguration-model-catalog/parametersconfigurationrest/"
+    #     params["only_if_new"] = only_if_new
+    #     params["config"] = filters
+    #     params["config"]["app_type"] = "model_catalog"
+    #     self._configure_app_collab(params)
 
     def get_model(self, model_id="", alias="", instances=True, images=True):
         """Retrieve a specific model description by its model_id or alias.
@@ -1588,7 +1590,7 @@ class ModelCatalog(BaseClient):
             model_json.pop("images")
         return model_json
 
-    def list_models(self, **filters):
+    def list_models(self, size=1000000, **filters):
         """Retrieve list of model descriptions satisfying specified filters.
 
         The filters may specify one or more attributes that belong
@@ -1610,6 +1612,8 @@ class ModelCatalog(BaseClient):
 
         Parameters
         ----------
+        size : positive integer
+            Max number of models to be returned; default is set to 1000000.
         **filters : variable length keyword arguments
             To be used to filter model descriptions from the model catalog.
 
@@ -1625,7 +1629,8 @@ class ModelCatalog(BaseClient):
         >>> models = model_catalog.list_models(cell_type="Pyramidal Cell", brain_region="Hippocampus")
         """
 
-        valid_filters = ["app_id", "collab_id", "name", "alias", "author", "organization", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "owner", "project", "license"]
+        # TODO: verify valid filters for v2 APIs
+        valid_filters = ["project_id", "name", "alias", "author", "organization", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "owner", "project", "license"]
         params = locals()["filters"]
         for filter in params:
             if filter not in valid_filters:
@@ -1635,10 +1640,7 @@ class ModelCatalog(BaseClient):
             params["project_id"] = params.pop("collab_id")
 
         url = self.url + "/models/"
-        if params:
-            url += "?" + urlencode(params) + "&size=100000"
-        else:
-            url += "?size=100000"
+        url += "?" + urlencode(params) + "&size=" + size
         response = requests.get(url, auth=self.auth, verify=self.verify)
         try:
             models = response.json()
