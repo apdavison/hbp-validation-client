@@ -182,89 +182,91 @@ class BaseClient(object):
         else:
             return False
 
-    def exists_in_collab_else_create(self, collab_id):
-        """
-        Checks with the hbp-collab-service if the Model Catalog / Validation Framework app
-        exists inside the current collab (if run inside the Collaboratory), or Collab ID
-        specified by the user (when run externally).
-        """
-        try:
-            url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/all/"
-            response = requests.get(url, auth=HBPAuth(self.token), verify=self.verify)
-        except ValueError:
-            print("Error contacting hbp-collab-service for Collab info. Possibly invalid Collab ID: {}".format(collab_id))
+    # def exists_in_collab_else_create(self, project_id):
+    #     #  TODO: needs to be updated for Collab v2
+    #     """
+    #     Checks with the hbp-collab-service if the Model Catalog / Validation Framework app
+    #     exists inside the current collab (if run inside the Collaboratory), or Collab ID
+    #     specified by the user (when run externally).
+    #     """
+    #     try:
+    #         url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(project_id)+"/nav/all/"
+    #         response = requests.get(url, auth=HBPAuth(self.token), verify=self.verify)
+    #     except ValueError:
+    #         print("Error contacting hbp-collab-service for Collab info. Possibly invalid Collab ID: {}".format(project_id))
 
-        for app_item in response.json():
-            if app_item["app_id"] == str(self.app_id):
-                app_nav_id = app_item["id"]
-                print ("Using existing {} app in this Collab. App nav ID: {}".format(self.app_name,app_nav_id))
-                break
-        else:
-            url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/root/"
-            collab_root = requests.get(url, auth=HBPAuth(self.token), verify=self.verify).json()["id"]
-            import uuid
-            app_info = {"app_id": self.app_id,
-                        "context": str(uuid.uuid4()),
-                        "name": self.app_name,
-                        "order_index": "-1",
-                        "parent": collab_root,
-                        "type": "IT"}
-            url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/"
-            headers = {'Content-type': 'application/json'}
-            response = requests.post(url, data=json.dumps(app_info),
-                                     auth=HBPAuth(self.token), headers=headers,
-                                     verify=self.verify)
-            app_nav_id = response.json()["id"]
-            print ("New {} app created in this Collab. App nav ID: {}".format(self.app_name,app_nav_id))
-        return app_nav_id
+    #     for app_item in response.json():
+    #         if app_item["app_id"] == str(self.app_id):
+    #             app_nav_id = app_item["id"]
+    #             print ("Using existing {} app in this Collab. App nav ID: {}".format(self.app_name,app_nav_id))
+    #             break
+    #     else:
+    #         url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(project_id)+"/nav/root/"
+    #         collab_root = requests.get(url, auth=HBPAuth(self.token), verify=self.verify).json()["id"]
+    #         import uuid
+    #         app_info = {"app_id": self.app_id,
+    #                     "context": str(uuid.uuid4()),
+    #                     "name": self.app_name,
+    #                     "order_index": "-1",
+    #                     "parent": collab_root,
+    #                     "type": "IT"}
+    #         url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(project_id)+"/nav/"
+    #         headers = {'Content-type': 'application/json'}
+    #         response = requests.post(url, data=json.dumps(app_info),
+    #                                  auth=HBPAuth(self.token), headers=headers,
+    #                                  verify=self.verify)
+    #         app_nav_id = response.json()["id"]
+    #         print ("New {} app created in this Collab. App nav ID: {}".format(self.app_name,app_nav_id))
+    #     return app_nav_id
 
-    def _configure_app_collab(self, config_data):
-        """
-        Used to configure the apps inside a Collab. Example `config_data`:
-            {
-               "config":{
-                  "app_id":68489,
-                  "app_type":"model_catalog",
-                  "brain_region":"",
-                  "cell_type":"",
-                  "project_id":8123,
-                  "recording_modality":"",
-                  "model_scope":"",
-                  "abstraction_level":"",
-                  "organization":"",
-                  "species":"",
-                  "test_type":""
-               },
-               "only_if_new":False,
-               "url":"https://validation-v1.brainsimulation.eu/parametersconfiguration-model-catalog/parametersconfigurationrest/"
-            }
-        """
-        if not config_data["config"]["collab_id"]:
-            raise ValueError("`collab_id` cannot be empty!")
-        if not config_data["config"]["app_id"]:
-            raise ValueError("`app_id` cannot be empty!")
-        # check if the app has previously been configured: decide POST or PUT
-        response = requests.get(config_data["url"]+"?app_id="+str(config_data["config"]["app_id"]), auth=self.auth, verify=self.verify)
-        headers = {'Content-type': 'application/json'}
-        config_data["config"]["id"] = config_data["config"]["app_id"]
-        app_id = config_data["config"].pop("app_id")
-        if not response.json()["param"]:
-            response = requests.post(config_data["url"], data=json.dumps(config_data["config"]),
-                                     auth=self.auth, headers=headers,
-                                     verify=self.verify)
-            if response.status_code == 201:
-                print("New app has beeen created and sucessfully configured!")
-            else:
-                print("Error! App could not be configured. Response = " + str(response.content))
-        else:
-            if not config_data["only_if_new"]:
-                response = requests.put(config_data["url"], data=json.dumps(config_data["config"]),
-                                        auth=self.auth, headers=headers,
-                                        verify=self.verify)
-                if response.status_code == 202:
-                    print("Existing app has beeen sucessfully reconfigured!")
-                else:
-                    print("Error! App could not be reconfigured. Response = " + str(response.content))
+    # def _configure_app_collab(self, config_data):
+    #     #  TODO: needs to be updated for Collab v2
+    #     """
+    #     Used to configure the apps inside a Collab. Example `config_data`:
+    #         {
+    #            "config":{
+    #               "app_id":68489,
+    #               "app_type":"model_catalog",
+    #               "brain_region":"",
+    #               "cell_type":"",
+    #               "project_id":8123,
+    #               "recording_modality":"",
+    #               "model_scope":"",
+    #               "abstraction_level":"",
+    #               "organization":"",
+    #               "species":"",
+    #               "test_type":""
+    #            },
+    #            "only_if_new":False,
+    #            "url":"https://validation-v1.brainsimulation.eu/parametersconfiguration-model-catalog/parametersconfigurationrest/"
+    #         }
+    #     """
+    #     if not config_data["config"]["project_id"]:
+    #         raise ValueError("`project_id` cannot be empty!")
+    #     if not config_data["config"]["app_id"]:
+    #         raise ValueError("`app_id` cannot be empty!")
+    #     # check if the app has previously been configured: decide POST or PUT
+    #     response = requests.get(config_data["url"]+"?app_id="+str(config_data["config"]["app_id"]), auth=self.auth, verify=self.verify)
+    #     headers = {'Content-type': 'application/json'}
+    #     config_data["config"]["id"] = config_data["config"]["app_id"]
+    #     app_id = config_data["config"].pop("app_id")
+    #     if not response.json()["param"]:
+    #         response = requests.post(config_data["url"], data=json.dumps(config_data["config"]),
+    #                                  auth=self.auth, headers=headers,
+    #                                  verify=self.verify)
+    #         if response.status_code == 201:
+    #             print("New app has beeen created and sucessfully configured!")
+    #         else:
+    #             print("Error! App could not be configured. Response = " + str(response.content))
+    #     else:
+    #         if not config_data["only_if_new"]:
+    #             response = requests.put(config_data["url"], data=json.dumps(config_data["config"]),
+    #                                     auth=self.auth, headers=headers,
+    #                                     verify=self.verify)
+    #             if response.status_code == 202:
+    #                 print("Existing app has beeen sucessfully reconfigured!")
+    #             else:
+    #                 print("Error! App could not be reconfigured. Response = " + str(response.content))
 
     def _hbp_auth(self, username, password):
         """
@@ -321,16 +323,12 @@ class BaseClient(object):
 
     def _get_attribute_options(self, param, valid_params):
         if param in ("", "all"):
-            params = valid_params[:]
+            url = self.url + "/vocab/"
         elif param in valid_params:
-            params = [param]
+            url = self.url + "/vocab/" + param.replace("_", "-") + "/"
         else:
             raise Exception("Specified attribute '{}' is invalid. Valid attributes: {}".format(param, valid_params))
-        attribute_options = {}
-        for param in params:
-            url = self.url + "/" + param.replace("_", "-") + "/"
-            data = requests.get(url, auth=self.auth, verify=self.verify).json()
-            attribute_options[param] = data
+        attribute_options = requests.get(url, auth=self.auth, verify=self.verify).json()
         return attribute_options
 
 
@@ -607,7 +605,7 @@ class TestLibrary(BaseClient):
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
 
         url = self.url + "/tests/"
-        url += "?" + urlencode(params) + "&size=" + size
+        url += "?" + urlencode(params) + "&size=" + str(size)
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code != 200:
             handle_response_error("Error listing tests", response)
@@ -1203,7 +1201,7 @@ class TestLibrary(BaseClient):
         >>> data = test_library.get_attribute_options()
         >>> data = test_library.get_attribute_options("cell types")
         """
-        valid_params = ["cell_type", "test_type", "score_type", "brain_region", "recording_modality", "species"]
+        valid_params = ["species", "brain_region", "cell_type", "test_type", "score_type", "recording_modality", "implementation_status"]
         options = self._get_attribute_options(param, valid_params)
         return options
 
@@ -1265,7 +1263,7 @@ class TestLibrary(BaseClient):
         """
 
         url = self.url + "/results/"
-        url += "?" + urlencode(filters) + "&size=" + size
+        url += "?" + urlencode(filters) + "&size=" + str(size)
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code != 200:
             handle_response_error("Error in retrieving results", response)
@@ -1318,8 +1316,8 @@ class TestLibrary(BaseClient):
                 data_store.authorize(self.auth)  # relies on data store using HBP authorization
                                                  # if this is not the case, need to authenticate/authorize
                                                  # the data store before passing to `register()`
-            if data_store.collab_id is None:
-                data_store.collab_id = project
+            if data_store.project_id is None:
+                data_store.project_id = project
             files_to_upload = []
             if "figures" in test_result.related_data:
                 files_to_upload.extend(test_result.related_data["figures"])
@@ -1528,7 +1526,7 @@ class ModelCatalog(BaseClient):
     #             organization.append(model["organization"])
 
     #     filters = {}
-    #     for key in ["collab_id", "app_id", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "organization"]:
+    #     for key in ["project_id", "app_id", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "organization"]:
     #         if isinstance(locals()[key], list):
     #             filters[key] = ",".join(locals()[key])
     #         else:
@@ -1636,11 +1634,8 @@ class ModelCatalog(BaseClient):
             if filter not in valid_filters:
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
 
-        if "collab_id" in params:
-            params["project_id"] = params.pop("collab_id")
-
         url = self.url + "/models/"
-        url += "?" + urlencode(params) + "&size=" + size
+        url += "?" + urlencode(params) + "&size=" + str(size)
         response = requests.get(url, auth=self.auth, verify=self.verify)
         try:
             models = response.json()
@@ -1648,7 +1643,7 @@ class ModelCatalog(BaseClient):
             handle_response_error("Error in list_models()", response)
         return models
 
-    def register_model(self, collab_id="", name="", alias="", author="", organization="", private=False,
+    def register_model(self, project_id="", name="", alias="", author="", organization="", private=False,
                        species="", brain_region="", cell_type="", model_scope="", abstraction_level="", owner="", project="",
                        license="", description="", instances=[], images=[]):
         """Register a new model in the model catalog.
@@ -1659,7 +1654,7 @@ class ModelCatalog(BaseClient):
 
         Parameters
         ----------
-        collab_id : string
+        project_id : string
             Specifies the ID of the host collab in the HBP Collaboratory.
             (the model would belong to this collab)
         name : string
@@ -1704,7 +1699,7 @@ class ModelCatalog(BaseClient):
         --------
         (without instances and images)
 
-        >>> model = model_catalog.register_model(collab_id="39968", name="Test Model - B2",
+        >>> model = model_catalog.register_model(project_id="39968", name="Test Model - B2",
                         alias="Model vB2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_scope="Single cell model",
                         abstraction_level="Spiking neurons",
@@ -1714,7 +1709,7 @@ class ModelCatalog(BaseClient):
 
         (with instances and images)
 
-        >>> model = model_catalog.register_model(collab_id="39968", name="Test Model - C2",
+        >>> model = model_catalog.register_model(project_id="39968", name="Test Model - C2",
                         alias="Model vC2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_scope="Single cell model",
                         abstraction_level="Spiking neurons",
@@ -1753,7 +1748,6 @@ class ModelCatalog(BaseClient):
         for key in ["author", "owner"]:
             if not isinstance(model_data[key], list):
                 model_data[key] = [model_data[key]]
-        model_data["project_id"] = model_data.pop("collab_id")  # renamed in v2
 
         url = self.url + "/models/"
         headers = {'Content-type': 'application/json'}
@@ -1765,7 +1759,7 @@ class ModelCatalog(BaseClient):
         else:
             handle_response_error("Error in adding model", response)
 
-    def edit_model(self, model_id="", collab_id=None, name=None, alias="", author=None, organization=None, private=None, cell_type=None,
+    def edit_model(self, model_id="", project_id=None, name=None, alias="", author=None, organization=None, private=None, cell_type=None,
                    model_scope=None, abstraction_level=None, brain_region=None, species=None, owner="", project="", license="", description=None):
         """Edit an existing model on the model catalog.
 
@@ -1777,7 +1771,7 @@ class ModelCatalog(BaseClient):
         ----------
         model_id : UUID
             System generated unique identifier associated with model description.
-        collab_id : string
+        project_id : string
             Specifies the ID of the host collab in the HBP Collaboratory.
             (the model would belong to this collab)
         name : string
@@ -1821,7 +1815,7 @@ class ModelCatalog(BaseClient):
 
         Examples
         --------
-        >>> model = model_catalog.edit_model(collab_id="39968", name="Test Model - B2",
+        >>> model = model_catalog.edit_model(project_id="39968", name="Test Model - B2",
                         model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5",
                         alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_scope="Single cell model",
@@ -1835,7 +1829,7 @@ class ModelCatalog(BaseClient):
 
         model_data = {}
         args = locals()
-        for field in ("collab_id", "name", "alias", "author", "organization", "private",
+        for field in ("project_id", "name", "alias", "author", "organization", "private",
                       "cell_type", "model_scope", "abstraction_level", "brain_region",
                       "species", "owner", "project", "license", "description"):
             value = args[field]
@@ -1938,7 +1932,7 @@ class ModelCatalog(BaseClient):
         >>> data = model_catalog.get_attribute_options()
         >>> data = model_catalog.get_attribute_options("cell types")
         """
-        valid_params = ["cell_type", "brain_region", "model_scope", "abstraction_level", "species"]
+        valid_params = ["species", "brain_region", "cell_type", "model_scope", "abstraction_level"]
         return self._get_attribute_options(param, valid_params)
 
     def get_model_instance(self, instance_path="", instance_id="", model_id="", alias="", version=""):

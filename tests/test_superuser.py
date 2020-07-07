@@ -30,7 +30,7 @@ def test_delete_superUser(request):
         raise Exception("Credentials not provided. Please define environment variables (HBP_AUTH_TOKEN or HBP_USER and HBP_PASS")
 
     model_name = "Model_{}_{}_py{}_superuser1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
-    model_id = model_catalog.register_model(collab_id="model-validation", name="IGNORE - Test Model - " + model_name,
+    model_id = model_catalog.register_model(project_id="model-validation", name="IGNORE - Test Model - " + model_name,
                    alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
@@ -114,7 +114,7 @@ def test_delete_normalUser(request):
     else:
         raise Exception("Credentials not provided. Please define environment variables (HBP_AUTH_TOKEN or HBP_USER and HBP_PASS")
     model_name = "Model_{}_{}_py{}_normaluser1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
-    model_id = model_catalog.register_model(collab_id="model-validation", name="IGNORE - Test Model - " + model_name,
+    model_id = model_catalog.register_model(project_id="model-validation", name="IGNORE - Test Model - " + model_name,
                    alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",

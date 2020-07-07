@@ -45,7 +45,7 @@ def myModelID(modelCatalog):
    model_catalog = modelCatalog
    model_name = "Model_{}_{}_py{}".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
    # todo: need to test with both "single cell" and "network" as model_scope, since these have different KG representations
-   model_id = model_catalog.register_model(collab_id="model-validation", name="IGNORE - Test Model - " + model_name,
+   model_id = model_catalog.register_model(project_id="model-validation", name="IGNORE - Test Model - " + model_name,
                    alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
@@ -109,9 +109,9 @@ def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
 
 def pytest_sessionfinish(session, exitstatus):
    ENVIRONMENT = session.config.getoption("--environment")
-   #model_catalog = ModelCatalog(username=HBP_USERNAME, password=HBP_PASSWORD, environment=ENVIRONMENT)
-   model_catalog = ModelCatalog(token=TOKEN, environment=ENVIRONMENT)
-   models = model_catalog.list_models(collab_id="model-validation", author={"family_name": "Tester", "given_name": "Validation"})
+   model_catalog = ModelCatalog(username=HBP_USERNAME, password=HBP_PASSWORD, environment=ENVIRONMENT)
+   # model_catalog = ModelCatalog(token=TOKEN, environment=ENVIRONMENT)
+   models = model_catalog.list_models(project_id="model-validation", author={"family_name": "Tester", "given_name": "Validation"})
    for model in models:
       if "IGNORE - Test Model - " in model["name"]:
          model_catalog.delete_model(model["id"])
