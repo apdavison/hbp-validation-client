@@ -24,7 +24,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
     test_name = "Test_{}_{}_py{}_getValTest_1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), test_library.environment, platform.python_version())
     test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
                     species="Mus musculus", age="", brain_region="basal ganglia", cell_type="granule cell",
-                    data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
+                    recording_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
                     data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                     data_type="Mean, SD", publication="Testing et al., 2019",
                     version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
@@ -65,3 +65,22 @@ def test_list_results_valid(testLibrary, myTestID, myResultID):
     sleep(20)
     result = test_library.list_results(test_id=test_id)
     assert isinstance(result, list)
+
+#3.2) No filters
+# because it takes too long to get all results, fetch first 10 and test 'size' parameter
+def test_list_results_no_filter(testLibrary):
+    test_library = testLibrary
+    results = test_library.list_results(size=10)
+    assert isinstance(results, list)
+    assert len(results) == 10
+
+#3.3) Check if 'from_index' parameter works as expected
+def test_list_results_no_filter_check_index(testLibrary):
+    test_library = testLibrary
+    results1 = test_library.list_results(size=5, from_index=0)
+    results2 = test_library.list_results(size=5, from_index=4)
+    assert isinstance(results1, list)
+    assert len(results1) == 5
+    assert isinstance(results2, list)
+    assert len(results2) == 5
+    assert results1[-1]["id"] == results2[0]["id"]

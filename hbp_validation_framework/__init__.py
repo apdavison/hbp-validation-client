@@ -80,6 +80,8 @@ class BaseClient(object):
     """
     # Note: Could possibly simplify the code later
 
+    __test__ = False
+
     def __init__(self, username=None,
                  password=None,
                  environment="production",
@@ -396,6 +398,8 @@ class TestLibrary(BaseClient):
     >>> test_library = TestLibrary(username="<<hbp_username>>", password="<<hbp_password>>")
     >>> test_library = TestLibrary(token="<<token>>")
     """
+
+    __test__ = False
 
     def __init__(self, username=None, password=None, environment="production", token=None):
         super(TestLibrary, self).__init__(username, password, environment, token)
@@ -1469,6 +1473,8 @@ class ModelCatalog(BaseClient):
     >>> model_catalog = ModelCatalog(token="<<token>>")
     """
 
+    __test__ = False
+
     def __init__(self, username=None, password=None, environment="production", token=None):
         super(ModelCatalog, self).__init__(username, password, environment, token)
         self._set_app_info()
@@ -2127,7 +2133,7 @@ class ModelCatalog(BaseClient):
         if model_instances_json.status_code != 200:
             handle_response_error("Error in retrieving model instances", model_instances_json)
         model_instances_json = model_instances_json.json()
-        return model_instances_json["instances"]
+        return model_instances_json
 
     def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters="", code_format="", hash="", morphology=""):
         """Register a new model instance.

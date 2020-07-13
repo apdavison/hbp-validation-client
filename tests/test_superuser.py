@@ -51,7 +51,7 @@ def test_delete_superUser(request):
     test_name = "Test_{}_{}_py{}_superuser2".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), test_library.environment, platform.python_version())
     test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
                     species="Mus musculus", age="", brain_region="basal ganglia", cell_type="granule cell",
-                    data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
+                    recording_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
                     data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                     data_type="Mean, SD", publication="Testing et al., 2019",
                     version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
@@ -103,7 +103,8 @@ def test_delete_superUser(request):
 
 
 #1.2) Normal user - Delete model, model_instance, model_image, test, test_instance and result
-@pytest.mark.xfail  # test to be updated for v2 ...
+# TODO: test to be updated for v2 ...
+@pytest.mark.xfail
 def test_delete_normalUser(request):
     ENVIRONMENT = request.config.getoption("--environment")
     if HBP_USERNAME_NORMAL_USER and HBP_PASSWORD_NORMAL_USER:
@@ -135,7 +136,7 @@ def test_delete_normalUser(request):
     test_name = "Test_{}_{}_py{}_normaluser2".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), test_library.environment, platform.python_version())
     test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
                     species="Mus musculus", age="", brain_region="basal ganglia", cell_type="granule cell",
-                    data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
+                    recording_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
                     data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                     data_type="Mean, SD", publication="Testing et al., 2019",
                     version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")

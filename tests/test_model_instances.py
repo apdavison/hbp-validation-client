@@ -320,11 +320,11 @@ def test_downloadModelInstance_valid_id_cscs(modelCatalog, myModelID):
     assert os.path.isfile(file_path)
 
 #5.2) With valid details in current directory - instance_id, collab storage
-@pytest.mark.xfail  # need to convert to using Seafile
+# @pytest.mark.xfail  # need to convert to using Seafile
 def test_downloadModelInstance_valid_id_collab(modelCatalog, myModelID):
     model_catalog = modelCatalog
     model_id = myModelID
-    model_instance = model_catalog.get_model_instance(model_id=model_id, version="2.0b")
+    model_instance = model_catalog.get_model_instance(model_id=model_id, version="2.0a")
     file_path = model_catalog.download_model_instance(instance_id=model_instance["id"])
     assert os.path.isfile(file_path)
 

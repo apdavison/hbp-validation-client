@@ -94,12 +94,12 @@ def test_getModel_hide_images(modelCatalog, myModelID):
 """
 
 #2.1) No filters
-@pytest.mark.skip  # skip because it takes too long to get all models. Just get first 100?
+# because it takes too long to get all models, fetch first 10 and test 'size' parameter
 def test_getList_no_filter(modelCatalog):
     model_catalog = modelCatalog
-    models = model_catalog.list_models()
+    models = model_catalog.list_models(size=10)
     assert isinstance(models, list)
-    assert len(models) > 0
+    assert len(models) == 10
 
 #2.2) Single filter
 def test_getList_one_filter(modelCatalog, myModelID):
@@ -136,6 +136,17 @@ def test_getList_nomatch(modelCatalog):
     assert isinstance(models, list)
     assert len(models) == 0
 
+#2.6) Check if 'from_index' parameter works as expected
+def test_getList_no_filter_check_index(modelCatalog):
+    model_catalog = modelCatalog
+    models1 = model_catalog.list_models(size=5, from_index=0)
+    models2 = model_catalog.list_models(size=5, from_index=4)
+    assert isinstance(models1, list)
+    assert len(models1) == 5
+    assert isinstance(models2, list)
+    assert len(models2) == 5
+    assert models1[-1]["id"] == models2[0]["id"]
+
 
 """
 3] Display list of valid values for fields
@@ -152,11 +163,8 @@ def test_getModelValid_none(modelCatalog):
 def test_getModelValid_one(modelCatalog):
     model_catalog = modelCatalog
     data = model_catalog.get_attribute_options("cell_type")
-    assert isinstance(data, dict)
-    assert len(data.keys()) == 1
-    assert "cell_type" in data.keys()
-    assert isinstance(data["cell_type"], list)
-    assert len(data["cell_type"]) > 0
+    assert isinstance(data, list)
+    assert len(data) > 0
 
 #3.3) Multiple parameters
 def test_getModelValid_many(modelCatalog):
