@@ -266,6 +266,7 @@ class SwiftDataStore(object):
     A class for downloading data from CSCS Swift storage.
     Note: data from public containers can also be downloaded via `HTTPDataStore`
     """
+
     def __init__(self, **kwargs):
         pass
 

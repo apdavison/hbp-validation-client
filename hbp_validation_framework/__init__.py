@@ -561,7 +561,7 @@ class TestLibrary(BaseClient):
         test_instance.uuid = test_instance_json["id"]
         return test_instance
 
-    def list_tests(self, size=1000000, **filters):
+    def list_tests(self, size=1000000, from_index=0, **filters):
         """Retrieve a list of test definitions satisfying specified filters.
 
         The filters may specify one or more attributes that belong
@@ -586,6 +586,8 @@ class TestLibrary(BaseClient):
         ----------
         size : positive integer
             Max number of tests to be returned; default is set to 1000000.
+        from_index : positive integer
+            Index of first test to be returned; default is set to 0.
         **filters : variable length keyword arguments
             To be used to filter test definitions from the test library.
 
@@ -609,7 +611,7 @@ class TestLibrary(BaseClient):
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
 
         url = self.url + "/tests/"
-        url += "?" + urlencode(params) + "&size=" + str(size)
+        url += "?" + urlencode(params) + "&size=" + str(size) + "&from_index=" + str(from_index)
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code != 200:
             handle_response_error("Error listing tests", response)
@@ -1240,7 +1242,7 @@ class TestLibrary(BaseClient):
         result_json = response.json()
         return result_json
 
-    def list_results(self, size=1000000, **filters):
+    def list_results(self, size=1000000, from_index=0, **filters):
         """Retrieve test results satisfying specified filters.
 
         This allows to retrieve a list of test results with their scores
@@ -1250,6 +1252,8 @@ class TestLibrary(BaseClient):
         ----------
         size : positive integer
             Max number of results to be returned; default is set to 1000000.
+        from_index : positive integer
+            Index of first result to be returned; default is set to 0.
         **filters : variable length keyword arguments
             To be used to filter the results metadata.
 
@@ -1267,7 +1271,7 @@ class TestLibrary(BaseClient):
         """
 
         url = self.url + "/results/"
-        url += "?" + urlencode(filters) + "&size=" + str(size)
+        url += "?" + urlencode(filters) + "&size=" + str(size) + "&from_index=" + str(from_index)
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code != 200:
             handle_response_error("Error in retrieving results", response)
@@ -1594,7 +1598,7 @@ class ModelCatalog(BaseClient):
             model_json.pop("images")
         return model_json
 
-    def list_models(self, size=1000000, **filters):
+    def list_models(self, size=1000000, from_index=0, **filters):
         """Retrieve list of model descriptions satisfying specified filters.
 
         The filters may specify one or more attributes that belong
@@ -1618,6 +1622,8 @@ class ModelCatalog(BaseClient):
         ----------
         size : positive integer
             Max number of models to be returned; default is set to 1000000.
+        from_index : positive integer
+            Index of first model to be returned; default is set to 0.
         **filters : variable length keyword arguments
             To be used to filter model descriptions from the model catalog.
 
@@ -1641,7 +1647,7 @@ class ModelCatalog(BaseClient):
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
 
         url = self.url + "/models/"
-        url += "?" + urlencode(params) + "&size=" + str(size)
+        url += "?" + urlencode(params) + "&size=" + str(size) + "&from_index=" + str(from_index)
         response = requests.get(url, auth=self.auth, verify=self.verify)
         try:
             models = response.json()

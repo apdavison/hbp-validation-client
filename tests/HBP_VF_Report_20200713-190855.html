@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+    <title>HBP Validation Framework</title>
+    <meta name="viewport" content="width = device-width, initial-scale = 1">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Merriweather">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.20/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://appukuttan-shailesh.github.io/live_paper.css">
+    <style>
+        .tabs .tab a {
+            color: #000;
+            background-color: #ffe082;
+        }
+        /*Black color to the text and background color specified*/
+
+        .tabs .tab a:hover {
+            background-color: #ffc107;
+            color: #000;
+        }
+        /*Text color on hover*/
+
+        .tabs .tab a.active {
+            background-color: #ff9800;
+            color: #000;
+        }
+        /*Background and text color when a tab is active*/
+
+        .tabs .indicator {
+            background-color: #000;
+        }
+        /*Color of underline*/
+
+        .firstColumnBold td:first-child {
+            font-weight: bold;
+        }
+    </style>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.3/js/materialize.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://appukuttan-shailesh.github.io/ellipsis.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#html_table_result_summary').DataTable({
+                "order": [
+                    [0, "asc"]
+                ],
+                "searching": false,
+                "lengthChange": false,
+                "paging": false,
+                "info": false,
+                columnDefs: [{
+                    targets: 1,
+                    render: $.fn.dataTable.render.ellipsis(10)
+                }, {
+                    targets: [2, 3],
+                    render: $.fn.dataTable.render.ellipsis(18)
+                }]
+            });
+        });
+    </script>
+</head>
+
+<body class="container">
+    <br />
+    <div class="box rounded centered">
+        <a href="#" id="link_pagetop" class="waves-effect waves-light" style="text-align:center; color:black">
+            <table>
+                <tbody>
+                    <tr>
+                        <td>
+                            <img class="hbp-icon-small" src="https://appukuttan-shailesh.github.io/hbp_diamond_120.png" alt="Human Brain Project logo">
+                        </td>
+                        <td>
+                            <span class="title-style subtitle" style="padding-left:5px;">
+                                    HBP Validation Framework Report
+                                </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </a>
+        <h5 class="title-style">HBP_VF_Report_20200713-190855</h5>
+    </div>
+
+    <div>
+        <table style="table-layout:fixed; width:100%;">
+            <tr>
+                <td><strong>Report Name: </strong> HBP_VF_Report_20200713-190855.html </td>
+                <td style="text-align:right"><strong>Created Date: </strong> 2020-07-13 19:08:55 </td>
+            </tr>
+        </table>
+        <br />
+        <strong>Contains info for following results:</strong>
+        <br />
+        <table id="html_table_result_summary">
+            <colgroup>
+                <col id="html_table_result_summary_col1">
+                    <col id="html_table_result_summary_col2">
+                        <col id="html_table_result_summary_col3">
+                            <col id="html_table_result_summary_col4">
+                                <col id="html_table_result_summary_col5">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Result UUID</th>
+                    <th>Model (version)</th>
+                    <th>Test (version)</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+                <tr>
+                    <td>1</td>
+                    
+                    <td>618de665-fefa-4b23-9c8f-f5c5feec12bd</td>
+                    <td>Model_2020-07-13_18:50:12_production_py3.6.9 (1.0)</td>
+                    <td>Test_2020-07-13_18:58:22_production_py3.6.9_getValTest_1 (1.0)</td>
+                    <td>1.0</td>
+                    
+                </tr>
+                
+            </tbody>
+        </table>
+    </div>
+    <br />
+    <div class="rainbow-row">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+    </div>
+    
+    <br />
+    <h6 style="font-weight: bold;">1)&nbsp;Result UUID:&nbsp;<a id="link_618de665-fefa-4b23-9c8f-f5c5feec12bd">618de665-fefa-4b23-9c8f-f5c5feec12bd </a></h6>
+    <div class="row">
+        <div class="col s12">
+            <br />
+            <ul class="tabs">
+                <li class="tab col s3"><a class="active" href="#result_618de665-fefa-4b23-9c8f-f5c5feec12bd">Result Info</a></li>
+                <li class="tab col s3"><a href="#files_618de665-fefa-4b23-9c8f-f5c5feec12bd">Result Files</a></li>
+                <li class="tab col s3"><a href="#model_618de665-fefa-4b23-9c8f-f5c5feec12bd">Model Info</a></li>
+                <li class="tab col s3"><a href="#test_618de665-fefa-4b23-9c8f-f5c5feec12bd">Test Info</a></li>
+            </ul>
+        </div>
+        <div id="result_618de665-fefa-4b23-9c8f-f5c5feec12bd" class="col s12">
+            <br />
+            <table style="table-layout:fixed; width:100%; word-break: break-all;" class="firstColumnBold">
+                <colgroup>
+                    <col style="width: 25%;" />
+                    <col>
+                </colgroup>
+                <tr class="card-panel orange lighten-4">
+                    <th style="text-align:center" colspan="2">Result</th>
+                </tr>
+                <tr>
+                    <td>id</td>
+                    <td><a href="" target="_blank">618de665-fefa-4b23-9c8f-f5c5feec12bd</a></td>
+                </tr>
+                <tr>
+                    <td>uri</td>
+                    <td>https://nexus.humanbrainproject.org/v0/data/modelvalidation/simulation/validationresult/v0.1.0/618de665-fefa-4b23-9c8f-f5c5feec12bd</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>score</td>
+                    <td>1.0</td>
+                </tr>
+                <tr>
+                    <td>normalized_score</td>
+                    <td>1.0</td>
+                </tr>
+                <tr>
+                    <td>passed</td>
+                    <td>None</td>
+                </tr>
+                <tr>
+                    <td>timestamp</td>
+                    <td>2020-07-13T16:58:47.784515+00:00</td>
+                </tr>
+                <tr>
+                    <td>project</td>
+                    <td></td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2" style="text-align:right; padding-right: 50px;"><a href="#link_618de665-fefa-4b23-9c8f-f5c5feec12bd" title="Go to top of this result"><i class="material-icons">open_in_browser</i></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#link_pagetop" title="Go to top of page"><i class="material-icons">vertical_align_top</i></a></td>
+                </tr>
+            </table>
+        </div>
+        <div id="files_618de665-fefa-4b23-9c8f-f5c5feec12bd" class="col s12">
+            <br />
+            <table style="table-layout:fixed; width:100%; word-break: break-all;" class="firstColumnBold">
+                <colgroup>
+                    <col style="width: 25%;" />
+                    <col>
+                </colgroup>
+                <tr class="card-panel orange lighten-4">
+                    <th style="text-align:center" colspan="2">Result Related Files</th>
+                </tr>
+                
+                <tr>
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="text-align:center">No files associated with this result!</td>
+                </tr>
+                <tr>
+                    <td colspan="2"></td>
+                </tr>
+                
+                <tr class="brown lighten-5">
+                    <td colspan="2" style="text-align:right; padding-right: 50px;"><a href="#link_618de665-fefa-4b23-9c8f-f5c5feec12bd" title="Go to top of this result"><i class="material-icons">open_in_browser</i></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#link_pagetop" title="Go to top of page"><i class="material-icons">vertical_align_top</i></a></td>
+                </tr>
+            </table>
+        </div>
+        <div id="model_618de665-fefa-4b23-9c8f-f5c5feec12bd" class="col s12">
+            <br />
+            <table style="table-layout:fixed; width:100%; word-break: break-all;" class="firstColumnBold">
+                <colgroup>
+                    <col style="width: 25%;" />
+                    <col>
+                </colgroup>
+                <tr class="card-panel orange lighten-4">
+                    <th style="text-align:center" colspan="2">Model</th>
+                </tr>
+                <tr>
+                    <td>id</td>
+                    <td><a href="o" target="_blank">d32f1b20-a10d-4b4e-9b31-d4f1a0deceb9</a></td>
+                </tr>
+                <tr>
+                    <td>uri</td>
+                    <td>https://nexus.humanbrainproject.org/v0/data/modelvalidation/simulation/modelproject/v0.1.1/d32f1b20-a10d-4b4e-9b31-d4f1a0deceb9</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>name</td>
+                    <td>IGNORE - Test Model - Model_2020-07-13_18:50:12_production_py3.6.9</td>
+                </tr>
+                <tr>
+                    <td>alias</td>
+                    <td>Model_2020-07-13_18:50:12_production_py3.6.9</td>
+                </tr>
+                <tr>
+                    <td>author</td>
+                    <td>
+                         Validation Tester  
+                    </td>
+                </tr>
+                <tr>
+                    <td>owner</td>
+                    <td>
+                         Validation Tester  
+                    </td>
+                </tr>
+                <tr>
+                    <td>organization</td>
+                    <td>HBP-SP6</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>description</td>
+                    <td><span> This is a test entry! Please ignore.</span></td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>private</td>
+                    <td>False</td>
+                </tr>
+                <tr>
+                    <td>collab_id</td>
+                    <td>model-validation</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>species</td>
+                    <td>Mus musculus</td>
+                </tr>
+                <tr>
+                    <td>brain_region</td>
+                    <td>basal ganglia</td>
+                </tr>
+                <tr>
+                    <td>cell_type</td>
+                    <td>granule cell</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>model_scope</td>
+                    <td>single cell</td>
+                </tr>
+                <tr>
+                    <td>abstraction_level</td>
+                    <td>spiking neurons</td>
+                </tr>
+                <tr>
+                    <td colspan="2"></td>
+                </tr>
+                <tr class="card-panel orange lighten-4">
+                    <th style="text-align:center" colspan="2">Model Instance</th>
+                </tr>
+                <tr>
+                    <td>id</td>
+                    <td><a href="o" target="_blank">ba2f2fe5-80cb-422b-ae53-7a0a66bf6b51</a></td>
+                </tr>
+                <tr>
+                    <td>uri</td>
+                    <td>https://nexus.humanbrainproject.org/v0/data/modelvalidation/simulation/memodel/v0.1.2/ba2f2fe5-80cb-422b-ae53-7a0a66bf6b51</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>version</td>
+                    <td>1.0</td>
+                </tr>
+                <tr>
+                    <td>source</td>
+                    <td><a href="https://www.abcde.com">https://www.abcde.com</a></td>
+                </tr>
+                <tr>
+                    <td>license</td>
+                    <td>None</td>
+                </tr>
+                <tr>
+                    <td>timestamp</td>
+                    <td>2020-07-13T16:50:16.880268+00:00</td>
+                </tr>
+                <tr>
+                    <td>hash</td>
+                    <td>None</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>description</td>
+                    <td>e</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>code_format</td>
+                    <td>b</td>
+                </tr>
+                <tr>
+                    <td>parameters</td>
+                    <td>a</td>
+                </tr>
+                <tr>
+                    <td>morphology</td>
+                    <td style="word-break: break-all;">http://example.com/d.txt</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2" style="text-align:right; padding-right: 50px;"><a href="#link_618de665-fefa-4b23-9c8f-f5c5feec12bd" title="Go to top of this result"><i class="material-icons">open_in_browser</i></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#link_pagetop" title="Go to top of page"><i class="material-icons">vertical_align_top</i></a></td>
+                </tr>
+            </table>
+        </div>
+        <div id="test_618de665-fefa-4b23-9c8f-f5c5feec12bd" class="col s12">
+            <br />
+            <table style="table-layout:fixed; width:100%; word-break: break-all;" class="firstColumnBold">
+                <colgroup>
+                    <col style="width: 25%;" />
+                    <col>
+                </colgroup>
+                <tr class="card-panel orange lighten-4">
+                    <th style="text-align:center" colspan="2">Test</th>
+                </tr>
+                <tr>
+                    <td>id</td>
+                    <td><a href="e" target="_blank">d39f5d44-e0cd-45f7-8f47-de2d43852003</a></td>
+                </tr>
+                <tr>
+                    <td>uri</td>
+                    <td>https://nexus.humanbrainproject.org/v0/data/modelvalidation/simulation/validationtestdefinition/v0.1.0/d39f5d44-e0cd-45f7-8f47-de2d43852003</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>name</td>
+                    <td>IGNORE - Test Test - Test_2020-07-13_18:58:22_production_py3.6.9_getValTest_1</td>
+                </tr>
+                <tr>
+                    <td>alias</td>
+                    <td>Test_2020-07-13_18:58:22_production_py3.6.9_getValTest_1</td>
+                </tr>
+                <tr>
+                    <td>author</td>
+                    <td>
+                         Validation Tester  
+                    </td>
+                </tr>
+                <tr>
+                    <td>creation_date</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>implementation status</td>
+                    <td><span> proposal</span></td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>species</td>
+                    <td>Mus musculus</td>
+                </tr>
+                <tr>
+                    <td>brain_region</td>
+                    <td>basal ganglia</td>
+                </tr>
+                <tr>
+                    <td>cell_type</td>
+                    <td>granule cell</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>data_location</td>
+                    <td><a href='['https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt']' target="_blank">['https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt']</a></td>
+                </tr>
+                <tr>
+                    <td>data_type</td>
+                    <td>Mean, SD</td>
+                </tr>
+                <tr>
+                    <td>recording_modality</td>
+                    <td>electron microscopy</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>test_type</td>
+                    <td>network structure</td>
+                </tr>
+                <tr>
+                    <td>score_type</td>
+                    <td>Other</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>protocol</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td colspan="2"></td>
+                </tr>
+                <tr class="card-panel orange lighten-4">
+                    <th style="text-align:center" colspan="2">Test Instance</th>
+                </tr>
+                <tr>
+                    <td>id</td>
+                    <td><a href="e">26b82d3a-5a8b-42e5-87de-1356df110574</a></td>
+                </tr>
+                <tr>
+                    <td>uri</td>
+                    <td>https://nexus.humanbrainproject.org/v0/data/modelvalidation/simulation/validationscript/v0.1.0/26b82d3a-5a8b-42e5-87de-1356df110574</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>version</td>
+                    <td>1.0</td>
+                </tr>
+                <tr>
+                    <td>repository</td>
+                    <td><a href="https://github.com/HumanBrainProject/hbp-validation-client.git"></a></td>
+                </tr>
+                <tr>
+                    <td>path</td>
+                    <td>hbp_validation_framework.sample.SampleTest</td>
+                </tr>
+                <tr>
+                    <td>timestamp</td>
+                    <td>2020-07-13T16:58:23.070129+00:00</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>parameters</td>
+                    <td>None</td>
+                </tr>
+                <tr>
+                    <td>description</td>
+                    <td>None</td>
+                </tr>
+                <tr class="brown lighten-5">
+                    <td colspan="2" style="text-align:right; padding-right: 50px;"><a href="#link_618de665-fefa-4b23-9c8f-f5c5feec12bd" title="Go to top of this result"><i class="material-icons">open_in_browser</i></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#link_pagetop" title="Go to top of page"><i class="material-icons">vertical_align_top</i></a></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <br />
+    <div class="rainbow-row">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+    </div>
+    
+
+    <br />
+    <br />
+</body>
+
+</html>
