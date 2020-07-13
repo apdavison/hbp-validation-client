@@ -60,8 +60,8 @@ class CollabDataStore(object):
     A class for uploading and downloading data from HBP Collaboratory storage.
     """
 
-    def __init__(self, collab_id=None, base_folder=None, auth=None, **kwargs):
-        self.collab_id = collab_id
+    def __init__(self, project_id=None, base_folder=None, auth=None, **kwargs):
+        self.project_id = project_id
         self.base_folder = base_folder
         self._auth = auth  # we defer authorization until needed
         self._authorized = False
@@ -101,7 +101,7 @@ class CollabDataStore(object):
     def upload_data(self, file_paths):
         if not self.authorized:
             self.authorize(self._auth)
-        projects_in_collab = self.doc_client.list_projects(collab_id=self.collab_id,
+        projects_in_collab = self.doc_client.list_projects(collab_id=self.project_id,
                                                            access='write')["results"]
         assert len(projects_in_collab) == 1
         project_id = projects_in_collab[0]["uuid"]
