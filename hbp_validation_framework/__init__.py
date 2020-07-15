@@ -173,11 +173,7 @@ class BaseClient(object):
         self.auth = HBPAuth(self.token)
 
     def _check_token_valid(self):
-        """
-        Checks with the hbp-collab-service if the locally saved HBP token is valid.
-        See if this can be tweaked to improve performance.
-        """
-        url = "https://services.humanbrainproject.eu/collab/v0/collab/"
+        url = "https://drive.ebrains.eu/api2/auth/ping/"
         data = requests.get(url, auth=HBPAuth(self.token), verify=self.verify)
         if data.status_code == 200:
             return True
