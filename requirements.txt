@@ -1,3 +1,4 @@
 sciunit
 requests
 simplejson
+hbp_seafile

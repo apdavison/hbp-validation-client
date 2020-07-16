@@ -36,7 +36,7 @@ except ImportError:
     from pathlib2 import Path  # Python 2 backport
 
 try:
-    from jupyter_collab_storage import oauth_token_handler
+    from clb_nb_utils import oauth
     have_collab_token_handler = True
 except ImportError:
     have_collab_token_handler = False
@@ -121,7 +121,7 @@ class BaseClient(object):
             if have_collab_token_handler:
                     # if are we running in a Jupyter notebook within the Collaboratory
                     # the token is already available
-                    self.token = oauth_token_handler.get_token()
+                    self.token = oauth.get_token()
             elif os.path.exists(TOKENFILE):
                 # check for a stored token
                 with open(TOKENFILE) as fp:
