@@ -48,9 +48,9 @@ class SeaFileDataStore(object):
     A class for uploading and downloading data from HBP Collaboratory v2 seafile storage.
     """
 
-    def __init__(self, project_id=None, base_folder=None, auth=None, **kwargs):
+    def __init__(self, project_id=None, base_folder="/", auth=None, **kwargs):
         self.project_id = project_id
-        self.base_folder = base_folder
+        self.base_folder = base_folder.strip("/")
         self._auth = auth  # we defer authorization until needed
         self._authorized = False
 
@@ -64,62 +64,45 @@ class SeaFileDataStore(object):
         self.client = hbp_seafile.connect(token=auth.token)
         self._authorized = True
 
-    # def upload_data(self, file_paths):
-    #     if not self.authorized:
-    #         self.authorize(self._auth)
-    #     projects_in_collab = self.doc_client.list_projects(collab_id=self.project_id,
-    #                                                        access='write')["results"]
-    #     assert len(projects_in_collab) == 1
-    #     project_id = projects_in_collab[0]["uuid"]
-    #     base_folder_id = self._make_folders(self.base_folder, parent=project_id)
+    def upload_data(self, file_paths, overwrite=False):
+        if not self.authorized:
+            self.authorize(self._auth)
+        self.repo = self.client.repos.get_repo_by_url(self.project_id)
+        
+        # make specified base directory
+        seafdir_base = self._make_folders(self.base_folder, parent="/")
 
-    #     if len(file_paths) > 1:
-    #         common_base_dir = os.path.dirname(os.path.commonprefix(file_paths))
-    #     else:
-    #         common_base_dir = os.path.dirname(file_paths[0])
-    #     relative_paths = [os.path.relpath(p, common_base_dir) for p in file_paths]
+        if isinstance(file_paths, str):
+            file_paths = [file_paths]
+        if len(file_paths) > 1:
+            common_base_dir = os.path.dirname(os.path.commonprefix(file_paths))
+        else:
+            common_base_dir = os.path.dirname(file_paths[0])
+        
+        relative_paths = [os.path.relpath(p, common_base_dir) for p in file_paths]
+        uploaded_file_paths = []
+        upload_path_prefix = "https://drive.ebrains.eu/lib/" + self.repo.id + "/file"
+        for local_path, relative_path in zip(file_paths, relative_paths):
+            if os.path.dirname(relative_path):
+                seafdir_parent = self._make_folders(os.path.dirname(relative_path), parent=os.path.join("/", self.base_folder))
+                parent = os.path.join("/", self.base_folder, os.path.dirname(relative_path))
+            else:
+                parent = os.path.join("/", self.base_folder)
 
-    #     cached_folders = {}  # avoid unnecessary network calls
-    #     for local_path, relative_path in zip(file_paths, relative_paths):
+            filename = os.path.basename(relative_path)
+            seafdir = self.repo.get_dir(parent)
+            file_entity = seafdir.upload_local_file(local_path, overwrite=overwrite)
+            uploaded_file_paths.append(upload_path_prefix + file_entity.path)
+        return uploaded_file_paths
 
-    #         parent = base_folder_id
-    #         folder_path = os.path.dirname(relative_path)
-
-    #         # temporary fix: all files in a single directory in Collab storage
-    #         # if subdirs, then saved filename = `subdir1_subdir2_....subdirN_filename`
-    #         name = ""
-    #         if folder_path:  # if there are subdirectories...
-    #             for subdir in folder_path.split("/"):
-    #                 name  = name + subdir + "_"
-    #             """
-    #             if folder_path in cached_folders:
-    #                 parent = cached_folders[folder_path]
-    #             else:
-    #                 parent = self._make_folders(folder_path, parent=parent)
-    #                 cached_folders[folder_path] = parent
-    #             """
-
-    #         name = name + os.path.basename(relative_path)
-    #         content_type = mimetypes.guess_type(local_path)[0]
-    #         file_entity = self.doc_client.create_file(name, content_type, parent)
-    #         etag = self.doc_client.upload_file_content(file_entity['uuid'],
-    #                                                    source=local_path)
-
-    #     return "collab:/{}".format(self.doc_client.get_entity_path(base_folder_id))
-
-    # def _make_folders(self, folder_path, parent):
-    #     for i, folder_name in enumerate(folder_path.split(os.path.sep)):
-    #         folders = self.doc_client.list_folder_content(parent, entity_type="folder")["results"]
-    #         folder_exists = False
-    #         for f in folders:
-    #             if folder_name in f["name"]:
-    #                 child = f['uuid']
-    #                 folder_exists = True
-    #                 break
-    #         if not folder_exists:
-    #             child = self.doc_client.create_folder(folder_name, parent=parent)['uuid']
-    #         parent = child
-    #     return child
+    def _make_folders(self, folder_path, parent):
+        for i, folder_name in enumerate(folder_path.split(os.path.sep)):
+            if folder_name:
+                seafdir = self.repo.get_dir(parent)
+                if not seafdir.check_exists(folder_name):
+                    child = seafdir.mkdir(folder_name)
+            parent = os.path.join(parent, folder_name)
+        return self.repo.get_dir(parent)
 
     def _download_data_content(self, remote_path):        
         if not self.authorized:
@@ -131,6 +114,9 @@ class SeaFileDataStore(object):
     def download_data(self, remote_paths, local_directory="."):
         """
         Note: This can download one or more files (not directories)
+        Example inputs:
+        1) https://drive.ebrains.eu/lib/0fee1620-062d-4643-865b-951de1eee355/file/sample-latest.csv
+        2) https://drive.ebrains.eu/lib/0fee1620-062d-4643-865b-951de1eee355/file/Dir1/data.json
         """
         if isinstance(remote_paths, str):
             remote_paths = [remote_paths]
@@ -142,36 +128,6 @@ class SeaFileDataStore(object):
                 fp.write(self._download_data_content(remote_path))
             local_paths.append(local_path)
         return local_paths
-
-    # def download_data_using_uuid(self, uuid, local_directory="."):
-    #     """
-    #     Downloads the resource specified by the UUID on the HBP Collaboratory.
-    #     Target can be a file or a folder. Returns a list containing absolute
-    #     filepaths of all downloaded files.
-    #     Note: This can recursively download files and sub-directories
-    #           within a specified directory
-    #     """
-    #     file_uuids = []
-
-    #     if not self.authorized:
-    #         self.authorize(self._auth)
-    #     entity = self.doc_client.get_entity_details(uuid)
-    #     if entity["entity_type"] == 'file':
-    #         file_uuids.append(uuid)
-    #     elif entity["entity_type"] == 'folder':
-    #         items = self.doc_client.list_folder_content(uuid)["results"]
-    #         for item in items:
-    #             file_uuids.extend(self.download_data_using_uuid(item["uuid"], local_directory=os.path.join(local_directory, entity["name"])))
-    #         return file_uuids
-    #     else:
-    #         raise Exception("Downloading of resources currently supported only for files and folders!")
-
-    #     remote_paths = []
-    #     local_paths = []
-    #     for uuid in file_uuids:
-    #         remote_paths.append(self._translate_UUID_to_URL(uuid))
-    #     local_paths.extend(self.download_data(remote_paths=remote_paths, local_directory=local_directory))
-    #     return local_paths
 
     def load_data(self, remote_path):
         content = self._download_data_content(remote_path)

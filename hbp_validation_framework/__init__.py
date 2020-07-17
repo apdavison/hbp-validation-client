@@ -2049,6 +2049,7 @@ class ModelCatalog(BaseClient):
 
         if model_source.startswith("https://collab.humanbrainproject.eu/#/collab/"):
             # ***** Handles Collab storage urls *****
+            # TODO: remove Collab v1 and update for Collab v2
             entity_uuid = model_source.split("?state=uuid%3D")[-1]
             datastore = URI_SCHEME_MAP["collab"](auth=self.auth)
             fileList = datastore.download_data_using_uuid(entity_uuid, local_directory=local_directory)
