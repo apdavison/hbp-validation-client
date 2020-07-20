@@ -1,10 +1,11 @@
 import os
-import pytest
 import platform
 from datetime import datetime
 from time import sleep
+
 from hbp_validation_framework import ModelCatalog, TestLibrary, sample
 
+import pytest
 
 HBP_USERNAME = os.environ.get('HBP_USER')
 HBP_PASSWORD = os.environ.get('HBP_PASS')
@@ -103,7 +104,6 @@ def test_delete_superUser(request):
 
 
 #1.2) Normal user - Delete model, model_instance, model_image, test, test_instance and result
-# TODO: test to be updated for v2 ...
 @pytest.mark.xfail
 def test_delete_normalUser(request):
     ENVIRONMENT = request.config.getoption("--environment")

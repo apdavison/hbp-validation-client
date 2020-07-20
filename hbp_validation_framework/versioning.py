@@ -4,8 +4,9 @@ based on the Git repository where the model is tracked.
 
 """
 
-import sys
 import os.path
+import sys
+
 import git
 
 

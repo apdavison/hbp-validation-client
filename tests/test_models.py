@@ -1,8 +1,10 @@
-import pytest
 import platform
 import uuid
 from datetime import datetime
 from time import sleep
+
+import pytest
+
 
 """
 1] Retrieve a model description by its model_id or alias.

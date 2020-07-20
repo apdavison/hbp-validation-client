@@ -25,6 +25,6 @@ setup(
     author_email='andrew.davison@unic.cnrs-gif.fr, shailesh.appukuttan@unic.cnrs-gif.fr',
     description='Python client for the HBP Validation Framework web services',
     install_requires=['hbp-service-client', 'requests', 'hbp_seafile'],
-    extras_require={'reports': ['Jinja2', 'pyppdf', 'beautifulsoup4'],
+    extras_require={'reports': ['Jinja2', 'pyppdf', 'beautifulsoup4', 'hbp_archive'],
                     'utils': ['sciunit']}
 )

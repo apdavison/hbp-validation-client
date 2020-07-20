@@ -1,8 +1,8 @@
-import sciunit
-from sciunit import Model, Test, Score
+import os
 
 import quantities
-import os
+import sciunit
+from sciunit import Model, Score, Test
 
 
 class SampleScore(Score):

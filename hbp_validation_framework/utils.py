@@ -20,36 +20,26 @@ Display score matrix in web browser       :meth:`display_score_matrix_html`
 =======================================   ====================================
 """
 
-import os
-import uuid
-import json
-import pickle
-import webbrowser
 import argparse
 import collections
-import unicodedata
-import pkg_resources
-
-try:
-    raw_input
-except NameError:  # Python 3
-    raw_input = input
-    unicode = str # Python 3 renamed the unicode type to str
-import sciunit
-from datetime import datetime
-from . import TestLibrary, ModelCatalog
-from .datastores import CollabDataStore, URI_SCHEME_MAP
-try:  # Python 3
-    from urllib.parse import urlparse
-except ImportError:  # Python 2
-    from urlparse import urlparse
-from importlib import import_module
-import mimetypes
+import json
 import math
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path  # Python 2 backport
+import mimetypes
+import os
+import pickle
+import uuid
+import webbrowser
+from datetime import datetime
+from importlib import import_module
+from pathlib import Path
+from urllib.parse import urlparse
+
+import pkg_resources
+import sciunit
+
+from . import ModelCatalog, TestLibrary
+from .datastores import URI_SCHEME_MAP, SeaFileDataStore
+
 
 def view_json_tree(data):
     """Displays the JSON tree structure inside the web browser
@@ -371,9 +361,9 @@ def upload_test_result(username="", password=None, environment="production", tes
 
     # `.replace(" ", "_")` used to avoid Collab storage path errors due to spaces
     collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name.replace(" ", "_"), datetime.now().strftime("%Y%m%d-%H%M%S"))
-    collab_storage = CollabDataStore(project_id=storage_project_id,
-                                     base_folder=collab_folder,
-                                     auth=test_library.auth)
+    collab_storage = SeaFileDataStore(project_id=storage_project_id,
+                                      base_folder=collab_folder,
+                                      auth=test_library.auth)
 
     response = test_library.register_result(test_result=score, data_store=collab_storage)
     return response, score
@@ -572,6 +562,7 @@ def generate_HTML_report(username="", password=None, environment="production", m
         model_label = (model["alias"] if model["alias"] else model["name"]) + " (" + str(model_instance["version"]) + ")"
         test_label = (test["alias"] if test["alias"] else test["name"]) + " (" + str(test_instance["version"]) + ")"
         if project_id:
+            # TODO: update URLs for Collab v2
             result_url = "https://collab.humanbrainproject.eu/#/collab/{}/nav/{}?state=result.{}".format(str(project_id),str(VFapp_navID), r_id)
             model_url = "https://collab.humanbrainproject.eu/#/collab/{}/nav/{}?state=model.{}".format(str(project_id),str(MCapp_navID), model["id"])
             test_url = "https://collab.humanbrainproject.eu/#/collab/{}/nav/{}?state=test.{}".format(str(project_id),str(VFapp_navID), test["id"])

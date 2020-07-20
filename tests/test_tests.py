@@ -1,9 +1,12 @@
-import pytest
 import platform
 import uuid
-from time import sleep
-import sciunit
 from datetime import datetime
+from time import sleep
+
+import sciunit
+
+import pytest
+
 
 """
 1] Retrieve a test definition by its test_id or alias.

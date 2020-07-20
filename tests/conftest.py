@@ -1,9 +1,11 @@
 import os
-import pytest
 import platform
-from hbp_validation_framework import ModelCatalog, TestLibrary, sample
 from datetime import datetime
 from time import sleep
+
+from hbp_validation_framework import ModelCatalog, TestLibrary, sample
+
+import pytest
 
 HBP_USERNAME = os.environ.get('HBP_USER')
 HBP_PASSWORD = os.environ.get('HBP_PASS')
@@ -58,11 +60,11 @@ def myModelID(modelCatalog):
                                "version":"1.0a", "parameters":""},
                               {"source":"https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                                "version":"2.0a", "parameters":""},
-                              {"source":"https://collab.humanbrainproject.eu/#/collab/8123/nav/61645?state=uuid%3D753ef79e-3fca-4084-939b-c6987b73c9f9",
+                              {"source":"https://drive.ebrains.eu/lib/0fee1620-062d-4643-865b-951de1eee355/file/CA1_pyr_cACpyr_mpg141017_a1-2_idC_20190328143405.zip",
                                "version":"2.0b", "parameters":""}],
                    images=[{"url":"http://www.neuron.yale.edu/neuron/sites/default/themes/xchameleon/logo.png",
                             "caption":"NEURON Logo"},
-                           {"url":"https://collab.humanbrainproject.eu/assets/hbp_diamond_120.png",
+                           {"url":"https://raw.githubusercontent.com/HumanBrainProject/hbp-validation-client/master/eu_logo.jpg",
                             "caption":"HBP Logo"}])
    return model_id
 
@@ -103,7 +105,7 @@ def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
    score = test.judge(model)
    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
    folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
-   result_id = test_library.register_result(score, project="model-validation") # Collab ID for testing
+   result_id = test_library.register_result(score, project_id="model-validation") # Collab ID for testing
    return result_id
 
 

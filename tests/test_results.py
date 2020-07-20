@@ -1,10 +1,12 @@
-import pytest
 import platform
 import uuid
-from time import sleep
-from hbp_validation_framework import sample
-from hbp_validation_framework.datastores import CollabDataStore
 from datetime import datetime
+from time import sleep
+
+from hbp_validation_framework import sample
+from hbp_validation_framework.datastores import SeaFileDataStore
+
+import pytest
 
 
 """

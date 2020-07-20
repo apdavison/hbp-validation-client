@@ -1,8 +1,11 @@
 import os
-import pytest
 import uuid
 from time import sleep
+
 from hbp_validation_framework import sample
+
+import pytest
+
 
 """
 1. Get an instance of a model
@@ -316,7 +319,7 @@ def test_downloadModelInstance_valid_id_cscs(modelCatalog, myModelID):
     model_catalog = modelCatalog
     model_id = myModelID
     model_instance = model_catalog.get_model_instance(model_id=model_id, version="2.0a")
-    file_path = model_catalog.download_model_instance(instance_id=model_instance["id"])
+    file_path = model_catalog.download_model_instance(instance_id=model_instance["id"], overwrite=True)
     assert os.path.isfile(file_path)
 
 #5.2) With valid details in current directory - instance_id, collab storage
@@ -325,7 +328,7 @@ def test_downloadModelInstance_valid_id_collab(modelCatalog, myModelID):
     model_catalog = modelCatalog
     model_id = myModelID
     model_instance = model_catalog.get_model_instance(model_id=model_id, version="2.0a")
-    file_path = model_catalog.download_model_instance(instance_id=model_instance["id"])
+    file_path = model_catalog.download_model_instance(instance_id=model_instance["id"], overwrite=True)
     assert os.path.isfile(file_path)
 
 #5.3) With valid details in specified directory - instance_id
@@ -333,7 +336,7 @@ def test_downloadModelInstance_valid_id_directory(modelCatalog, myModelID):
     model_catalog = modelCatalog
     model_id = myModelID
     model_instance = model_catalog.get_model_instance(model_id=model_id, version="2.0a")
-    file_path = model_catalog.download_model_instance(instance_id=model_instance["id"], local_directory="./temp")
+    file_path = model_catalog.download_model_instance(instance_id=model_instance["id"], local_directory="./temp", overwrite=True)
     assert os.path.isfile(file_path)
     assert "/temp".encode() in os.path.dirname(file_path)
 
@@ -341,7 +344,7 @@ def test_downloadModelInstance_valid_id_directory(modelCatalog, myModelID):
 def test_downloadModelInstance_valid_model_version(modelCatalog, myModelID):
     model_catalog = modelCatalog
     model_id = myModelID
-    file_path = model_catalog.download_model_instance(model_id=model_id, version="2.0a")
+    file_path = model_catalog.download_model_instance(model_id=model_id, version="2.0a", overwrite=True)
     assert os.path.isfile(file_path)
 
 #5.5) With valid details - alias, version
@@ -349,7 +352,7 @@ def test_downloadModelInstance_valid_alias_version(modelCatalog, myModelID):
     model_catalog = modelCatalog
     model_id = myModelID
     model = model_catalog.get_model(model_id=model_id)
-    file_path = model_catalog.download_model_instance(alias=model["alias"], version="2.0a")
+    file_path = model_catalog.download_model_instance(alias=model["alias"], version="2.0a", overwrite=True)
     assert os.path.isfile(file_path)
 
 
