@@ -52,7 +52,7 @@ def myModelID(modelCatalog):
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.",
                    instances=[{"source":"https://www.abcde.com",
                                "version":"1.0", "parameters":"", "morphology": "http://example.com/mycell.asc"},

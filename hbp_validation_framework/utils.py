@@ -340,7 +340,7 @@ def upload_test_result(username="", password=None, environment="production", tes
 
     if not storage_project_id:
         storage_project_id = model_host_project_id
-    score.related_data["project"] = storage_project_id
+    score.related_data["project_id"] = storage_project_id
 
     # Check if result with same hash has already been uploaded for
     # this (model instance, test instance) combination; if yes, don't register result

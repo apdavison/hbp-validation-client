@@ -78,7 +78,7 @@ def test_upload_test_result(modelCatalog, testLibrary, myModelID, myTestID):
     model = model_catalog.get_model(model_id=model_id)
     test_model = sample.SampleModel(model_instance_uuid=model["instances"][0]["id"])
     test_result_file = utils.run_test_offline(model=test_model, test_config_file=test_config_file)
-    result_id, score = utils.upload_test_result(test_result_file=test_result_file, storage_project_id="model-validation", client_obj=test_library)
+    result_id, score = utils.upload_test_result(test_result_file=test_result_file, client_obj=test_library)
     assert isinstance(uuid.UUID(result_id, version=4), uuid.UUID)
     assert isinstance(score, sciunit.Score)
 
@@ -97,6 +97,6 @@ def test_run_test_combined(modelCatalog, testLibrary, myModelID, myTestID):
     model = model_catalog.get_model(model_id=model_id)
     test_model = sample.SampleModel(model_instance_uuid=model["instances"][0]["id"])
 
-    result_id, score = utils.run_test(model=test_model, test_id=test_id, test_version=test["instances"][0]["version"], storage_project_id="model-validation", client_obj=test_library)
+    result_id, score = utils.run_test(model=test_model, test_id=test_id, test_version=test["instances"][0]["version"], client_obj=test_library)
     assert isinstance(uuid.UUID(result_id, version=4), uuid.UUID)
     assert isinstance(score, sciunit.Score)

@@ -36,7 +36,7 @@ def test_delete_superUser(request):
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.",
                    instances=[{"source":"https://www.abcde.com",
                                "version":"1.0", "parameters":""}],
@@ -65,7 +65,7 @@ def test_delete_superUser(request):
     score = test.judge(model)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
-    result_id = test_library.register_result(score, project = "model-validation") # Collab ID = model-validation
+    result_id = test_library.register_result(score, project_id = "model-validation") # Collab ID = model-validation
 
     test_library.delete_result(result_id=result_id)
     sleep(20)
@@ -120,7 +120,7 @@ def test_delete_normalUser(request):
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
                    brain_region="basal ganglia", species="Mus musculus",
-                   owner={"family_name": "Tester", "given_name": "Validation"}, project="SP 6.4", license="BSD 3-Clause",
+                   owner={"family_name": "Tester", "given_name": "Validation"}, license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.",
                    instances=[{"source":"https://www.abcde.com",
                                "version":"1.0", "parameters":""}],
@@ -149,7 +149,7 @@ def test_delete_normalUser(request):
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
 
-    result_id = test_library.register_result(score, project="model-validation") # Collab ID = model-validation
+    result_id = test_library.register_result(score, project_id="model-validation") # Collab ID = model-validation
 
     with pytest.raises(Exception) as excinfo:
         test_library.delete_result(result_id=result_id)

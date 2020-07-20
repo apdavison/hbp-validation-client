@@ -49,7 +49,7 @@ class SeaFileDataStore(object):
     """
 
     def __init__(self, project_id=None, base_folder="/", auth=None, **kwargs):
-        self.repo_path = project_id
+        self.project_id = project_id
         self.base_folder = base_folder.strip("/")
         self._auth = auth  # we defer authorization until needed
         self._authorized = False
@@ -63,7 +63,7 @@ class SeaFileDataStore(object):
             auth = self._auth
         self.client = hbp_seafile.connect(token=auth.token)
         self._authorized = True
-        self.repo = self.client.repos.get_repo_by_url(self.repo_path)
+        self.repo = self.client.repos.get_repo_by_url(self.project_id)
 
     def upload_data(self, file_paths, overwrite=False):
         if not self.authorized:
