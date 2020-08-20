@@ -12,11 +12,11 @@ from importlib import import_module
 import platform
 try:  # Python 3
     from urllib.request import urlopen
-    from urllib.parse import urlparse, urlencode, parse_qs
+    from urllib.parse import urlparse, urljoin, urlencode, parse_qs
     from urllib.error import URLError
 except ImportError:  # Python 2
     from urllib2 import urlopen, URLError
-    from urlparse import urlparse, parse_qs
+    from urlparse import urlparse, urljoin, parse_qs
     from urllib import urlencode
 try:
     raw_input
@@ -2126,6 +2126,7 @@ class ModelCatalog(BaseClient):
             fileList = datastore.download_data(str(model_source), local_directory=local_directory)
         elif model_source.startswith("https://object.cscs.ch/"):
             # ***** Handles CSCS public urls (file or folder) *****
+            model_source = urljoin(model_source, urlparse(model_source).path) # remove query params from URL, e.g. `?bluenaas=true`
             req = requests.head(model_source)
             if req.status_code == 200:
                 if "directory" in req.headers["Content-Type"]:
