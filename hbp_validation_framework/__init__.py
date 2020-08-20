@@ -1155,6 +1155,8 @@ class TestLibrary(BaseClient):
         if not isinstance(uri_list, list):
             uri_list = [uri_list]
             return_single = True
+        elif len(uri_list) == 1:
+            return_single = True
         for uri in uri_list:
             parse_result = urlparse(uri)
             datastore = URI_SCHEME_MAP[parse_result.scheme](auth=self.auth)
