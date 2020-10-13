@@ -1442,10 +1442,6 @@ class ModelCatalog(BaseClient):
     Add new model instance                 :meth:`add_model_instance`
     Find model instance; else add          :meth:`find_model_instance_else_add`
     Edit existing model instance           :meth:`edit_model_instance`
-    Get figure from model description      :meth:`get_model_image`
-    List figures from model description    :meth:`list_model_images`
-    Add figure to model description        :meth:`add_model_image`
-    Edit existing figure metadata          :meth:`edit_model_image`
     ====================================   ====================================
 
     Parameters
@@ -1767,15 +1763,9 @@ class ModelCatalog(BaseClient):
         model_data["author"] = self._format_people_name(model_data["author"])
         model_data["owner"] = self._format_people_name(model_data["owner"])
 
-        url = self.url + "/models/?app_id="+app_id+"&format=json"
-        model_json = {
-                        "model": model_data,
-                        "model_instance":instances,
-                        "model_image":images
-                     }
+        url = self.url + "/models/"
         headers = {'Content-type': 'application/json'}
-        print(json.dumps(model_json)) # TODO: remove
-        response = requests.post(url, data=json.dumps(model_json),
+        response = requests.post(url, data=json.dumps(model_data),
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
         if response.status_code == 201:
@@ -1795,9 +1785,9 @@ class ModelCatalog(BaseClient):
         ----------
         model_id : UUID
             System generated unique identifier associated with model description.
-        app_id : string
-            Specifies the ID of the host model catalog app on the HBP Collaboratory.
-            (the model would belong to this app)
+        project_id : string
+            Specifies the ID of the host collab in the HBP Collaboratory.
+            (the model would belong to this collab)
         name : string
             Name of the model description to be created.
         alias : string, optional
@@ -1839,68 +1829,53 @@ class ModelCatalog(BaseClient):
 
         Examples
         --------
-        >>> model = model_catalog.edit_model(model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5",
-                        app_id="39968", name="Test Model - B2", alias="Model-B2",
-                        author="Shailesh Appukuttan", owner="Andrew Davison", organization="HBP-SP6", private=False,
-                        species="Mus musculus", brain_region="basal ganglia", cell_type="granule cell",
-                        model_scope="single cell", abstraction_level="spiking neurons",
+        >>> model = model_catalog.edit_model(project_id="39968", name="Test Model - B2",
+                        model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5",
+                        alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
+                        private=False, cell_type="Granule Cell", model_scope="Single cell model",
+                        abstraction_level="Spiking neurons",
+                        brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
+                        owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
                         description="This is a test entry")
         """
 
         if model_id == "":
             raise Exception("Model ID needs to be provided for editing a model.")
 
-        id = model_id   # as needed by API
-        model_data = locals()
-        for key in ["self", "app_id", "model_id"]:
-            model_data.pop(key)
-
-        # assign existing values for parameters not specified
-        # Note: "" signifies to keep existing value; None signifies no value
-        #       except for 'description' as it cannot be None.
-
-        # fetch existing entry
-        url = self.url + "/models/?id=" + model_id + "&format=json"
-        model_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if model_json.status_code != 200:
-            raise Exception("Error in retrieving model. Response = " + str(model_json))
-        model_json = model_json.json()
-        if len(model_json["models"]) == 0:
-            raise Exception("Error in retrieving model description. Possibly invalid input data.")
-        model_json = model_json["models"][0]
-
-        # assign existing values for parameters not specified
-        for key in model_data:
-            if model_data[key] is "" or (key=="description" and model_data[key] is None):
-                model_data[key] = model_json[key]
-            elif key in ["author", "owner"]:
-                # format names of authors and owners as required by API
-                model_data[key] = self._format_people_name(model_data[key])
-        if app_id is "":
-            app_id = str(model_json["app"]["collab_id"])
+        model_data = {}
+        args = locals()
+        for field in ("project_id", "name", "alias", "author", "organization", "private",
+                      "cell_type", "model_scope", "abstraction_level", "brain_region",
+                      "species", "owner", "project", "license", "description"):
+            value = args[field]
+            if value:
+                model_data[field] = value
 
         values = self.get_attribute_options()
+        for field in ("species", "brain_region", "cell_type", "abstraction_level", "model_scope"):
+            if field in model_data and model_data[field] not in values[field]:
+                raise Exception(field + " = '"  + model_data[field] + "' is invalid.\n"
+                                "Value has to be one of these: " + values[field])
 
-        for key in ["cell_type", "brain_region", "species", "model_scope", "abstraction_level", "organization"]:
-            if model_data[key] not in values[key]:
-                raise Exception(key+" = '" +model_data[key]+"' is invalid.\nValue has to be one of these: " + str(values[key]))        
+        for field in ("author", "owner"):
+            if not isinstance(model_data[field], list):
+                model_data[field] = [model_data[field]]
 
-        if model_data["private"] not in [True, False]:
+        if model_data["alias"] == "":
+            model_data["alias"] = None
+
+        if model_data.get("private", False) not in (True, False):
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
 
-        url = self.url + "/models/?app_id="+app_id+"&format=json"
-        model_json = {
-                        "models": [model_data]
-                     }
         headers = {'Content-type': 'application/json'}
-        print(json.dumps(model_json)) # TODO: remove
-        response = requests.put(url, data=json.dumps(model_json),
+        url = self.url + "/models/" + model_id
+        response = requests.put(url, data=json.dumps(model_data),
                                 auth=self.auth, headers=headers,
                                 verify=self.verify)
-        if response.status_code == 202:
-            return response.json()
+        if response.status_code == 200:
+            return response.json()["id"]
         else:
-            raise Exception("Error in updating model. Response = " + str(response))
+            handle_response_error("Error in updating model", response)
 
     def delete_model(self, model_id="", alias=""):
         """ONLY FOR SUPERUSERS: Delete a specific model description by its model_id or alias.
@@ -1931,15 +1906,15 @@ class ModelCatalog(BaseClient):
         if model_id == "" and alias == "":
             raise Exception("Model ID or alias needs to be provided for deleting a model.")
         elif model_id != "":
-            url = self.url + "/models/?id=" + model_id + "&format=json"
+            url = self.url + "/models/" + model_id
         else:
-            url = self.url + "/models/?alias=" + alias + "&format=json"
+            url = self.url + "/models/" + quote(alias)
 
         model_json = requests.delete(url, auth=self.auth, verify=self.verify)
         if model_json.status_code == 403:
-            raise Exception("Only SuperUser accounts can delete data. Response = " + str(model_json))
+            handle_response_error("Only SuperUser accounts can delete data", model_json)
         elif model_json.status_code != 200:
-            raise Exception("Error in deleting model. Response = " + str(model_json))
+            handle_response_error("Error in deleting model", model_json)
 
     def get_attribute_options(self, param=""):
         """Retrieve valid values for attributes.
@@ -1970,23 +1945,10 @@ class ModelCatalog(BaseClient):
         Examples
         --------
         >>> data = model_catalog.get_attribute_options()
-        >>> data = model_catalog.get_attribute_options("cell_type")
+        >>> data = model_catalog.get_attribute_options("cell types")
         """
-
-        if param == "":
-            param = "all"
-
-        valid_params = ["cell_type", "test_type", "score_type", "brain_region", "model_scope", "abstraction_level", "data_modalities", "species", "organization", "all"]
-        if param in valid_params:
-            url = self.url + "/authorizedcollabparameterrest/?python_client=true&parameters="+param+"&format=json"
-        else:
-            raise Exception("Specified attribute '{}' is invalid. Valid attributes: {}".format(param, valid_params))
-        data = requests.get(url, auth=self.auth, verify=self.verify).json()
-        data = ast.literal_eval(json.dumps(data))
-        #  add `None` as valid value for every parameter
-        for key, val in data.items():
-            data[key].append(None)
-        return data
+        valid_params = ["species", "brain_region", "cell_type", "model_scope", "abstraction_level"]
+        return self._get_attribute_options(param, valid_params)
 
     def get_model_instance(self, instance_path="", instance_id="", model_id="", alias="", version=""):
         """Retrieve an existing model instance.
@@ -2030,21 +1992,22 @@ class ModelCatalog(BaseClient):
                 model_instance_json = json.load(fp)
         else:
             if instance_id:
-                url = self.url + "/model-instances/?id=" + instance_id + "&format=json"
+                url = self.url + "/models/query/instances/" + instance_id
             elif model_id and version:
-                url = self.url + "/model-instances/?model_id=" + model_id + "&version=" + version + "&format=json"
+                url = self.url + "/models/" + model_id + "/instances/?version=" + version
             else:
-                url = self.url + "/model-instances/?model_alias=" + alias + "&version=" + version + "&format=json"
+                url = self.url + "/models/" + quote(alias) + "/instances/?version=" + version
             model_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_instance_json.status_code != 200:
-            raise Exception("Error in retrieving model instance. Response = " + str(model_instance_json))
+            handle_response_error("Error in retrieving model instance", model_instance_json)
         model_instance_json = model_instance_json.json()
-        if len(model_instance_json["instances"]) == 1:
-            return model_instance_json["instances"][0]
-        else:
-            raise Exception("Error in retrieving model instance. Possibly invalid input data.")
+        # if specifying a version, this can return multiple instances, since instances
+        # can have the same version but different parameters
+        if len(model_instance_json) == 1:
+            return model_instance_json[0]
+        return model_instance_json
 
-    def download_model_instance(self, instance_path="", instance_id="", model_id="", alias="", version="", local_directory="."):
+    def download_model_instance(self, instance_path="", instance_id="", model_id="", alias="", version="", local_directory=".", overwrite=False):
         """Download files/directory corresponding to an existing model instance.
 
         Files/directory corresponding to a model instance to be downloaded. The model
@@ -2069,7 +2032,8 @@ class ModelCatalog(BaseClient):
             User-assigned identifier (unique for each model) associated with model instance.
         local_directory : string
             Directory path (relative/absolute) where files should be downloaded and saved. Default is current location.
-            Existing files, if any, at the target location will be overwritten!
+        overwrite: Boolean
+            Indicates if any existing file at the target location should be overwritten; default is set to False
 
         Returns
         -------
@@ -2091,15 +2055,16 @@ class ModelCatalog(BaseClient):
         Path(local_directory).mkdir(parents=True, exist_ok=True)
         fileList = []
 
-        if model_source.startswith("https://collab.humanbrainproject.eu/#/collab/"):
+        if "drive.ebrains.eu/lib/" in model_source:
             # ***** Handles Collab storage urls *****
-            entity_uuid = model_source.split("?state=uuid%3D")[-1]
-            datastore = URI_SCHEME_MAP["collab"](auth=self.auth)
-            fileList = datastore.download_data_using_uuid(entity_uuid, local_directory=local_directory)
+            repo_id = model_source.split("drive.ebrains.eu/lib/")[1].split("/")[0]
+            model_path = "/" + "/".join(model_source.split("drive.ebrains.eu/lib/")[1].split("/")[2:])
+            datastore = URI_SCHEME_MAP["collab_v2"](project_id=repo_id, auth=self.auth)
+            fileList = datastore.download_data(model_path, local_directory=local_directory, overwrite=overwrite)
         elif model_source.startswith("swift://cscs.ch/"):
             # ***** Handles CSCS private urls *****
             datastore = URI_SCHEME_MAP["swift"]()
-            fileList = datastore.download_data(str(model_source), local_directory=local_directory)
+            fileList = datastore.download_data(str(model_source), local_directory=local_directory, overwrite=overwrite)
         elif model_source.startswith("https://object.cscs.ch/"):
             # ***** Handles CSCS public urls (file or folder) *****
             model_source = urljoin(model_source, urlparse(model_source).path) # remove query params from URL, e.g. `?bluenaas=true`
@@ -2117,13 +2082,13 @@ class ModelCatalog(BaseClient):
                 else:
                     files_match = [model_source]
                 datastore = URI_SCHEME_MAP["http"]()
-                fileList = datastore.download_data(files_match, local_directory=local_directory)
+                fileList = datastore.download_data(files_match, local_directory=local_directory, overwrite=overwrite)
             else:
                 raise FileNotFoundError("Requested file/folder not found: {}".format(model_source))
         else:
             # ***** Handles ModelDB and external urls (only file; not folder) *****
             datastore = URI_SCHEME_MAP["http"]()
-            fileList = datastore.download_data(str(model_source), local_directory=local_directory)
+            fileList = datastore.download_data(str(model_source), local_directory=local_directory, overwrite=overwrite)
 
         if len(fileList) > 0:
             flag = True
@@ -2173,14 +2138,14 @@ class ModelCatalog(BaseClient):
                 model_instances_json = json.load(fp)
         else:
             if model_id:
-                url = self.url + "/model-instances/?model_id=" + model_id + "&format=json"
+                url = self.url + "/models/" + model_id + "/instances/?size=100000"
             else:
-                url = self.url + "/model-instances/?model_alias=" + alias + "&format=json"
+                url = self.url + "/models/" + quote(alias) + "/instances/?size=100000"
             model_instances_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_instances_json.status_code != 200:
-            raise Exception("Error in retrieving model instances. Response = " + str(model_instances_json))
+            handle_response_error("Error in retrieving model instances", model_instances_json)
         model_instances_json = model_instances_json.json()
-        return model_instances_json["instances"]
+        return model_instances_json
 
     def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters="", code_format="", hash="", morphology="", license=""):
         """Register a new model instance.
@@ -2238,25 +2203,24 @@ class ModelCatalog(BaseClient):
         instance_data.pop("self")
 
         for key, val in instance_data.items():
-            if val is None:
-                instance_data[key] = ""
+            if val == "":
+                instance_data[key] = None
 
         if model_id == "" and alias == "":
             raise Exception("Model ID needs to be provided for finding the model.")
             #raise Exception("Model ID or alias needs to be provided for finding the model.")
         elif model_id != "":
-            url = self.url + "/model-instances/?format=json"
+            url = self.url + "/models/" + model_id + "/instances/"
         else:
-            raise Exception("alias is not currently implemented for this feature.")
-            #url = self.url + "/model-instances/?alias=" + alias + "&format=json"
+            url = self.url + "/models/" + quote(alias) + "/instances/"
         headers = {'Content-type': 'application/json'}
-        response = requests.post(url, data=json.dumps([instance_data]),
+        response = requests.post(url, data=json.dumps(instance_data),
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
         if response.status_code == 201:
-            return response.json()["uuid"][0]
+            return response.json()["id"]
         else:
-            raise Exception("Error in adding model instance. Response = " + str(response))
+            handle_response_error("Error in adding model instance", response)
 
     def find_model_instance_else_add(self, model_obj):
         """Find existing model instance; else create a new instance
@@ -2293,7 +2257,7 @@ class ModelCatalog(BaseClient):
                 raise AttributeError("Model object does not have a 'model_version' attribute")
             try:
                 model_instance_uuid = self.get_model_instance(model_id=model_obj.model_uuid,
-                                                                     version=model_obj.model_version)['id']
+                                                              version=model_obj.model_version)['id']
             except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
                 # so we create a new instance
                 model_instance_uuid = self.add_model_instance(model_id=model_obj.model_uuid,
@@ -2365,40 +2329,31 @@ class ModelCatalog(BaseClient):
         if instance_id == "" and (model_id == "" or not version) and (alias == "" or not version):
             raise Exception("instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance.")
 
-        if instance_id:
-            id = instance_id    # as needed by API
-        if alias:
-            model_alias = alias # as needed by API
-        instance_data = locals()
-        for key in ["self", "instance_id", "alias"]:
-            instance_data.pop(key)
+        instance_data = {key:value for key, value in locals().items()
+                         if value is not None}
 
         # assign existing values for parameters not specified
         if instance_id:
-            url = self.url + "/model-instances/?id=" + instance_id + "&format=json"
-        elif model_id and version:
-            url = self.url + "/model-instances/?model_id=" + model_id + "&version=" + version + "&format=json"
+            url = self.url + "/models/query/instances/" + instance_id
         else:
-            url = self.url + "/model-instances/?model_alias=" + alias + "&version=" + version + "&format=json"
-        model_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if model_instance_json.status_code != 200:
-            raise Exception("Error in retrieving model instance. Response = " + str(model_instance_json))
-        model_instance_json = model_instance_json.json()
-        if len(model_instance_json["instances"]) == 0:
-            raise Exception("Error in retrieving model instance. Possibly invalid input data.")
-        model_instance_json = model_instance_json["instances"][0]
-        for key in instance_data:
-            if instance_data[key] is None:
-                instance_data[key] = model_instance_json.get(key, None)
+            model_identifier = quote(model_id or alias)
+            response0 = requests.get(self.url + f"/models/{model_identifier}/instances/?version={version}",
+                                     auth=self.auth, verify=self.verify)
+            if response0.status_code != 200:
+                raise Exception("Invalid model_id, alias and/or version")
+            model_data = response0.json()[0]  # to fix: in principle, can have multiple instances with same version but different parameters
+            url = self.url + f"/models/{model_identifier}/instances/{model_data['id']}"
 
-        url = self.url + "/model-instances/?format=json"
+        for key in ["self", "instance_id", "alias", "model_id"]:
+            instance_data.pop(key)
+
         headers = {'Content-type': 'application/json'}
-        response = requests.put(url, data=json.dumps([instance_data]), auth=self.auth, headers=headers,
+        response = requests.put(url, data=json.dumps(instance_data), auth=self.auth, headers=headers,
                                 verify=self.verify)
-        if response.status_code == 202:
-            return response.json()["uuid"][0]
+        if response.status_code == 200:
+            return response.json()["id"]
         else:
-            raise Exception("Error in editing model instance. Response = " + str(response.json()))
+            handle_response_error("Error in editing model instance at {}".format(url), response)
 
     def delete_model_instance(self, instance_id="", model_id="", alias="", version=""):
         """ONLY FOR SUPERUSERS: Delete an existing model instance.
@@ -2440,227 +2395,17 @@ class ModelCatalog(BaseClient):
             model_alias = alias # as needed by API
 
         if instance_id:
-            url = self.url + "/model-instances/?id=" + instance_id + "&format=json"
-        elif model_id and version:
-            url = self.url + "/model-instances/?model_id=" + model_id + "&version=" + version + "&format=json"
+            if model_id:
+                url = self.url + "/models/" + model_id + "/instances/" + instance_id
+            else:
+                url = self.url + "/models/query/instances/" + instance_id
         else:
-            url = self.url + "/model-instances/?model_alias=" + alias + "&version=" + version + "&format=json"
+            raise NotImplementedError("Need to retrieve instance to get id")
         model_instance_json = requests.delete(url, auth=self.auth, verify=self.verify)
         if model_instance_json.status_code == 403:
-            raise Exception("Only SuperUser accounts can delete data. Response = " + str(model_instance_json))
+            handle_response_error("Only SuperUser accounts can delete data", model_instance_json)
         elif model_instance_json.status_code != 200:
-            raise Exception("Error in deleting model instance. Response = " + str(model_instance_json))
-
-    def get_model_image(self, image_id=""):
-        """Retrieve image info from a model description.
-
-        This allows to retrieve image (figure) info from the model catalog.
-        The `image_id` needs to be specified as input parameter.
-
-        Parameters
-        ----------
-        image_id : UUID
-            System generated unique identifier associated with image (figure).
-
-        Returns
-        -------
-        dict
-            Information about the image (figure) retrieved.
-
-        Examples
-        --------
-        >>> model_image = model_catalog.get_model_image(image_id="2b45e7d4-a7a1-4a31-a287-aee7072e3e75")
-        """
-
-        if not image_id:
-            raise Exception("image_id needs to be provided for finding a specific model image (figure).")
-        else:
-            url = self.url + "/images/?id=" + image_id + "&format=json"
-        model_image_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if model_image_json.status_code != 200:
-            raise Exception("Error in retrieving model images (figures). Response = " + str(model_image_json))
-        model_image_json = model_image_json.json()
-        if len(model_image_json["images"]) == 1:
-            return model_image_json["images"][0]
-        else:
-            raise Exception("Error in retrieving model image. Possibly invalid input data.")
-        return model_image_json["images"][0]
-
-    def list_model_images(self, model_id="", alias=""):
-        """Retrieve all images (figures) associated with a model.
-
-        This can be retrieved in the following ways (in order of priority):
-
-        1. specify `model_id`
-        2. specify `alias` (of the model)
-
-        Parameters
-        ----------
-        model_id : UUID
-            System generated unique identifier associated with model description.
-        alias : string
-            User-assigned unique identifier associated with model description.
-
-        Returns
-        -------
-        list
-            List of dicts containing information about the model images (figures).
-
-        Examples
-        --------
-        >>> model_images = model_catalog.list_model_images(model_id="196b89a3-e672-4b96-8739-748ba3850254")
-        """
-
-        if model_id == "" and alias == "":
-            raise Exception("model_id or alias needs to be provided for finding model images.")
-        elif model_id:
-            url = self.url + "/images/?model_id=" + model_id + "&format=json"
-        else:
-            url = self.url + "/images/?model_alias=" + alias + "&format=json"
-        model_images_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if model_images_json.status_code != 200:
-            raise Exception("Error in retrieving model images (figures). Response = " + str(model_images_json.content))
-        model_images_json = model_images_json.json()
-        return model_images_json["images"]
-
-    def add_model_image(self, model_id="", alias="", url="", caption=""):
-        """Add a new image (figure) to a model description.
-
-        This allows to add a new image (figure) to an existing model in the model catalog.
-        The `model_id` needs to be specified as input parameter.
-
-        Parameters
-        ----------
-        model_id : UUID
-            System generated unique identifier associated with model description.
-        alias : string
-            User-assigned unique identifier associated with model description.
-        url : string
-            Url of image (figure) to be added.
-        caption : string
-            Caption to be associated with the image (figure).
-
-        Returns
-        -------
-        UUID
-            UUID of the image (figure) that was added.
-
-        Note
-        ----
-        * `alias` is not currently implemented in the API; kept for future use.
-        * TODO: Either model_id or alias needs to be provided, with model_id taking precedence over alias.
-        * TODO: Allow image (figure) to be located locally
-
-        Examples
-        --------
-        >>> image_id = model_catalog.add_model_image(model_id="196b89a3-e672-4b96-8739-748ba3850254",
-                                               url="http://www.neuron.yale.edu/neuron/sites/default/themes/xchameleon/logo.png",
-                                               caption="NEURON Logo")
-        """
-
-        image_data = locals()
-        image_data.pop("self")
-        image_data.pop("alias")
-
-        if model_id == "" and alias == "":
-            raise Exception("Model ID needs to be provided for finding the model.")
-            #raise Exception("Model ID or alias needs to be provided for finding the model.")
-        elif model_id != "":
-            url = self.url + "/images/?format=json"
-        else:
-            raise Exception("alias is not currently implemented for this feature.")
-            #url = self.url + "/images/?alias=" + alias + "&format=json"
-        headers = {'Content-type': 'application/json'}
-        response = requests.post(url, data=json.dumps([image_data]),
-                                 auth=self.auth, headers=headers,
-                                 verify=self.verify)
-        if response.status_code == 201:
-            return response.json()["uuid"][0]
-        else:
-            raise Exception("Error in adding image (figure). Response = " + str(response))
-
-    def edit_model_image(self, image_id="", url=None, caption=None):
-        """Edit an existing image (figure) metadata.
-
-        This allows to edit the metadata of an image (figure) in the model catalog.
-        The `image_id` needs to be specified as input parameter.
-        Only the parameters being updated need to be specified.
-
-        Parameters
-        ----------
-        image_id : UUID
-            System generated unique identifier associated with image (figure).
-
-        Returns
-        -------
-        UUID
-            UUID of the image (figure) that was edited.
-
-        Examples
-        --------
-        >>> image_id = model_catalog.edit_model_image(image_id="2b45e7d4-a7a1-4a31-a287-aee7072e3e75", caption = "Some Logo", url="http://www.somesite.com/logo.png")
-        """
-
-        if image_id == "":
-            raise Exception("Image ID needs to be provided for finding the image (figure).")
-
-        id = image_id
-        image_data = locals()
-        for key in ["self", "image_id"]:
-            image_data.pop(key)
-
-        # assign existing values for parameters not specified
-        url = self.url + "/images/?id=" + image_id + "&format=json"
-        model_image_json = requests.get(url, auth=self.auth, verify=self.verify)
-        if model_image_json.status_code != 200:
-            raise Exception("Error in retrieving model images (figures). Response = " + str(model_image_json))
-        model_image_json = model_image_json.json()
-        if len(model_image_json["images"]) == 0:
-            raise Exception("Error in retrieving model image. Possibly invalid input data.")
-        model_image_json = model_image_json["images"][0]
-        for key in image_data:
-            if image_data[key] is None:
-                image_data[key] = model_image_json[key]
-
-        url = self.url + "/images/?format=json"
-        headers = {'Content-type': 'application/json'}
-        response = requests.put(url, data=json.dumps([image_data]), auth=self.auth, headers=headers,
-                                verify=self.verify)
-        if response.status_code == 202:
-            return response.json()["uuid"][0]
-        else:
-            raise Exception("Error in editing image (figure). Response = " + str(response.json()))
-
-    def delete_model_image(self, image_id=""):
-        """ONLY FOR SUPERUSERS: Delete an image from a model description.
-
-        This allows to delete an image (figure) info from the model catalog.
-        The `image_id` needs to be specified as input parameter.
-
-        Parameters
-        ----------
-        image_id : UUID
-            System generated unique identifier associated with image (figure).
-
-        Note
-        ----
-        * This feature is only for superusers!
-
-        Examples
-        --------
-        >>> model_catalog.delete_model_image(image_id="2b45e7d4-a7a1-4a31-a287-aee7072e3e75")
-        """
-
-        if not image_id:
-            raise Exception("image_id needs to be provided for finding a specific model image (figure).")
-        else:
-            url = self.url + "/images/?id=" + image_id + "&format=json"
-        model_image_json = requests.delete(url, auth=self.auth, verify=self.verify)
-        if model_image_json.status_code == 403:
-            raise Exception("Only SuperUser accounts can delete data. Response = " + str(model_image_json))
-        elif model_image_json.status_code != 200:
-            raise Exception("Error in deleting model image. Response = " + str(model_image_json))
-
+            handle_response_error("Error in deleting model instance", model_instance_json)
 
 def _get_ip_address():
     """
