@@ -1612,7 +1612,7 @@ class ModelCatalog(BaseClient):
         The filters may specify one or more attributes that belong
         to a model description. The following model attributes can be specified:
 
-        * app_id
+        * project_id
         * name
         * alias
         * author
@@ -1643,7 +1643,7 @@ class ModelCatalog(BaseClient):
         Examples
         --------
         >>> models = model_catalog.list_models()
-        >>> models = model_catalog.list_models(app_id="39968")
+        >>> models = model_catalog.list_models(project_id="39968")
         >>> models = model_catalog.list_models(cell_type="Pyramidal Cell", brain_region="Hippocampus")
         """
 
@@ -1747,12 +1747,12 @@ class ModelCatalog(BaseClient):
         """
 
         model_data = locals()
-        for key in ["self", "app_id", "instances", "images"]:
+        for key in ["self"]:
             model_data.pop(key)
 
         values = self.get_attribute_options()
 
-        for key in ["cell_type", "brain_region", "species", "model_scope", "abstraction_level", "organization"]:
+        for key in ["cell_type", "brain_region", "species", "model_scope", "abstraction_level"]:
             if model_data[key] not in values[key]:
                 raise Exception(key+" = '" +model_data[key]+"' is invalid.\nValue has to be one of these: " + str(values[key]))
 

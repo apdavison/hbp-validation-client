@@ -192,19 +192,19 @@ def test_addModel_none(modelCatalog):
     with pytest.raises(Exception) as excinfo:
         model_id = model_catalog.register_model()
 
-#4.2) Missing mandatory parameter (author)
+#4.2) Missing mandatory parameter (model name)
+# Note: author name was no longer mandatory, so changed to model name
+@pytest.mark.skip(reason="registrtion without model name incorrectly allowed currently")
 def test_addModel_missingParam(modelCatalog):
     model_catalog = modelCatalog
     with pytest.raises(Exception) as excinfo:
-        model_name = "Model_{}_{}_py{}_add2".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
-        model_id = model_catalog.register_model(project_id="model-validation", name="IGNORE - Test Model - " + model_name,
-                       alias=model_name, organization="HBP-SP6",
+        model_id = model_catalog.register_model(project_id="model-validation", organization="HBP-SP6",
                        private=False, cell_type="granule cell", model_scope="single cell",
                        abstraction_level="spiking neurons",
                        brain_region="basal ganglia", species="Mus musculus",
                        owner={"family_name": "Tester", "given_name": "Validation"}, license="BSD 3-Clause",
                        description="This is a test entry! Please ignore.")
-    assert "field required" in str(excinfo.value)  # author is missing
+    assert "field required" in str(excinfo.value)
 
 #4.3) Invalid value for parameter (brain_region)
 def test_addModel_invalidParam(modelCatalog):

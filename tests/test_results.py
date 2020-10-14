@@ -4,7 +4,7 @@ from datetime import datetime
 from time import sleep
 
 from hbp_validation_framework import sample
-from hbp_validation_framework.datastores import SeaFileDataStore
+from hbp_validation_framework.datastores import CollabV2DataStore
 
 import pytest
 
@@ -70,8 +70,7 @@ def test_list_results_valid(testLibrary, myTestID, myResultID):
 
 #3.2) No filters
 # because it takes too long to get all results, fetch first 10 and test 'size' parameter
-@pytest.mark.xfail
-# can fail because of https://github.com/HumanBrainProject/hbp-validation-framework/issues/274
+@pytest.mark.xfail(reason="can fail because of https://github.com/HumanBrainProject/hbp-validation-framework/issues/274")
 def test_list_results_no_filter(testLibrary):
     test_library = testLibrary
     results = test_library.list_results(size=10)
@@ -79,8 +78,7 @@ def test_list_results_no_filter(testLibrary):
     assert len(results) == 10
 
 #3.3) Check if 'from_index' parameter works as expected
-@pytest.mark.xfail
-# can fail because of https://github.com/HumanBrainProject/hbp-validation-framework/issues/274
+@pytest.mark.xfail(reason="can fail because of https://github.com/HumanBrainProject/hbp-validation-framework/issues/274")
 def test_list_results_no_filter_check_index(testLibrary):
     test_library = testLibrary
     results1 = test_library.list_results(size=5, from_index=0)

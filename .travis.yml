@@ -8,4 +8,4 @@ matrix:
 install:
   - source tests/install.sh
 script:
-  - pytest --disable-pytest-warnings --cov=hbp_validation_framework tests/ --environment="production"
+  - pytest --disable-pytest-warnings --force-flaky --max-runs=3 --min-passes=1 --cov=hbp_validation_framework tests/ --environment="production"

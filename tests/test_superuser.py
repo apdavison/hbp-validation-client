@@ -79,11 +79,6 @@ def test_delete_superUser(request):
         model_instance = model_catalog.get_model_instance(instance_id=model_instance_id)
     assert "Error in retrieving model instance." in str(excinfo.value)
 
-    # model_catalog.delete_model_image(image_id=model_image_id)
-    # with pytest.raises(Exception) as excinfo:
-    #     model_image = model_catalog.get_model_image(image_id=model_image_id)
-    # assert "Error in retrieving model image." in str(excinfo.value)
-
     model_catalog.delete_model(model_id=model_id)
     sleep(20)
     with pytest.raises(Exception) as excinfo:
@@ -104,7 +99,7 @@ def test_delete_superUser(request):
 
 
 #1.2) Normal user - Delete model, model_instance, model_image, test, test_instance and result
-@pytest.mark.xfail
+# @pytest.mark.xfail(reason="delete for normal users not handled properly yet?!")
 def test_delete_normalUser(request):
     ENVIRONMENT = request.config.getoption("--environment")
     if HBP_USERNAME_NORMAL_USER and HBP_PASSWORD_NORMAL_USER:
@@ -115,7 +110,7 @@ def test_delete_normalUser(request):
     else:
         raise Exception("Credentials not provided. Please define environment variables (HBP_AUTH_TOKEN or HBP_USER and HBP_PASS")
     model_name = "Model_{}_{}_py{}_normaluser1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
-    model_id = model_catalog.register_model(project_id="model-validation", name="IGNORE - Test Model - " + model_name,
+    model_id = model_catalog.register_model(project_id="validation-tester", name="IGNORE - Test Model - " + model_name,
                    alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
@@ -149,29 +144,25 @@ def test_delete_normalUser(request):
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
 
-    result_id = test_library.register_result(score, project_id="model-validation") # Collab ID = model-validation
+    result_id = test_library.register_result(score, project_id="validation-tester") # Collab ID = validation-tester
 
+    # normal users cannot delete results
     with pytest.raises(Exception) as excinfo:
         test_library.delete_result(result_id=result_id)
     assert "Only SuperUser accounts can delete data." in str(excinfo.value)
 
-    with pytest.raises(Exception) as excinfo:
-        model_catalog.delete_model_instance(instance_id=model_instance_id)
-    assert "Only SuperUser accounts can delete data." in str(excinfo.value)
+    # normal users can delete model instances that they have write access to
+    model_catalog.delete_model_instance(instance_id=model_instance_id)
 
-    # see: https://github.com/HumanBrainProject/hbp-validation-framework/issues/242
-    # with pytest.raises(Exception) as excinfo:
-    #     model_catalog.delete_model_image(image_id=model_image_id)
-    # assert "Only SuperUser accounts can delete data." in str(excinfo.value)
+    # normal users can delete models that they have write access to
+    model_catalog.delete_model(model_id=model_id)
 
-    with pytest.raises(Exception) as excinfo:
-        model_catalog.delete_model(model_id=model_id)
-    assert "Only SuperUser accounts can delete data." in str(excinfo.value)
-
+    # normal users cannot delete test instances
     with pytest.raises(Exception) as excinfo:
         test_library.delete_test_instance(instance_id=test_instance_id)
     assert "Only SuperUser accounts can delete data." in str(excinfo.value)
 
+    # normal users cannot delete tests
     with pytest.raises(Exception) as excinfo:
         test_library.delete_test(test_id=test_id)
     assert "Only SuperUser accounts can delete data." in str(excinfo.value)
