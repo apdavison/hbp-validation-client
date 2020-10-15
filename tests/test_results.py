@@ -1,10 +1,12 @@
-import pytest
 import platform
 import uuid
-from time import sleep
-from hbp_validation_framework import sample
-from hbp_validation_framework.datastores import CollabDataStore
 from datetime import datetime
+from time import sleep
+
+from hbp_validation_framework import sample
+from hbp_validation_framework.datastores import CollabV2DataStore
+
+import pytest
 
 
 """
@@ -24,7 +26,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
     test_name = "Test_{}_{}_py{}_getValTest_1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), test_library.environment, platform.python_version())
     test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
                     species="Mus musculus", age="", brain_region="basal ganglia", cell_type="granule cell",
-                    data_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
+                    recording_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
                     data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                     data_type="Mean, SD", publication="Testing et al., 2019",
                     version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
@@ -36,7 +38,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
 
-    result_id = test_library.register_result(score, project = "52468") # Collab ID = 52468
+    result_id = test_library.register_result(score, project_id="model-validation")
     assert isinstance(uuid.UUID(result_id, version=4), uuid.UUID)
 
 
@@ -44,73 +46,14 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
 2. Get a test result
 """
 
-#2.1) With valid details - default order = results
+#2.1) With valid details
 def test_get_result_valid_order_default(testLibrary, myResultID):
     test_library = testLibrary
     result_id = myResultID
     sleep(30)
     result = test_library.get_result(result_id=result_id)
     assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "results"
-
-#2.2) With valid details - order = test
-def test_get_result_valid_order_test(testLibrary, myResultID):
-    test_library = testLibrary
-    result_id = myResultID
-    sleep(20)
-    result = test_library.get_result(result_id=result_id, order="test")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "tests"
-
-#2.3) With valid details - order = model
-def test_get_result_valid_order_model(testLibrary, myResultID):
-    test_library = testLibrary
-    result_id = myResultID
-    sleep(20)
-    result = test_library.get_result(result_id=result_id, order="model")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "models"
-
-#2.4) With valid details - order = test_code
-def test_get_result_valid_order_test_code(testLibrary, myResultID):
-    test_library = testLibrary
-    result_id = myResultID
-    sleep(20)
-    result = test_library.get_result(result_id=result_id, order="test_code")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "test_codes"
-
-#2.5) With valid details - order = model_instance
-def test_get_result_valid_order_model_instance(testLibrary, myResultID):
-    test_library = testLibrary
-    result_id = myResultID
-    sleep(20)
-    result = test_library.get_result(result_id=result_id, order="model_instance")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "model_instances"
-
-#2.6) With valid details - order = score_type
-def test_get_result_valid_order_score_type(testLibrary, myResultID):
-    test_library = testLibrary
-    result_id = myResultID
-    sleep(20)
-    result = test_library.get_result(result_id=result_id, order="score_type")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "score_type"
-
-#2.7) With invalid order
-def test_get_result_invalid_order(testLibrary, myResultID):
-    test_library = testLibrary
-    result_id = myResultID
-    with pytest.raises(Exception) as excinfo:
-        result = test_library.get_result(result_id=result_id, order="abcde")
-    assert "order needs to be specified from" in str(excinfo.value)
+    assert result["id"] == result_id
 
 
 """
@@ -118,69 +61,30 @@ def test_get_result_invalid_order(testLibrary, myResultID):
 """
 
 #3.1) With valid details - default order = results
-def test_list_results_valid_order_default(testLibrary, myTestID, myResultID):
+def test_list_results_valid(testLibrary, myTestID, myResultID):
     test_library = testLibrary
     test_id = myTestID
     sleep(20)
     result = test_library.list_results(test_id=test_id)
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "results"
+    assert isinstance(result, list)
 
-#3.2) With valid details - order = test
-def test_list_results_valid_order_test(testLibrary, myTestID, myResultID):
+#3.2) No filters
+# because it takes too long to get all results, fetch first 10 and test 'size' parameter
+@pytest.mark.xfail(reason="can fail because of https://github.com/HumanBrainProject/hbp-validation-framework/issues/274")
+def test_list_results_no_filter(testLibrary):
     test_library = testLibrary
-    test_id = myTestID
-    sleep(20)
-    result = test_library.list_results(test_id=test_id, order="test")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "tests"
+    results = test_library.list_results(size=10)
+    assert isinstance(results, list)
+    assert len(results) == 10
 
-#3.3) With valid details - order = model
-def test_list_results_valid_order_model(testLibrary, myTestID, myResultID):
+#3.3) Check if 'from_index' parameter works as expected
+@pytest.mark.xfail(reason="can fail because of https://github.com/HumanBrainProject/hbp-validation-framework/issues/274")
+def test_list_results_no_filter_check_index(testLibrary):
     test_library = testLibrary
-    test_id = myTestID
-    sleep(20)
-    result = test_library.list_results(test_id=test_id, order="model")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "models"
-
-#3.4) With valid details - order = test_code
-def test_list_results_valid_order_test_code(testLibrary, myTestID, myResultID):
-    test_library = testLibrary
-    test_id = myTestID
-    sleep(20)
-    result = test_library.list_results(test_id=test_id, order="test_code")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "test_codes"
-
-#3.5) With valid details - order = model_instance
-def test_list_results_valid_order_model_instance(testLibrary, myTestID, myResultID):
-    test_library = testLibrary
-    test_id = myTestID
-    sleep(20)
-    result = test_library.list_results(test_id=test_id, order="model_instance")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "model_instances"
-
-#3.6) With valid details - order = score_type
-def test_list_results_valid_order_score_type(testLibrary, myTestID, myResultID):
-    test_library = testLibrary
-    test_id = myTestID
-    sleep(20)
-    result = test_library.list_results(test_id=test_id, order="score_type")
-    assert isinstance(result, dict)
-    assert len(result.keys()) == 1
-    assert list(result.keys())[0] == "score_type"
-
-#3.7) With invalid order
-def test_list_results_invalid_order(testLibrary, myTestID, myResultID):
-    test_library = testLibrary
-    test_id = myTestID
-    with pytest.raises(Exception) as excinfo:
-        result = test_library.list_results(test_id=test_id, order="abcde")
-    assert "order needs to be specified from" in str(excinfo.value)
+    results1 = test_library.list_results(size=5, from_index=0)
+    results2 = test_library.list_results(size=5, from_index=4)
+    assert isinstance(results1, list)
+    assert len(results1) == 5
+    assert isinstance(results2, list)
+    assert len(results2) == 5
+    assert results1[-1]["id"] == results2[0]["id"]

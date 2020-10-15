@@ -16,7 +16,7 @@ template_files = package_files('hbp_validation_framework', 'templates')
 
 setup(
     name='hbp_validation_framework',
-    version='0.5.28',
+    version='0.6.0',
     packages=['hbp_validation_framework'],
     package_data={'': json_files+template_files},
     url='https://github.com/HumanBrainProject/hbp-validation-client',
@@ -24,7 +24,7 @@ setup(
     author='Andrew Davison and Shailesh Appukuttan',
     author_email='andrew.davison@unic.cnrs-gif.fr, shailesh.appukuttan@unic.cnrs-gif.fr',
     description='Python client for the HBP Validation Framework web services',
-    install_requires=['hbp-service-client', 'requests', 'nameparser'],
-    extras_require={'reports': ['Jinja2', 'pyppdf', 'beautifulsoup4'],
+    install_requires=['hbp-service-client', 'requests', 'nameparser', 'hbp_seafile'],
+    extras_require={'reports': ['Jinja2', 'pyppdf', 'beautifulsoup4', 'hbp_archive'],
                     'utils': ['sciunit']}
 )

@@ -1,5 +1,4 @@
 sciunit
 requests
-hbp-service-client
-fpdf
-PyPDF2
+simplejson
+hbp_seafile
