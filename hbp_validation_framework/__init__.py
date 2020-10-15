@@ -349,8 +349,7 @@ class BaseClient(object):
             url = self.url + "/vocab/" + param.replace("_", "-") + "/"
         else:
             raise Exception("Specified attribute '{}' is invalid. Valid attributes: {}".format(param, valid_params))
-        attribute_options = requests.get(url, auth=self.auth, verify=self.verify).json()
-        return attribute_options
+        return requests.get(url, auth=self.auth, verify=self.verify).json()
 
 
 class TestLibrary(BaseClient):
@@ -637,14 +636,13 @@ class TestLibrary(BaseClient):
         tests = response.json()
         return tests
 
-    def add_test(self, name="", alias="", version="", author="", species="",
-                      age="", brain_region="", cell_type="", recording_modality="",
-                      test_type="", score_type="", protocol="", data_location="",
-                      data_type="", publication="", repository="", path=""):
+    def add_test(self, name=None, alias=None, author=None,  
+                species=None, age=None, brain_region=None, cell_type=None, 
+                publication=None, description=None, recording_modality=None, test_type=None, score_type=None,  data_location=None, data_type=None, 
+                instances=[]):
         """Register a new test on the test library.
 
-        This allows you to add a new test to the test library. A test instance
-        (version) needs to be specified when registering a new test.
+        This allows you to add a new test to the test library.
 
         Parameters
         ----------
@@ -652,8 +650,6 @@ class TestLibrary(BaseClient):
             Name of the test definition to be created.
         alias : string, optional
             User-assigned unique identifier to be associated with test definition.
-        version : string
-            User-assigned identifier (unique for each test) associated with test instance.
         author : string
             Name of person creating the test.
         species : string
@@ -670,7 +666,7 @@ class TestLibrary(BaseClient):
             Specifies the type of the test.
         score_type : string
             The type of score produced by the test.
-        protocol : string
+        description : string
             Experimental protocol involved in obtaining reference data.
         data_location : string
             URL of file containing reference data (observation).
@@ -678,10 +674,8 @@ class TestLibrary(BaseClient):
             The type of reference data (observation).
         publication : string
             Publication or comment (e.g. "Unpublished") to be associated with observation.
-        repository : string
-            URL of Python package repository (e.g. GitHub).
-        path : string
-            Python path (not filesystem path) to test source code within Python package.
+        instances : list, optional
+            Specify a list of instances (versions) of the test.
 
         Returns
         -------
@@ -692,43 +686,32 @@ class TestLibrary(BaseClient):
         --------
         >>> test = test_library.add_test(name="Cell Density Test", alias="", version="1.0", author="Shailesh Appukuttan",
                                 species="Mouse (Mus musculus)", age="TBD", brain_region="Hippocampus", cell_type="Other",
-                                recording_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
+                                recording_modality="electron microscopy", test_type="network structure", score_type="Other", description="Later",
                                 data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/hippounit/feat_CA1_pyr_cACpyr_more_features.json",
                                 data_type="Mean, SD", publication="Halasy et al., 1996",
                                 repository="https://github.com/appukuttan-shailesh/morphounit.git", path="morphounit.tests.CellDensityTest")
         """
 
+        test_data = {}
+        args = locals()
+        for field in ["name", "alias", "author", 
+                      "species", "age", "brain_region", "cell_type",
+                      "publication", "description", "recording_modality", "test_type", "score_type", "data_location", "data_type",
+                      "instances"]:
+            if args[field]:
+                test_data[field] = args[field]
+
         values = self.get_attribute_options()
+        for field in ("species", "brain_region", "cell_type", "recording_modality", "test_type", "score_type"):
+            if field in test_data and test_data[field] not in values[field] + [None]:
+                raise Exception(field + " = '"  + test_data[field] + "' is invalid.\nValue has to be one of these: " + values[field])
+        
+        # format names of authors as required by API
+        test_data["author"] = self._format_people_name(test_data["author"])
 
-        if species not in values["species"]:
-            raise Exception("species = '" +species+"' is invalid.\nValue has to be one of these: " + str(values["species"]))
-        if brain_region not in values["brain_region"]:
-            raise Exception("brain_region = '" +brain_region+"' is invalid.\nValue has to be one of these: " + str(values["brain_region"]))
-        if cell_type not in values["cell_type"]:
-            raise Exception("cell_type = '" +cell_type+"' is invalid.\nValue has to be one of these: " + str(values["cell_type"]))
-        if recording_modality not in values["recording_modality"]:
-            raise Exception("recording_modality = '" +recording_modality+"' is invalid.\nValue has to be one of these: " + str(values["recording_modality"]))
-        if test_type not in values["test_type"]:
-            raise Exception("test_type = '" +test_type+"' is invalid.\nValue has to be one of these: " + str(values["test_type"]))
-        if score_type not in values["score_type"]:
-            raise Exception("score_type = '" +score_type+"' is invalid.\nValue has to be one of these: " + str(values["score_type"]))
-
-        if alias == "":
-            alias = None
-
-        test_data = locals()
-        test_data.pop("self")
-        test_data["description"] = test_data.pop("protocol")
-        for key in ("author", "data_location"):
-            if not isinstance(test_data[key], list):
-                test_data[key] = [test_data[key]]
-        code_data = {}
-        for key in ["version", "repository", "path", "values"]:
-            value = test_data.pop(key)
-            if value:
-                code_data[key] = value
-        if code_data:
-            test_data["instances"] = [code_data]
+        # 'data_location' is now a list of urls
+        if not isinstance(test_data["data_location"], list):
+            test_data["data_location"] = [test_data["data_location"]]
 
         url = self.url + "/tests/"
         headers = {'Content-type': 'application/json'}
@@ -740,10 +723,9 @@ class TestLibrary(BaseClient):
         else:
             handle_response_error("Error in adding test", response)
 
-    def edit_test(self, name=None, test_id="", alias="", author=None,
-                  species=None, age=None, brain_region=None, cell_type=None, recording_modality=None,
-                  test_type=None, score_type=None, protocol=None, data_location=None,
-                  data_type=None, publication=None):
+    def edit_test(self, test_id=None, name=None, alias=None, author=None,
+                  species=None, age=None, brain_region=None, cell_type=None,
+                  publication=None, description=None, recording_modality=None, test_type=None, score_type=None, data_location=None, data_type=None, ):
         """Edit an existing test in the test library.
 
         To update an existing test, the `test_id` must be provided. Any of the
@@ -774,7 +756,7 @@ class TestLibrary(BaseClient):
             Specifies the type of the test.
         score_type : string
             The type of score produced by the test.
-        protocol : string
+        description : string
             Experimental protocol involved in obtaining reference data.
         data_location : string
             URL of file containing reference data (observation).
@@ -802,25 +784,26 @@ class TestLibrary(BaseClient):
 
         if test_id == "":
             raise Exception("Test ID needs to be provided for editing a test.")
-
+        
         test_data = {}
         args = locals()
-        for field in ("name", "alias", "author", "species", "age", "brain_region", "cell_type",
-                      "recording_modality", "test_type", "score_type", "protocol", "data_location",
-                      "data_type"):  # todo: handle publicaton
-            value = args[field]
-            if value:
-                test_data[field] = value
+        for field in ["name", "alias", "author", 
+                      "species", "age", "brain_region", "cell_type",
+                      "publication", "description", "recording_modality", "test_type", "score_type", "data_location", "data_type"]:
+            if args[field]:
+                test_data[field] = args[field]
 
         values = self.get_attribute_options()
         for field in ("species", "brain_region", "cell_type", "recording_modality", "test_type", "score_type"):
-            if field in test_data and test_data[field] not in values[field]:
-                raise Exception(field + " = '"  + test_data[field] + "' is invalid.\n"
-                                "Value has to be one of these: " + values[field])
+            if field in test_data and test_data[field] not in values[field] + [None]:
+                raise Exception(field + " = '"  + test_data[field] + "' is invalid.\nValue has to be one of these: " + values[field])
+        
+        # format names of authors as required by API
+        test_data["author"] = self._format_people_name(test_data["author"])
 
-        for field in ("author", "data_location"):
-            if not isinstance(test_data[field], list):
-                test_data[field] = [test_data[field]]
+        # 'data_location' is now a list of urls
+        if not isinstance(test_data["data_location"], list):
+            test_data["data_location"] = [test_data["data_location"]]
 
         url = self.url + "/tests/" + test_id
         headers = {'Content-type': 'application/json'}
@@ -999,12 +982,12 @@ class TestLibrary(BaseClient):
             System generated unique identifier associated with test definition.
         alias : string
             User-assigned unique identifier associated with test definition.
+        version : string
+            User-assigned identifier (unique for each test) associated with test instance.
         repository : string
             URL of Python package repository (e.g. github).
         path : string
             Python path (not filesystem path) to test source code within Python package.
-        version : string
-            User-assigned identifier (unique for each test) associated with test instance.
         description : string, optional
             Text describing this specific test instance.
         parameters : string, optional
@@ -1227,8 +1210,7 @@ class TestLibrary(BaseClient):
         >>> data = test_library.get_attribute_options("cell types")
         """
         valid_params = ["species", "brain_region", "cell_type", "test_type", "score_type", "recording_modality", "implementation_status"]
-        options = self._get_attribute_options(param, valid_params)
-        return options
+        return self._get_attribute_options(param, valid_params)
 
     def get_result(self, result_id=""):
         """Retrieve a test result.
@@ -1663,9 +1645,9 @@ class ModelCatalog(BaseClient):
             handle_response_error("Error in list_models()", response)
         return models
 
-    def register_model(self, project_id="", name="", alias="", author="", organization="", private=False,
-                       species="", brain_region="", cell_type="", model_scope="", abstraction_level="", owner="", project="",
-                       license="", description="", instances=[], images=[]):
+    def register_model(self, project_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=False,
+                       species=None, brain_region=None, cell_type=None, model_scope=None, abstraction_level=None,
+                       project=None, license=None, description=None, instances=[], images=[]):
         """Register a new model in the model catalog.
 
         This allows you to add a new model to the model catalog. Model instances
@@ -1746,22 +1728,27 @@ class ModelCatalog(BaseClient):
                                  "caption":"HBP Logo"}])
         """
 
-        model_data = locals()
-        for key in ["self"]:
-            model_data.pop(key)
+        model_data = {}
+        args = locals()
+        for field in ["project_id", "name", "alias", "author", "organization", "private",
+                      "cell_type", "model_scope", "abstraction_level", "brain_region",
+                      "species", "owner", "project", "license", "description",
+                      "instances", "images"]:
+            if args[field]:
+                model_data[field] = args[field]
 
         values = self.get_attribute_options()
-
-        for key in ["cell_type", "brain_region", "species", "model_scope", "abstraction_level"]:
-            if model_data[key] not in values[key]:
-                raise Exception(key+" = '" +model_data[key]+"' is invalid.\nValue has to be one of these: " + str(values[key]))
+        for field in ["species", "brain_region", "cell_type", "abstraction_level", "model_scope"]:
+            if field in model_data and  model_data[field] not in values[field] + [None]:
+                raise Exception(field + " = '" + model_data[field] + "' is invalid.\nValue has to be one of these: " + str(values[field]))
 
         if private not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
 
         # format names of authors and owners as required by API
-        model_data["author"] = self._format_people_name(model_data["author"])
-        model_data["owner"] = self._format_people_name(model_data["owner"])
+        for field in ("author", "owner"):
+            if model_data[field]:
+                model_data[field] = self._format_people_name(model_data[field])
 
         url = self.url + "/models/"
         headers = {'Content-type': 'application/json'}
@@ -1773,8 +1760,9 @@ class ModelCatalog(BaseClient):
         else:
             handle_response_error("Error in adding model", response)
 
-    def edit_model(self, model_id="", project_id=None, name=None, alias="", author=None, organization=None, private=None, cell_type=None,
-                   model_scope=None, abstraction_level=None, brain_region=None, species=None, owner="", project="", license="", description=None):
+    def edit_model(self, model_id=None, project_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=None, 
+                   species=None, brain_region=None, cell_type=None, model_scope=None, abstraction_level=None,
+                   project=None, license=None, description=None):
         """Edit an existing model on the model catalog.
 
         This allows you to edit a new model to the model catalog.
@@ -1844,23 +1832,25 @@ class ModelCatalog(BaseClient):
 
         model_data = {}
         args = locals()
-        for field in ("project_id", "name", "alias", "author", "organization", "private",
+        for field in ["project_id", "name", "alias", "author", "organization", "private",
                       "cell_type", "model_scope", "abstraction_level", "brain_region",
-                      "species", "owner", "project", "license", "description"):
-            value = args[field]
-            if value:
-                model_data[field] = value
+                      "species", "owner", "project", "license", "description"]:
+            if args[field]:
+                model_data[field] = args[field]
 
         values = self.get_attribute_options()
         for field in ("species", "brain_region", "cell_type", "abstraction_level", "model_scope"):
-            if field in model_data and model_data[field] not in values[field]:
-                raise Exception(field + " = '"  + model_data[field] + "' is invalid.\n"
-                                "Value has to be one of these: " + values[field])
+            if field in model_data and model_data[field] not in values[field] + [None]:
+                raise Exception(key + " = '" + model_data[key] + "' is invalid.\nValue has to be one of these: " + str(values[key]))
 
+        if private and private not in [True, False]:
+            raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
+
+        # format names of authors and owners as required by API
         for field in ("author", "owner"):
-            if not isinstance(model_data[field], list):
-                model_data[field] = [model_data[field]]
-
+            if model_data[field]:
+                model_data[field] = self._format_people_name(model_data[field])
+            
         if model_data["alias"] == "":
             model_data["alias"] = None
 
