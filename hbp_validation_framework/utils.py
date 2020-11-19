@@ -815,7 +815,7 @@ def generate_score_matrix(username="", password=None, environment="production", 
 
     excluded_results = []   # not latest entry for a particular model instance and test instance combination
     for r_id in result_list:
-        result = test_library.get_result(result_id = r_id)["results"][0]
+        result = test_library.get_result(result_id = r_id)
         # '#*#' is used as separator between score and result UUID (latter used for constructing hyperlink)
         if result["test_instance_id"] in results_dict.keys():
             if result["model_instance_id"] not in results_dict[result["test_instance_id"]].keys():
