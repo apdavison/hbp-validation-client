@@ -47,7 +47,7 @@ def myModelID(modelCatalog):
    model_catalog = modelCatalog
    model_name = "Model_{}_{}_py{}".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), model_catalog.environment, platform.python_version())
    # todo: need to test with both "single cell" and "network" as model_scope, since these have different KG representations
-   model_id = model_catalog.register_model(project_id="model-validation", name="IGNORE - Test Model - " + model_name,
+   model = model_catalog.register_model(collab_id="model-validation", name="IGNORE - Test Model - " + model_name,
                    alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
                    private=False, cell_type="granule cell", model_scope="single cell",
                    abstraction_level="spiking neurons",
@@ -66,20 +66,20 @@ def myModelID(modelCatalog):
                             "caption":"NEURON Logo"},
                            {"url":"https://raw.githubusercontent.com/HumanBrainProject/hbp-validation-client/master/eu_logo.jpg",
                             "caption":"HBP Logo"}])
-   return model_id
+   return model["id"]
 
 @pytest.fixture(scope="session")
 def myTestID(testLibrary):
    test_library = testLibrary
    test_name = "Test_{}_{}_py{}".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), test_library.environment, platform.python_version())
-   test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
+   test = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
                         species="Mus musculus", age="", brain_region="basal ganglia", cell_type="granule cell",
-                        recording_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
+                        recording_modality="electron microscopy", test_type="network structure", score_type="Other", description="Later",
                         data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                         data_type="Mean, SD", publication="Testing et al., 2019",
-                        version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
-   isinstance_id = testLibrary.add_test_instance(test_id=test_id, version="2.0", repository="http://www.12345.com", path="hbp_validation_framework.sample.SampleTest", parameters="", description="")
-   return test_id
+                        instances=[{"version":"1.0", "repository":"https://github.com/HumanBrainProject/hbp-validation-client.git", "path":"hbp_validation_framework.sample.SampleTest"}])
+   isinstance_id = testLibrary.add_test_instance(test_id=test["id"], version="2.0", repository="http://www.12345.com", path="hbp_validation_framework.sample.SampleTest", parameters="", description="")
+   return test["id"]
 
 
 @pytest.fixture(scope="session")
@@ -93,27 +93,27 @@ def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
    model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"])
 
    test_name = "Test_{}_{}_py{}_getValTest_1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), test_library.environment, platform.python_version())
-   test_id = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
+   test = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
               species="Mus musculus", age="", brain_region="basal ganglia", cell_type="granule cell",
-              recording_modality="electron microscopy", test_type="network structure", score_type="Other", protocol="Later",
+              recording_modality="electron microscopy", test_type="network structure", score_type="Other", description="Later",
               data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
               data_type="Mean, SD", publication="Testing et al., 2019",
-              version="1.0", repository="https://github.com/HumanBrainProject/hbp-validation-client.git", path="hbp_validation_framework.sample.SampleTest")
+              instances=[{"version":"1.0", "repository":"https://github.com/HumanBrainProject/hbp-validation-client.git", "path":"hbp_validation_framework.sample.SampleTest"}])
    sleep(20)
-   test = test_library.get_validation_test(test_id=test_id)
+   test = test_library.get_validation_test(test_id=test["id"])
 
    score = test.judge(model)
    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
    folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
-   result_id = test_library.register_result(score, project_id="model-validation") # Collab ID for testing
-   return result_id
+   result = test_library.register_result(score, collab_id="model-validation") # Collab ID for testing
+   return result["id"]
 
 
 def pytest_sessionfinish(session, exitstatus):
    ENVIRONMENT = session.config.getoption("--environment")
    model_catalog = ModelCatalog(username=HBP_USERNAME, password=HBP_PASSWORD, environment=ENVIRONMENT)
    # model_catalog = ModelCatalog(token=TOKEN, environment=ENVIRONMENT)
-   models = model_catalog.list_models(project_id="model-validation", author={"family_name": "Tester", "given_name": "Validation"})
+   models = model_catalog.list_models(collab_id="model-validation", author={"family_name": "Tester", "given_name": "Validation"})
    for model in models:
       if "IGNORE - Test Model - " in model["name"]:
          model_catalog.delete_model(model["id"])

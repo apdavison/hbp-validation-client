@@ -53,6 +53,14 @@ def handle_response_error(message, response):
     full_message = "{}. Response = {}".format(message, response_text)
     raise ResponseError(full_message)
 
+def renameNestedJSONKey(iterable, old_key, new_key):
+    if isinstance(iterable, list):
+        return [renameNestedJSONKey(item, old_key, new_key) for item in iterable]
+    if isinstance(iterable, dict):
+        for key in list(iterable.keys()):
+            if key == old_key:
+                iterable[new_key] = iterable.pop(key)
+    return iterable
 
 class HBPAuth(AuthBase):
     """Attaches OIDC Bearer Authentication to the given Request object."""
@@ -203,7 +211,7 @@ class BaseClient(object):
             output_names_list.append({"given_name": "", "family_name": ""})
         return output_names_list
 
-    # def exists_in_collab_else_create(self, project_id):
+    # def exists_in_collab_else_create(self, collab_id):
     #     #  TODO: needs to be updated for Collab v2
     #     """
     #     Checks with the hbp-collab-service if the Model Catalog / Validation Framework app
@@ -211,10 +219,10 @@ class BaseClient(object):
     #     specified by the user (when run externally).
     #     """
     #     try:
-    #         url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(project_id)+"/nav/all/"
+    #         url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/all/"
     #         response = requests.get(url, auth=HBPAuth(self.token), verify=self.verify)
     #     except ValueError:
-    #         print("Error contacting hbp-collab-service for Collab info. Possibly invalid Collab ID: {}".format(project_id))
+    #         print("Error contacting hbp-collab-service for Collab info. Possibly invalid Collab ID: {}".format(collab_id))
 
     #     for app_item in response.json():
     #         if app_item["app_id"] == str(self.app_id):
@@ -222,7 +230,7 @@ class BaseClient(object):
     #             print ("Using existing {} app in this Collab. App nav ID: {}".format(self.app_name,app_nav_id))
     #             break
     #     else:
-    #         url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(project_id)+"/nav/root/"
+    #         url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/root/"
     #         collab_root = requests.get(url, auth=HBPAuth(self.token), verify=self.verify).json()["id"]
     #         import uuid
     #         app_info = {"app_id": self.app_id,
@@ -231,7 +239,7 @@ class BaseClient(object):
     #                     "order_index": "-1",
     #                     "parent": collab_root,
     #                     "type": "IT"}
-    #         url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(project_id)+"/nav/"
+    #         url = "https://services.humanbrainproject.eu/collab/v0/collab/"+str(collab_id)+"/nav/"
     #         headers = {'Content-type': 'application/json'}
     #         response = requests.post(url, data=json.dumps(app_info),
     #                                  auth=HBPAuth(self.token), headers=headers,
@@ -250,7 +258,7 @@ class BaseClient(object):
     #               "app_type":"model_catalog",
     #               "brain_region":"",
     #               "cell_type":"",
-    #               "project_id":8123,
+    #               "collab_id":"model-validation",
     #               "recording_modality":"",
     #               "model_scope":"",
     #               "abstraction_level":"",
@@ -262,8 +270,8 @@ class BaseClient(object):
     #            "url":"https://validation-v1.brainsimulation.eu/parametersconfiguration-model-catalog/parametersconfigurationrest/"
     #         }
     #     """
-    #     if not config_data["config"]["project_id"]:
-    #         raise ValueError("`project_id` cannot be empty!")
+    #     if not config_data["config"]["collab_id"]:
+    #         raise ValueError("`collab_id` cannot be empty!")
     #     if not config_data["config"]["app_id"]:
     #         raise ValueError("`app_id` cannot be empty!")
     #     # check if the app has previously been configured: decide POST or PUT
@@ -424,18 +432,14 @@ class TestLibrary(BaseClient):
         self._set_app_info()
 
     def _set_app_info(self):
-        #  TODO: check if needs to be updated for Collab v2
         if self.environment == "production":
-            self.app_id = 360
             self.app_name = "Validation Framework"
         elif self.environment == "dev":
-            self.app_id = 349
             self.app_name = "Validation Framework (dev)"
         elif self.environment == "integration":
-            self.app_id = 432
             self.app_name = "Model Validation app (staging)"
 
-    # def set_app_config(self, project_id="", only_if_new=False, recording_modality="", test_type="", species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
+    # def set_app_config(self, collab_id="", only_if_new=False, recording_modality="", test_type="", species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
     #     #  TODO: needs to be updated for Collab v2
     #     inputArgs = locals()
     #     params = {}
@@ -585,20 +589,17 @@ class TestLibrary(BaseClient):
         The filters may specify one or more attributes that belong
         to a test definition. The following test attributes can be specified:
 
-        * name
         * alias
-        * author
-        * species
-        * age
+        * name
+        * implementation_status
         * brain_region
+        * species
         * cell_type
+        * data_type
         * recording_modality
         * test_type
         * score_type
-        * model_scope
-        * abstraction_level
-        * data_type
-        * publication
+        * author
 
         Parameters
         ----------
@@ -621,8 +622,7 @@ class TestLibrary(BaseClient):
         >>> tests = test_library.list_tests(test_type="single cell activity", cell_type="Pyramidal Cell")
         """
 
-        # TODO: verify valid filters for v2 APIs
-        valid_filters = ["name", "alias", "author", "species", "age", "brain_region", "cell_type", "recording_modality", "test_type", "score_type", "model_scope", "abstraction_level", "data_type", "publication"]
+        valid_filters = ["alias", "name", "implementation_status", "brain_region", "species", "cell_type", "data_type", "recording_modality", "test_type", "score_type", "author"]
         params = locals()["filters"]
         for filter in params:
             if filter not in valid_filters:
@@ -679,8 +679,8 @@ class TestLibrary(BaseClient):
 
         Returns
         -------
-        UUID
-            UUID of the test instance that has been created.
+        dict
+            data of test instance that has been created.
 
         Examples
         --------
@@ -704,10 +704,11 @@ class TestLibrary(BaseClient):
         values = self.get_attribute_options()
         for field in ("species", "brain_region", "cell_type", "recording_modality", "test_type", "score_type"):
             if field in test_data and test_data[field] not in values[field] + [None]:
-                raise Exception(field + " = '"  + test_data[field] + "' is invalid.\nValue has to be one of these: " + values[field])
+                raise Exception("{} = '{}' is invalid.\nValue has to be one of these: {}".format(field, test_data[field], values[field]))
         
         # format names of authors as required by API
-        test_data["author"] = self._format_people_name(test_data["author"])
+        if "author" in test_data:   
+            test_data["author"] = self._format_people_name(test_data["author"])
 
         # 'data_location' is now a list of urls
         if not isinstance(test_data["data_location"], list):
@@ -719,7 +720,7 @@ class TestLibrary(BaseClient):
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
         if response.status_code == 201:
-            return response.json()["id"]
+            return response.json()
         else:
             handle_response_error("Error in adding test", response)
 
@@ -772,8 +773,8 @@ class TestLibrary(BaseClient):
 
         Returns
         -------
-        UUID
-            (Verify!) UUID of the test instance that has been edited.
+        data
+            data of test instance that has been edited.
 
         Examples
         --------
@@ -782,7 +783,7 @@ class TestLibrary(BaseClient):
                                       test_type="network structure", score_type="Other", protocol="To be filled sometime later", data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/hippounit/feat_CA1_pyr_cACpyr_more_features.json", data_type="Mean, SD")
         """
 
-        if test_id == "":
+        if not test_id:
             raise Exception("Test ID needs to be provided for editing a test.")
         
         test_data = {}
@@ -796,10 +797,11 @@ class TestLibrary(BaseClient):
         values = self.get_attribute_options()
         for field in ("species", "brain_region", "cell_type", "recording_modality", "test_type", "score_type"):
             if field in test_data and test_data[field] not in values[field] + [None]:
-                raise Exception(field + " = '"  + test_data[field] + "' is invalid.\nValue has to be one of these: " + values[field])
+                raise Exception("{} = '{}' is invalid.\nValue has to be one of these: {}".format(field, test_data[field], values[field]))
         
         # format names of authors as required by API
-        test_data["author"] = self._format_people_name(test_data["author"])
+        if "author" in test_data:
+            test_data["author"] = self._format_people_name(test_data["author"])
 
         # 'data_location' is now a list of urls
         if not isinstance(test_data["data_location"], list):
@@ -811,7 +813,7 @@ class TestLibrary(BaseClient):
                                 auth=self.auth, headers=headers,
                                 verify=self.verify)
         if response.status_code == 200:
-            return response.json()["id"]
+            return response.json()
         else:
             handle_response_error("Error in editing test", response)
 
@@ -974,7 +976,7 @@ class TestLibrary(BaseClient):
         """Register a new test instance.
 
         This allows to add a new instance to an existing test in the test library.
-        The `test_id` needs to be specified as input parameter.
+        The `test_id` or `alias` needs to be specified as input parameter.
 
         Parameters
         ----------
@@ -995,46 +997,36 @@ class TestLibrary(BaseClient):
 
         Returns
         -------
-        UUID
-            UUID of the test instance that has been created.
-
-        Note
-        ----
-        * `alias` is not currently implemented in the API; kept for future use.
-        * TODO: Either test_id or alias needs to be provided, with test_id taking precedence over alias.
+        dict
+            data of test instance that has been created.
 
         Examples
         --------
-        >>> response = test_library.add_test_instance(test_id="7b63f87b-d709-4194-bae1-15329daf3dec",
+        >>> instance = test_library.add_test_instance(test_id="7b63f87b-d709-4194-bae1-15329daf3dec",
                                         repository="https://github.com/appukuttan-shailesh/morphounit.git",
                                         path="morphounit.tests.CellDensityTest",
                                         version="3.0")
         """
 
-        instance_data = {}
-        if repository:
-            instance_data["repository"] = repository
-        if path:
-            instance_data["path"] = path
-        if version:
-            instance_data["version"] = version
-        if description:
-            instance_data["description"] = description
-        if parameters:
-            instance_data["parameters"] = parameters
+        instance_data = locals()
+        instance_data.pop("self")
+
+        for key, val in instance_data.items():
+            if val == "":
+                instance_data[key] = None
 
         test_id = test_id or alias
         if not test_id:
             raise Exception("test_id or alias needs to be provided for finding the test.")
         else:
-            url = self.url + "/tests/" + test_id + "/instances/"
+            url = self.url + "/tests/" + quote(test_id) + "/instances/"
 
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps(instance_data),
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
         if response.status_code == 201:
-            return response.json()["id"]
+            return response.json()
         else:
             handle_response_error("Error in adding test instance", response)
 
@@ -1074,12 +1066,12 @@ class TestLibrary(BaseClient):
 
         Returns
         -------
-        UUID
-            UUID of the test instance that has was edited.
+        dict
+            data of test instance that has was edited.
 
         Examples
         --------
-        >>> response = test_library.edit_test_instance(test_id="7b63f87b-d709-4194-bae1-15329daf3dec",
+        >>> instance = test_library.edit_test_instance(test_id="7b63f87b-d709-4194-bae1-15329daf3dec",
                                         repository="https://github.com/appukuttan-shailesh/morphounit.git",
                                         path="morphounit.tests.CellDensityTest",
                                         version="4.0")
@@ -1109,7 +1101,7 @@ class TestLibrary(BaseClient):
         response = requests.put(url, data=json.dumps(instance_data), auth=self.auth, headers=headers,
                                 verify=self.verify)
         if response.status_code == 200:
-            return response.json()["id"]
+            return response.json()
         else:
             handle_response_error("Error in editing test instance", response)
 
@@ -1240,7 +1232,7 @@ class TestLibrary(BaseClient):
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code != 200:
             handle_response_error("Error in retrieving result", response)
-        result_json = response.json()
+        result_json = renameNestedJSONKey(response.json(), "project_id", "collab_id")
         return result_json
 
     def list_results(self, size=1000000, from_index=0, **filters):
@@ -1277,9 +1269,9 @@ class TestLibrary(BaseClient):
         if response.status_code != 200:
             handle_response_error("Error in retrieving results", response)
         result_json = response.json()
-        return result_json
+        return renameNestedJSONKey(result_json, "project_id", "collab_id")
 
-    def register_result(self, test_result, data_store=None, project_id=None):
+    def register_result(self, test_result, data_store=None, collab_id=None):
         """Register test result with HBP Validation Results Service.
 
         The score of a test, along with related output data such as figures,
@@ -1291,7 +1283,7 @@ class TestLibrary(BaseClient):
             a :class:`sciunit.Score` instance returned by `test.judge(model)`
         data_store : :class:`DataStore`
             a :class:`DataStore` instance, for uploading related data generated by the test run, e.g. figures.
-        project_id : str
+        collab_id : str
             String input specifying the Collab path, e.g. 'model-validation' to indicate Collab 'https://wiki.ebrains.eu/bin/view/Collabs/model-validation/'.
             This is used to indicate the Collab where results should be saved.
 
@@ -1302,8 +1294,8 @@ class TestLibrary(BaseClient):
 
         Returns
         -------
-        UUID
-            UUID of the test result that has been created.
+        dict
+            data of test result that has been created.
 
         Examples
         --------
@@ -1311,13 +1303,13 @@ class TestLibrary(BaseClient):
         >>> response = test_library.register_result(test_result=score)
         """
 
-        if project_id is None:
-            project_id = test_result.related_data.get("project_id", None)
-        if project_id is None:
-            raise Exception("Don't know where to register this result. Please specify `project_id`!")
+        if collab_id is None:
+            collab_id = test_result.related_data.get("collab_id", None)
+        if collab_id is None:
+            raise Exception("Don't know where to register this result. Please specify `collab_id`!")
 
         model_catalog = ModelCatalog.from_existing(self)
-        model_instance_uuid = model_catalog.find_model_instance_else_add(test_result.model)
+        model_instance_uuid = model_catalog.find_model_instance_else_add(test_result.model)["id"]
 
         results_storage = []
         if data_store:
@@ -1325,13 +1317,14 @@ class TestLibrary(BaseClient):
                 data_store.authorize(self.auth)  # relies on data store using HBP authorization
                                                  # if this is not the case, need to authenticate/authorize
                                                  # the data store before passing to `register()`
-            if data_store.project_id is None:
-                data_store.project_id = project_id
+            if data_store.collab_id is None:
+                data_store.collab_id = collab_id
             files_to_upload = []
             if "figures" in test_result.related_data:
                 files_to_upload.extend(test_result.related_data["figures"])
             if files_to_upload:
-                results_storage.append(data_store.upload_data(files_to_upload))
+                list_dict_files_to_upload = [{"download_url": f["filepath"], "size": f["filesize"]} for f in data_store.upload_data(files_to_upload)]
+                results_storage.extend(list_dict_files_to_upload)
 
         url = self.url + "/results/"
         result_json = {
@@ -1341,7 +1334,7 @@ class TestLibrary(BaseClient):
                         "score": int(test_result.score) if isinstance(test_result.score, bool) else test_result.score,
                         "passed": None if "passed" not in test_result.related_data else test_result.related_data["passed"],
                         #"platform": str(self._get_platform()), # not currently supported in v2
-                        "project_id": project_id,
+                        "project_id": collab_id,
                         "normalized_score": int(test_result.score) if isinstance(test_result.score, bool) else test_result.score,
                       }
 
@@ -1351,7 +1344,7 @@ class TestLibrary(BaseClient):
                                  verify=self.verify)
         if response.status_code == 201:
             print("Result registered successfully!")
-            return response.json()["id"]
+            return renameNestedJSONKey(response.json(), "project_id", "collab_id")
         else:
             handle_response_error("Error registering result", response)
 
@@ -1474,18 +1467,14 @@ class ModelCatalog(BaseClient):
         self._set_app_info()
 
     def _set_app_info(self):
-        #  TODO: check if needs to be updated for Collab v2
         if self.environment == "production":
-            self.app_id = 357
             self.app_name = "Model Catalog"
         elif self.environment == "dev":
-            self.app_id = 348
             self.app_name = "Model Catalog (dev)"
         elif self.environment == "integration":
-            self.app_id = 431
             self.app_name = "Model Catalog (staging)"
 
-    # def set_app_config(self, project_id="", only_if_new=False, species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
+    # def set_app_config(self, collab_id="", only_if_new=False, species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
     #     #  TODO: needs to be updated for Collab v2
     #     inputArgs = locals()
     #     params = {}
@@ -1526,7 +1515,7 @@ class ModelCatalog(BaseClient):
     #             organization.append(model["organization"])
 
     #     filters = {}
-    #     for key in ["project_id", "app_id", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "organization"]:
+    #     for key in ["collab_id", "app_id", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "organization"]:
     #         if isinstance(locals()[key], list):
     #             filters[key] = ",".join(locals()[key])
     #         else:
@@ -1586,7 +1575,7 @@ class ModelCatalog(BaseClient):
             model_json.pop("instances")
         if images is False:
             model_json.pop("images")
-        return model_json
+        return renameNestedJSONKey(model_json, "project_id", "collab_id")   
 
     def list_models(self, size=1000000, from_index=0, **filters):
         """Retrieve list of model descriptions satisfying specified filters.
@@ -1594,19 +1583,18 @@ class ModelCatalog(BaseClient):
         The filters may specify one or more attributes that belong
         to a model description. The following model attributes can be specified:
 
-        * project_id
-        * name
         * alias
-        * author
-        * organization
-        * species
+        * name
         * brain_region
+        * species
         * cell_type
         * model_scope
         * abstraction_level
+        * author
         * owner
-        * project
-        * license
+        * organization
+        * collab_id
+        * private
 
         Parameters
         ----------
@@ -1625,16 +1613,19 @@ class ModelCatalog(BaseClient):
         Examples
         --------
         >>> models = model_catalog.list_models()
-        >>> models = model_catalog.list_models(project_id="39968")
+        >>> models = model_catalog.list_models(collab_id="model-validation")
         >>> models = model_catalog.list_models(cell_type="Pyramidal Cell", brain_region="Hippocampus")
         """
 
-        # TODO: verify valid filters for v2 APIs
-        valid_filters = ["project_id", "name", "alias", "author", "organization", "species", "brain_region", "cell_type", "model_scope", "abstraction_level", "owner", "project", "license"]
+        valid_filters = ["name", "alias", "brain_region", "species", "cell_type", "model_scope", "abstraction_level", "author", "owner", "organization", "collab_id", "private"]
         params = locals()["filters"]
         for filter in params:
             if filter not in valid_filters:
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
+        
+        # handle naming difference with API: collab_id <-> project_id
+        if "collab_id" in params:
+            params["project_id"] = params.pop("collab_id")
 
         url = self.url + "/models/"
         url += "?" + urlencode(params) + "&size=" + str(size) + "&from_index=" + str(from_index)
@@ -1643,9 +1634,9 @@ class ModelCatalog(BaseClient):
             models = response.json()
         except (json.JSONDecodeError, simplejson.JSONDecodeError):
             handle_response_error("Error in list_models()", response)
-        return models
+        return renameNestedJSONKey(models, "project_id", "collab_id")
 
-    def register_model(self, project_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=False,
+    def register_model(self, collab_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=False,
                        species=None, brain_region=None, cell_type=None, model_scope=None, abstraction_level=None,
                        project=None, license=None, description=None, instances=[], images=[]):
         """Register a new model in the model catalog.
@@ -1656,7 +1647,7 @@ class ModelCatalog(BaseClient):
 
         Parameters
         ----------
-        project_id : string
+        collab_id : string
             Specifies the ID of the host collab in the HBP Collaboratory.
             (the model would belong to this collab)
         name : string
@@ -1694,14 +1685,14 @@ class ModelCatalog(BaseClient):
 
         Returns
         -------
-        UUID
-            UUID of the model description that has been created.
+        dict
+            Model description that has been created.
 
         Examples
         --------
         (without instances and images)
 
-        >>> model = model_catalog.register_model(project_id="39968", name="Test Model - B2",
+        >>> model = model_catalog.register_model(collab_id="model-validation", name="Test Model - B2",
                         alias="Model vB2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_scope="Single cell model",
                         abstraction_level="Spiking neurons",
@@ -1711,7 +1702,7 @@ class ModelCatalog(BaseClient):
 
         (with instances and images)
 
-        >>> model = model_catalog.register_model(project_id="39968", name="Test Model - C2",
+        >>> model = model_catalog.register_model(collab_id="model-validation", name="Test Model - C2",
                         alias="Model vC2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_scope="Single cell model",
                         abstraction_level="Spiking neurons",
@@ -1730,17 +1721,21 @@ class ModelCatalog(BaseClient):
 
         model_data = {}
         args = locals()
+
+        # handle naming difference with API: collab_id <-> project_id
+        args["project_id"] = args.pop("collab_id")
+
         for field in ["project_id", "name", "alias", "author", "organization", "private",
                       "cell_type", "model_scope", "abstraction_level", "brain_region",
                       "species", "owner", "project", "license", "description",
                       "instances", "images"]:
-            if args[field]:
+            if args[field] or field == "private":
                 model_data[field] = args[field]
 
         values = self.get_attribute_options()
         for field in ["species", "brain_region", "cell_type", "abstraction_level", "model_scope"]:
             if field in model_data and  model_data[field] not in values[field] + [None]:
-                raise Exception(field + " = '" + model_data[field] + "' is invalid.\nValue has to be one of these: " + str(values[field]))
+                raise Exception("{} = '{}' is invalid.\nValue has to be one of these: {}".format(field, model_data[field], values[field]))
 
         if private not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
@@ -1756,11 +1751,11 @@ class ModelCatalog(BaseClient):
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
         if response.status_code == 201:
-            return response.json()["id"]
+            return renameNestedJSONKey(response.json(), "project_id", "collab_id")
         else:
             handle_response_error("Error in adding model", response)
 
-    def edit_model(self, model_id=None, project_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=None, 
+    def edit_model(self, model_id=None, collab_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=None, 
                    species=None, brain_region=None, cell_type=None, model_scope=None, abstraction_level=None,
                    project=None, license=None, description=None):
         """Edit an existing model on the model catalog.
@@ -1773,7 +1768,7 @@ class ModelCatalog(BaseClient):
         ----------
         model_id : UUID
             System generated unique identifier associated with model description.
-        project_id : string
+        collab_id : string
             Specifies the ID of the host collab in the HBP Collaboratory.
             (the model would belong to this collab)
         name : string
@@ -1812,12 +1807,12 @@ class ModelCatalog(BaseClient):
 
         Returns
         -------
-        UUID
-            UUID of the model description that has been edited.
+        dict
+            Model description that has been edited.
 
         Examples
         --------
-        >>> model = model_catalog.edit_model(project_id="39968", name="Test Model - B2",
+        >>> model = model_catalog.edit_model(collab_id="model-validation", name="Test Model - B2",
                         model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5",
                         alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
                         private=False, cell_type="Granule Cell", model_scope="Single cell model",
@@ -1827,31 +1822,35 @@ class ModelCatalog(BaseClient):
                         description="This is a test entry")
         """
 
-        if model_id == "":
+        if not model_id:
             raise Exception("Model ID needs to be provided for editing a model.")
 
         model_data = {}
         args = locals()
+
+        # handle naming difference with API: collab_id <-> project_id
+        args["project_id"] = args.pop("collab_id")
+
         for field in ["project_id", "name", "alias", "author", "organization", "private",
                       "cell_type", "model_scope", "abstraction_level", "brain_region",
                       "species", "owner", "project", "license", "description"]:
-            if args[field]:
+            if args[field] or (field == "private" and args[field] != None):
                 model_data[field] = args[field]
 
         values = self.get_attribute_options()
         for field in ("species", "brain_region", "cell_type", "abstraction_level", "model_scope"):
             if field in model_data and model_data[field] not in values[field] + [None]:
-                raise Exception(key + " = '" + model_data[key] + "' is invalid.\nValue has to be one of these: " + str(values[key]))
+                raise Exception("{} = '{}' is invalid.\nValue has to be one of these: {}".format(field, model_data[field], values[field]))
 
         if private and private not in [True, False]:
             raise Exception("Model's 'private' attribute should be specified as True / False. Default value is False.")
 
         # format names of authors and owners as required by API
         for field in ("author", "owner"):
-            if model_data[field]:
+            if model_data.get(field):
                 model_data[field] = self._format_people_name(model_data[field])
             
-        if model_data["alias"] == "":
+        if "alias" in model_data and model_data["alias"] == "":
             model_data["alias"] = None
 
         if model_data.get("private", False) not in (True, False):
@@ -1863,7 +1862,7 @@ class ModelCatalog(BaseClient):
                                 auth=self.auth, headers=headers,
                                 verify=self.verify)
         if response.status_code == 200:
-            return response.json()["id"]
+            return renameNestedJSONKey(response.json(), "project_id", "collab_id")
         else:
             handle_response_error("Error in updating model", response)
 
@@ -2049,7 +2048,7 @@ class ModelCatalog(BaseClient):
             # ***** Handles Collab storage urls *****
             repo_id = model_source.split("drive.ebrains.eu/lib/")[1].split("/")[0]
             model_path = "/" + "/".join(model_source.split("drive.ebrains.eu/lib/")[1].split("/")[2:])
-            datastore = URI_SCHEME_MAP["collab_v2"](project_id=repo_id, auth=self.auth)
+            datastore = URI_SCHEME_MAP["collab_v2"](collab_id=repo_id, auth=self.auth)
             fileList = datastore.download_data(model_path, local_directory=local_directory, overwrite=overwrite)
         elif model_source.startswith("swift://cscs.ch/"):
             # ***** Handles CSCS private urls *****
@@ -2141,7 +2140,7 @@ class ModelCatalog(BaseClient):
         """Register a new model instance.
 
         This allows to add a new instance of an existing model in the model catalog.
-        The `model_id` needs to be specified as input parameter.
+        The `model_id` or 'alias' needs to be specified as input parameter.
 
         Parameters
         ----------
@@ -2168,17 +2167,12 @@ class ModelCatalog(BaseClient):
 
         Returns
         -------
-        UUID
-            UUID of the model instance that has been created.
-
-        Note
-        ----
-        * `alias` is not currently implemented in the API; kept for future use.
-        * TODO: Either model_id or alias needs to be provided, with model_id taking precedence over alias.
+        dict
+            data of model instance that has been created.
 
         Examples
         --------
-        >>> instance_id = model_catalog.add_model_instance(model_id="196b89a3-e672-4b96-8739-748ba3850254",
+        >>> instance = model_catalog.add_model_instance(model_id="196b89a3-e672-4b96-8739-748ba3850254",
                                                   source="https://www.abcde.com",
                                                   version="1.0",
                                                   description="basic model variant",
@@ -2196,19 +2190,18 @@ class ModelCatalog(BaseClient):
             if val == "":
                 instance_data[key] = None
 
-        if model_id == "" and alias == "":
-            raise Exception("Model ID needs to be provided for finding the model.")
-            #raise Exception("Model ID or alias needs to be provided for finding the model.")
-        elif model_id != "":
-            url = self.url + "/models/" + model_id + "/instances/"
+        model_id = model_id or alias
+        if not model_id:
+            raise Exception("model_id or alias needs to be provided for finding the model.")
         else:
-            url = self.url + "/models/" + quote(alias) + "/instances/"
+            url = self.url + "/models/" + quote(model_id) + "/instances/"
+
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps(instance_data),
                                  auth=self.auth, headers=headers,
                                  verify=self.verify)
         if response.status_code == 201:
-            return response.json()["id"]
+            return response.json()
         else:
             handle_response_error("Error in adding model instance", response)
 
@@ -2225,38 +2218,40 @@ class ModelCatalog(BaseClient):
 
         Returns
         -------
-        UUID
-            UUID of the existing or created model instance.
+        dict
+            data of existing or created model instance.
 
         Note
         ----
         * `model_obj` is expected to contain the attribute `model_instance_uuid`,
-          or both the attributes `model_uuid` and `model_version`.
+          or both the attributes `model_uuid`/`model_alias` and `model_version`.
 
         Examples
         --------
-        >>> instance_id = model_catalog.find_model_instance_else_add(model)
+        >>> instance = model_catalog.find_model_instance_else_add(model)
         """
 
         if not getattr(model_obj, "model_instance_uuid", None):
             # check that the model is registered with the model registry.
-            if not hasattr(model_obj, "model_uuid"):
-                raise AttributeError("Model object does not have a 'model_uuid' attribute. "
-                                     "Please register it with the Validation Framework and add the 'model_uuid' to the model object.")
+            if not hasattr(model_obj, "model_uuid") and not hasattr(model_obj, "model_alias"):
+                raise AttributeError("Model object does not have a 'model_uuid'/'model_alias' attribute. "
+                                     "Please register it with the Validation Framework and add the 'model_uuid'/'model_alias' to the model object.")
             if not hasattr(model_obj, "model_version"):
                 raise AttributeError("Model object does not have a 'model_version' attribute")
-            try:
-                model_instance_uuid = self.get_model_instance(model_id=model_obj.model_uuid,
-                                                              version=model_obj.model_version)['id']
-            except Exception:  # probably the instance doesn't exist (todo: distinguish from other reasons for Exception)
-                # so we create a new instance
-                model_instance_uuid = self.add_model_instance(model_id=model_obj.model_uuid,
+            
+            model_instance = self.get_model_instance(model_id=getattr(model_obj, "model_uuid", None),
+                                                            alias=getattr(model_obj, "model_alias", None),
+                                                            version=model_obj.model_version)
+            if not model_instance:  # check if instance doesn't exist
+                # if yes, then create a new instance
+                model_instance = self.add_model_instance(model_id=getattr(model_obj, "model_uuid", None),
+                                                            alias=getattr(model_obj, "model_alias", None),
                                                             source=getattr(model_obj, "remote_url", ""),
                                                             version=model_obj.model_version,
                                                             parameters=getattr(model_obj, "parameters", ""))
         else:
-            model_instance_uuid = model_obj.model_instance_uuid
-        return model_instance_uuid
+            model_instance = self.get_model_instance(instance_id=model_obj.model_instance_uuid)
+        return model_instance
 
     def edit_model_instance(self, instance_id="", model_id="", alias="", source=None, version=None, description=None, parameters=None, code_format=None, hash=None, morphology=None, license=None):
         """Edit an existing model instance.
@@ -2300,12 +2295,12 @@ class ModelCatalog(BaseClient):
 
         Returns
         -------
-        UUID
-            UUID of the model instance that has been edited.
+        dict
+            data of model instance that has been edited.
 
         Examples
         --------
-        >>> instance_id = model_catalog.edit_model_instance(instance_id="fd1ab546-80f7-4912-9434-3c62af87bc77",
+        >>> instance = model_catalog.edit_model_instance(instance_id="fd1ab546-80f7-4912-9434-3c62af87bc77",
                                                 source="https://www.abcde.com",
                                                 version="1.0",
                                                 description="passive model variant",
@@ -2341,7 +2336,7 @@ class ModelCatalog(BaseClient):
         response = requests.put(url, data=json.dumps(instance_data), auth=self.auth, headers=headers,
                                 verify=self.verify)
         if response.status_code == 200:
-            return response.json()["id"]
+            return response.json()
         else:
             handle_response_error("Error in editing model instance at {}".format(url), response)
 

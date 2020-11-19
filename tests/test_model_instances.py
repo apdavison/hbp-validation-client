@@ -114,7 +114,7 @@ def test_addModelInstance_valid(modelCatalog, myModelID):
                                                        hash="",
                                                        morphology="",
                                                        description="")
-    assert isinstance(uuid.UUID(model_instance, version=4), uuid.UUID)
+    assert isinstance(uuid.UUID(model_instance["id"], version=4), uuid.UUID)
 
 #3.2) With no model_id
 def test_addModelInstance_no_id(modelCatalog):
@@ -127,7 +127,7 @@ def test_addModelInstance_no_id(modelCatalog):
                                                             hash="",
                                                             morphology="",
                                                             description="")
-    assert str(excinfo.value) == "Model ID needs to be provided for finding the model."
+    assert str(excinfo.value) == "model_id or alias needs to be provided for finding the model."
 
 #3.3) With invalid model_id format
 def test_addModelInstance_invalid_id_format(modelCatalog):
@@ -192,15 +192,14 @@ def test_editModelInstance_valid_id(modelCatalog, myModelID):
     model_id = myModelID
     sleep(20)
     model = model_catalog.get_model(model_id=model_id)
-    model_instance_id = model_catalog.edit_model_instance(instance_id=model["instances"][0]["id"],
+    model_instance = model_catalog.edit_model_instance(instance_id=model["instances"][0]["id"],
                                                         source="https://www.abcde.com",
                                                         parameters="a",
                                                         code_format="b",
                                                         hash="c",
                                                         morphology="http://example.com/d.txt",
                                                         description="e")
-    assert model_instance_id == model["instances"][0]["id"]
-    model_instance = model_catalog.get_model_instance(instance_id=model_instance_id)
+    assert model_instance["id"] == model["instances"][0]["id"]
     assert model_instance["source"] == "https://www.abcde.com"
     assert model_instance["parameters"] == "a"
     assert model_instance["code_format"] == "b"
@@ -214,15 +213,14 @@ def test_editModelInstance_valid_model_version(modelCatalog, myModelID):
     model_id = myModelID
     sleep(20)
     model = model_catalog.get_model(model_id=model_id)
-    model_instance_id = model_catalog.edit_model_instance(model_id=model_id, version=model["instances"][0]["version"],
+    model_instance = model_catalog.edit_model_instance(model_id=model_id, version=model["instances"][0]["version"],
                                                           source="https://www.abcde.com",
                                                           parameters="a",
                                                           code_format="b",
                                                           hash="c",
                                                           morphology="http://example.com/d.txt",
                                                           description="e")
-    assert model_instance_id == model["instances"][0]["id"]
-    model_instance = model_catalog.get_model_instance(instance_id=model_instance_id)
+    assert model_instance["id"] == model["instances"][0]["id"]
     assert model_instance["source"] == "https://www.abcde.com"
     assert model_instance["parameters"] == "a"
     assert model_instance["code_format"] == "b"
@@ -236,7 +234,7 @@ def test_editModelInstance_valid_alias_version(modelCatalog, myModelID):
     model_id = myModelID
     model = model_catalog.get_model(model_id=model_id)
     sleep(20)
-    model_instance_id = model_catalog.edit_model_instance(alias=model["alias"],
+    model_instance = model_catalog.edit_model_instance(alias=model["alias"],
                                                           version=model["instances"][0]["version"],
                                                         source="https://www.abcde.com",
                                                         parameters="a",
@@ -244,8 +242,7 @@ def test_editModelInstance_valid_alias_version(modelCatalog, myModelID):
                                                         hash="c",
                                                         morphology="http://example.com/d.txt",
                                                         description="e")
-    assert model_instance_id == model["instances"][0]["id"]
-    model_instance = model_catalog.get_model_instance(instance_id=model_instance_id)
+    assert model_instance["id"] == model["instances"][0]["id"]
     assert model_instance["source"] == "https://www.abcde.com"
     assert model_instance["parameters"] == "a"
     assert model_instance["code_format"] == "b"
@@ -304,7 +301,7 @@ def test_editModelInstance_valid_change_version(modelCatalog, myModelID):
     sleep(20)
     model = model_catalog.get_model(model_id=model_id)
     model_instance = model_catalog.get_model_instance(model_id=model_id, version="1.0a")
-    model_instance_id = model_catalog.edit_model_instance(instance_id=model_instance["id"],
+    model_instance = model_catalog.edit_model_instance(instance_id=model_instance["id"],
                                                         version="a.1")
     assert "1.0a" not in [i["id"] for i in model["instances"]]
 
@@ -366,8 +363,8 @@ def test_findCreateModelInstance_valid_exist_instance_id(modelCatalog, myModelID
     model_id = myModelID
     model = model_catalog.get_model(model_id=model_id)
     test_model = sample.SampleModel(model_instance_uuid=model["instances"][0]["id"])
-    model_instance_id = model_catalog.find_model_instance_else_add(test_model)
-    assert isinstance(uuid.UUID(model_instance_id, version=4), uuid.UUID)
+    model_instance = model_catalog.find_model_instance_else_add(test_model)
+    assert isinstance(uuid.UUID(model_instance["id"], version=4), uuid.UUID)
 
 #6.2) With valid details - existing model id and version
 def test_findCreateModelInstance_valid_exist_modelID_version(modelCatalog, myModelID):
@@ -375,13 +372,13 @@ def test_findCreateModelInstance_valid_exist_modelID_version(modelCatalog, myMod
     model_id = myModelID
     model = model_catalog.get_model(model_id=model_id)
     test_model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"])
-    model_instance_id = model_catalog.find_model_instance_else_add(test_model)
-    assert isinstance(uuid.UUID(model_instance_id, version=4), uuid.UUID)
+    model_instance = model_catalog.find_model_instance_else_add(test_model)
+    assert isinstance(uuid.UUID(model_instance["id"], version=4), uuid.UUID)
 
 def test_findCreateModelInstance_valid_create(modelCatalog, myModelID):
     model_catalog = modelCatalog
     model_id = myModelID
     model = model_catalog.get_model(model_id=model_id)
     test_model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"]+"_new")
-    model_instance_id = model_catalog.find_model_instance_else_add(test_model)
-    assert isinstance(uuid.UUID(model_instance_id, version=4), uuid.UUID)
+    model_instance = model_catalog.find_model_instance_else_add(test_model)
+    assert isinstance(uuid.UUID(model_instance["id"], version=4), uuid.UUID)
