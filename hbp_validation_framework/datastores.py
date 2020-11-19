@@ -26,7 +26,7 @@ from urllib.request import urlretrieve
 
 import requests
 
-import hbp_seafile
+import ebrains_drive
 
 mimetypes.init()
 
@@ -49,8 +49,8 @@ class CollabV2DataStore(object):
     A class for uploading and downloading data from HBP Collaboratory v2 seafile storage.
     """
 
-    def __init__(self, project_id=None, base_folder="/", auth=None, **kwargs):
-        self.project_id = project_id
+    def __init__(self, collab_id=None, base_folder="/", auth=None, **kwargs):
+        self.collab_id = collab_id
         self.base_folder = base_folder.strip("/")
         self._auth = auth  # we defer authorization until needed
         self._authorized = False
@@ -62,9 +62,9 @@ class CollabV2DataStore(object):
     def authorize(self, auth=None):
         if auth is None:
             auth = self._auth
-        self.client = hbp_seafile.connect(token=auth.token)
+        self.client = ebrains_drive.connect(token=auth.token)
         self._authorized = True
-        self.repo = self.client.repos.get_repo_by_url(self.project_id)
+        self.repo = self.client.repos.get_repo_by_url(self.collab_id)
 
     def upload_data(self, file_paths, overwrite=False):
         if not self.authorized:
@@ -93,7 +93,8 @@ class CollabV2DataStore(object):
             filename = os.path.basename(relative_path)
             seafdir = self.repo.get_dir(parent)
             file_entity = seafdir.upload_local_file(local_path, overwrite=overwrite)
-            uploaded_file_paths.append(upload_path_prefix + file_entity.path)
+            uploaded_file_paths.append({"filepath": upload_path_prefix + file_entity.path, "filesize": file_entity.size})
+            # uploaded_file_paths.append(file_entity._get_download_link()) # this does not work as the link changes with token
         return uploaded_file_paths
 
     def _make_folders(self, folder_path, parent):
@@ -205,7 +206,7 @@ class HTTPDataStore(object):
 
 class SwiftDataStore(object):
     """
-    A class for downloading data from CSCS Swift storage.
+    A class for uploading and downloading data from CSCS Swift storage.
     Note: data from public containers can also be downloaded via `HTTPDataStore`
     """
 
@@ -228,7 +229,10 @@ class SwiftDataStore(object):
             container = input("Please enter target container name: ")
         container_obj = Container(container, username, project=project)
         remote_paths = container_obj.upload(file_paths, remote_directory=remote_directory, overwrite=overwrite)
-        return remote_paths
+        uploaded_file_paths = []
+        for ind, f in enumerate(file_paths):
+            uploaded_file_paths.append({"filepath": remote_paths[ind], "filesize": os.path.getsize(f)})
+        return uploaded_file_paths
 
     def get_container(self, remote_path, username=""):
         try:
