@@ -95,6 +95,7 @@ def prepare_run_test_offline(username="", password=None, environment="production
     1. specify `test_instance_id` corresponding to test instance in test library
     2. specify `test_id` and `test_version`
     3. specify `test_alias` and `test_version`
+    
     Note: for (2) and (3) above, if `test_version` is not specified,
           then the latest test version is retrieved
 

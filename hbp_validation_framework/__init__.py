@@ -516,6 +516,7 @@ class TestLibrary(BaseClient):
         2. specify `instance_id` corresponding to test instance in test library
         3. specify `test_id` and `version`
         4. specify `alias` (of the test) and `version`
+
         Note: for (3) and (4) above, if `version` is not specified,
               then the latest test version is retrieved
 
@@ -866,6 +867,7 @@ class TestLibrary(BaseClient):
         2. specify `instance_id` corresponding to test instance in test library
         3. specify `test_id` and `version`
         4. specify `alias` (of the test) and `version`
+        
         Note: for (3) and (4) above, if `version` is not specified,
               then the latest test version is retrieved
 
