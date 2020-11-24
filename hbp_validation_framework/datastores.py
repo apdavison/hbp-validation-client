@@ -227,11 +227,16 @@ class SwiftDataStore(object):
             username = input("Please enter your CSCS username: ")
         if not container:
             container = input("Please enter target container name: ")
+        if isinstance(file_paths, str):
+            file_paths = [file_paths]
         container_obj = Container(container, username, project=project)
+        url_prefix = ""
+        if container_obj.public_url:
+            url_prefix = container_obj.public_url + "/"
         remote_paths = container_obj.upload(file_paths, remote_directory=remote_directory, overwrite=overwrite)
         uploaded_file_paths = []
         for ind, f in enumerate(file_paths):
-            uploaded_file_paths.append({"filepath": remote_paths[ind], "filesize": os.path.getsize(f)})
+            uploaded_file_paths.append({"filepath": url_prefix + remote_paths[ind], "filesize": os.path.getsize(f)})
         return uploaded_file_paths
 
     def get_container(self, remote_path, username=""):
