@@ -1,4 +1,4 @@
 sciunit
 requests
 simplejson
-hbp_seafile
+ebrains-drive
