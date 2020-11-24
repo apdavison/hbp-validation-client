@@ -629,7 +629,7 @@ class TestLibrary(BaseClient):
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
 
         url = self.url + "/tests/"
-        url += "?" + urlencode(params) + "&size=" + str(size) + "&from_index=" + str(from_index)
+        url += "?" + urlencode(params, doseq=True) + "&size=" + str(size) + "&from_index=" + str(from_index)
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code != 200:
             handle_response_error("Error listing tests", response)
@@ -1264,7 +1264,7 @@ class TestLibrary(BaseClient):
         """
 
         url = self.url + "/results/"
-        url += "?" + urlencode(filters) + "&size=" + str(size) + "&from_index=" + str(from_index)
+        url += "?" + urlencode(filters, doseq=True) + "&size=" + str(size) + "&from_index=" + str(from_index)
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code != 200:
             handle_response_error("Error in retrieving results", response)
@@ -1628,7 +1628,7 @@ class ModelCatalog(BaseClient):
             params["project_id"] = params.pop("collab_id")
 
         url = self.url + "/models/"
-        url += "?" + urlencode(params) + "&size=" + str(size) + "&from_index=" + str(from_index)
+        url += "?" + urlencode(params, doseq=True) + "&size=" + str(size) + "&from_index=" + str(from_index)
         response = requests.get(url, auth=self.auth, verify=self.verify)
         try:
             models = response.json()
