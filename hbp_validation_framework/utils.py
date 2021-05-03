@@ -275,8 +275,20 @@ def run_test_offline(model="", test_config_file=""):
     # Save result info to file
     Path(os.path.join(base_folder, "results")).mkdir(parents=True, exist_ok=True)
     test_result_file = os.path.join(base_folder, "results", "result__" + model.name + "__" + datetime.now().strftime("%Y%m%d%H%M%S") + ".pkl")
-    with open(test_result_file, 'wb') as file:
-        pickle.dump(score, file)
+    try:
+        with open(test_result_file, 'wb') as file:
+            pickle.dump(score, file)
+    except:
+        # e.g. issue with some NEURON models: TypeError: can't pickle nrn.Section objects
+        model_sciunit = sciunit.Model
+        model_params = ["name", "params", "unpicklable", "description",
+                        "model_instance_uuid", "model_uuid", "model_alias", "model_version", ]
+        for param in model_params:
+            setattr(model_sciunit, param, getattr(score.model, param, None))
+        score.model = model_sciunit
+        score.test.last_model = model_sciunit
+        with open(test_result_file, 'wb') as file:
+            pickle.dump(score, file)
     return test_result_file
 
 def upload_test_result(username="", password=None, environment="production", test_result_file="", storage_collab_id="", register_result=True, client_obj=None):
