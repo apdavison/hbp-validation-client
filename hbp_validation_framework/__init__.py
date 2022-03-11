@@ -637,9 +637,9 @@ class TestLibrary(BaseClient):
         tests = response.json()
         return tests
 
-    def add_test(self, name=None, alias=None, author=None,  
-                species=None, age=None, brain_region=None, cell_type=None, 
-                publication=None, description=None, recording_modality=None, test_type=None, score_type=None,  data_location=None, data_type=None, 
+    def add_test(self, name=None, alias=None, author=None,
+                species=None, age=None, brain_region=None, cell_type=None,
+                publication=None, description=None, recording_modality=None, test_type=None, score_type=None,  data_location=None, data_type=None,
                 instances=[]):
         """Register a new test on the test library.
 
@@ -695,7 +695,7 @@ class TestLibrary(BaseClient):
 
         test_data = {}
         args = locals()
-        for field in ["name", "alias", "author", 
+        for field in ["name", "alias", "author",
                       "species", "age", "brain_region", "cell_type",
                       "publication", "description", "recording_modality", "test_type", "score_type", "data_location", "data_type",
                       "instances"]:
@@ -706,9 +706,9 @@ class TestLibrary(BaseClient):
         for field in ("species", "brain_region", "cell_type", "recording_modality", "test_type", "score_type"):
             if field in test_data and test_data[field] not in values[field] + [None]:
                 raise Exception("{} = '{}' is invalid.\nValue has to be one of these: {}".format(field, test_data[field], values[field]))
-        
+
         # format names of authors as required by API
-        if "author" in test_data:   
+        if "author" in test_data:
             test_data["author"] = self._format_people_name(test_data["author"])
 
         # 'data_location' is now a list of urls
@@ -786,10 +786,10 @@ class TestLibrary(BaseClient):
 
         if not test_id:
             raise Exception("Test ID needs to be provided for editing a test.")
-        
+
         test_data = {}
         args = locals()
-        for field in ["name", "alias", "author", 
+        for field in ["name", "alias", "author",
                       "species", "age", "brain_region", "cell_type",
                       "publication", "description", "recording_modality", "test_type", "score_type", "data_location", "data_type"]:
             if args[field]:
@@ -799,7 +799,7 @@ class TestLibrary(BaseClient):
         for field in ("species", "brain_region", "cell_type", "recording_modality", "test_type", "score_type"):
             if field in test_data and test_data[field] not in values[field] + [None]:
                 raise Exception("{} = '{}' is invalid.\nValue has to be one of these: {}".format(field, test_data[field], values[field]))
-        
+
         # format names of authors as required by API
         if "author" in test_data:
             test_data["author"] = self._format_people_name(test_data["author"])
@@ -867,7 +867,7 @@ class TestLibrary(BaseClient):
         2. specify `instance_id` corresponding to test instance in test library
         3. specify `test_id` and `version`
         4. specify `alias` (of the test) and `version`
-        
+
         Note: for (3) and (4) above, if `version` is not specified,
               then the latest test version is retrieved
 
@@ -1577,7 +1577,7 @@ class ModelCatalog(BaseClient):
             model_json.pop("instances")
         if images is False:
             model_json.pop("images")
-        return renameNestedJSONKey(model_json, "project_id", "collab_id")   
+        return renameNestedJSONKey(model_json, "project_id", "collab_id")
 
     def list_models(self, size=1000000, from_index=0, **filters):
         """Retrieve list of model descriptions satisfying specified filters.
@@ -1624,7 +1624,7 @@ class ModelCatalog(BaseClient):
         for filter in params:
             if filter not in valid_filters:
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
-        
+
         # handle naming difference with API: collab_id <-> project_id
         if "collab_id" in params:
             params["project_id"] = params.pop("collab_id")
@@ -1757,7 +1757,7 @@ class ModelCatalog(BaseClient):
         else:
             handle_response_error("Error in adding model", response)
 
-    def edit_model(self, model_id=None, collab_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=None, 
+    def edit_model(self, model_id=None, collab_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=None,
                    species=None, brain_region=None, cell_type=None, model_scope=None, abstraction_level=None,
                    project=None, license=None, description=None):
         """Edit an existing model on the model catalog.
@@ -1851,7 +1851,7 @@ class ModelCatalog(BaseClient):
         for field in ("author", "owner"):
             if model_data.get(field):
                 model_data[field] = self._format_people_name(model_data[field])
-            
+
         if "alias" in model_data and model_data["alias"] == "":
             model_data["alias"] = None
 
@@ -2240,7 +2240,7 @@ class ModelCatalog(BaseClient):
                                      "Please register it with the Validation Framework and add the 'model_uuid'/'model_alias' to the model object.")
             if not hasattr(model_obj, "model_version"):
                 raise AttributeError("Model object does not have a 'model_version' attribute")
-            
+
             model_instance = self.get_model_instance(model_id=getattr(model_obj, "model_uuid", None),
                                                             alias=getattr(model_obj, "model_alias", None),
                                                             version=model_obj.model_version)
@@ -2393,6 +2393,46 @@ class ModelCatalog(BaseClient):
             handle_response_error("Only SuperUser accounts can delete data", model_instance_json)
         elif model_instance_json.status_code != 200:
             handle_response_error("Error in deleting model instance", model_instance_json)
+
+    def register_simulation(self, description=None, model_instance_id=None, configuration=None, outputs=None,
+                            timestamp=None, end_timestamp=None, environment=None, started_by=None):
+        """
+        Register a simulation that has been performed with a model from the Model Catalog.
+
+        Parameters
+        ----------
+
+        description : str
+            DESCRIPTION GOES HERE
+        model_instance_id : UUID
+            DESCRIPTION GOES HERE
+        configuration : dict
+            DESCRIPTION GOES HERE
+        outputs : list of dicts
+            DESCRIPTION GOES HERE
+        timestamp : datetime
+            DESCRIPTION GOES HERE
+        end_timestamp : datetime
+            DESCRIPTION GOES HERE
+        environment : dict
+            DESCRIPTION GOES HERE
+        started_by : dict
+            DESCRIPTION GOES HERE
+        """
+        simulation_report = locals()
+        simulation_report.pop("self")
+        url = self.url + "/simulations/"
+        headers = {'Content-type': 'application/json'}
+        response = requests.post(url, data=json.dumps(simulation_report),
+                                 auth=self.auth, headers=headers,
+                                 verify=self.verify)
+        if response.status_code == 201:
+            return response.json()
+        else:
+            handle_response_error("Error in adding model", response)
+
+
+
 
 def _get_ip_address():
     """

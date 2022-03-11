@@ -17,6 +17,7 @@ Generate PDF report of test results       :meth:`generate_PDF_report`
 Obtain score matrix for test results      :meth:`generate_score_matrix`
 Get Pandas DataFrame from score matrix    :meth:`get_raw_dataframe`
 Display score matrix in web browser       :meth:`display_score_matrix_html`
+Run simulation (not part of a test)       :meth:`run_simulation`
 =======================================   ====================================
 """
 
@@ -95,7 +96,7 @@ def prepare_run_test_offline(username="", password=None, environment="production
     1. specify `test_instance_id` corresponding to test instance in test library
     2. specify `test_id` and `test_version`
     3. specify `test_alias` and `test_version`
-    
+
     Note: for (2) and (3) above, if `test_version` is not specified,
           then the latest test version is retrieved
 
@@ -611,7 +612,7 @@ def generate_HTML_report(username="", password=None, environment="production", m
 
 def generate_PDF_report(html_report_path=None, username="", password=None,
                         environment="production", model_list=[], model_instance_list=[],
-                        test_list=[], test_instance_list=[], result_list=[], show_links=True, 
+                        test_list=[], test_instance_list=[], result_list=[], show_links=True,
                         only_results=False, client_obj=None):
     """Generates a PDF report for specified test results
 
@@ -952,3 +953,65 @@ def display_score_matrix_html(styled_df=None, df=None):
         df = get_raw_dataframe(styled_df)
     df.to_html(filename)
     webbrowser.open(filename, new=2)
+
+
+def run_simulation(username="", password=None, environment="production",
+                   model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **params):
+    """Run validation test and register result
+
+    This will execute the following methods by relaying the output of one to the next:
+    1. :meth:`prepare_run_test_offline`
+    2. :meth:`run_test_offline`
+    3. :meth:`upload_test_result`
+
+    Parameters
+    ----------
+    username : string
+        Your HBP Collaboratory username.
+    password : string
+        Your HBP Collaboratory password.
+    environment : string, optional
+        Used to indicate whether being used for development/testing purposes.
+        Set as `production` as default for using the production system,
+        which is appropriate for most users. When set to `dev`, it uses the
+        `development` system. For other values, an external config file would
+        be read (the latter is currently not implemented).
+    model : sciunit.Model
+        A :class:`sciunit.Model` instance.
+    test_instance_id : UUID
+        System generated unique identifier associated with test instance.
+    test_id : UUID
+        System generated unique identifier associated with test definition.
+    test_alias : string
+        User-assigned unique identifier associated with test definition.
+    test_version : string
+        User-assigned identifier (unique for each test) associated with test instance.
+    storage_collab_id : string
+        Collab ID where output files should be stored; if empty, stored in model's host Collab.
+    register_result : boolean
+        Specify whether the test results are to be scored on the validation framework.
+        Default is set as True.
+    client_obj : ModelCatalog/TestLibrary object
+        Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
+        Avoids need for repeated authentications; improves performance. Also, helps minimize
+        being blocked out by the authentication server for repeated authentication requests
+        (applicable when running several tests in quick succession, e.g. in a loop).
+    **params : list
+        Keyword arguments to be passed to the Test constructor.
+
+    Note
+    ----
+    Should be run on node having access to external URLs (i.e. with internet access)
+
+    Returns
+    -------
+    dict
+        data of test result that has been created.
+    object
+        score object evaluated by the test.
+
+    Examples
+    --------
+    >>> result_id, score = utils.run_test(username="HBP_USERNAME", password="HBP_PASSWORD" environment="production", model=cell_model, test_alias="basalg_msn_d1", test_version="1.0", storage_collab_id="8123", register_result=True)
+    """
+    pass
