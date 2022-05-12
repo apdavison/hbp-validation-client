@@ -445,13 +445,13 @@ def run_test(username="", password=None, environment="production", model="", tes
 
     Examples
     --------
-    >>> result_id, score = utils.run_test(username="HBP_USERNAME", password="HBP_PASSWORD" environment="production", model=cell_model, test_alias="basalg_msn_d1", test_version="1.0", storage_collab_id="8123", register_result=True)
+    >>> result, score = utils.run_test(username="HBP_USERNAME", password="HBP_PASSWORD" environment="production", model=cell_model, test_alias="basalg_msn_d1", test_version="1.0", storage_collab_id="8123", register_result=True)
     """
 
     test_config_file = prepare_run_test_offline(username=username, password=password, environment=environment, test_instance_id=test_instance_id, test_id=test_id, test_alias=test_alias, test_version=test_version, client_obj=client_obj, **params)
     test_result_file = run_test_offline(model=model, test_config_file=test_config_file)
-    result_id, score = upload_test_result(username=username, password=password, environment=environment, test_result_file=test_result_file, storage_collab_id=storage_collab_id, register_result=register_result, client_obj=client_obj)
-    return result_id, score
+    result, score = upload_test_result(username=username, password=password, environment=environment, test_result_file=test_result_file, storage_collab_id=storage_collab_id, register_result=register_result, client_obj=client_obj)
+    return result, score
 
 def generate_HTML_report(username="", password=None, environment="production", model_list=[],
                          model_instance_list=[], test_list=[], test_instance_list=[],
