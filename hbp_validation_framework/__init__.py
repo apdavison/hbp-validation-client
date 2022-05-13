@@ -499,7 +499,7 @@ class TestLibrary(BaseClient):
             if test_id:
                 url = self.url + "/tests/" + test_id
             else:
-                url = self.url + "/tests/" + quote(alias)
+                url = self.url + "/tests/" + quote(str(alias))
             test_json = requests.get(url, auth=self.auth, verify=self.verify)
 
         if test_json.status_code != 200:
@@ -849,7 +849,7 @@ class TestLibrary(BaseClient):
         elif test_id != "":
             url = self.url + "/tests/" + test_id
         else:
-            url = self.url + "/tests/" + quote(alias)
+            url = self.url + "/tests/" + quote(str(alias))
 
         test_json = requests.delete(url, auth=self.auth, verify=self.verify)
         if test_json.status_code == 403:
@@ -911,11 +911,11 @@ class TestLibrary(BaseClient):
             elif test_id and version:
                 url = self.url + "/tests/" + test_id + "/instances/?version=" + version
             elif alias and version:
-                url = self.url + "/tests/" + quote(alias) + "/instances/?version=" + version
+                url = self.url + "/tests/" + quote(str(alias)) + "/instances/?version=" + version
             elif test_id and not version:
                 url = self.url + "/tests/" + test_id + "/instances/latest"
             else:
-                url = self.url + "/tests/" + quote(alias) + "/instances/latest"
+                url = self.url + "/tests/" + quote(str(alias)) + "/instances/latest"
             response = requests.get(url, auth=self.auth, verify=self.verify)
 
         if response.status_code != 200:
@@ -966,7 +966,7 @@ class TestLibrary(BaseClient):
             if test_id:
                 url = self.url + "/tests/" + test_id + "/instances/?size=100000"
             else:
-                url = self.url + "/tests/" + quote(alias) + "/instances/?size=100000"
+                url = self.url + "/tests/" + quote(str(alias)) + "/instances/?size=100000"
             response = requests.get(url, auth=self.auth, verify=self.verify)
 
         if response.status_code != 200:
@@ -1021,7 +1021,7 @@ class TestLibrary(BaseClient):
         if not test_id:
             raise Exception("test_id or alias needs to be provided for finding the test.")
         else:
-            url = self.url + "/tests/" + quote(test_id) + "/instances/"
+            url = self.url + "/tests/" + quote(str(test_id)) + "/instances/"
 
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps(instance_data),
@@ -1566,7 +1566,7 @@ class ModelCatalog(BaseClient):
         elif model_id != "":
             url = self.url + "/models/" + model_id
         else:
-            url = self.url + "/models/" + quote(alias)
+            url = self.url + "/models/" + quote(str(alias))
 
         model_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_json.status_code != 200:
@@ -1899,7 +1899,7 @@ class ModelCatalog(BaseClient):
         elif model_id != "":
             url = self.url + "/models/" + model_id
         else:
-            url = self.url + "/models/" + quote(alias)
+            url = self.url + "/models/" + quote(str(alias))
 
         model_json = requests.delete(url, auth=self.auth, verify=self.verify)
         if model_json.status_code == 403:
@@ -1987,7 +1987,7 @@ class ModelCatalog(BaseClient):
             elif model_id and version:
                 url = self.url + "/models/" + model_id + "/instances/?version=" + version
             else:
-                url = self.url + "/models/" + quote(alias) + "/instances/?version=" + version
+                url = self.url + "/models/" + quote(str(alias)) + "/instances/?version=" + version
             model_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_instance_json.status_code != 200:
             handle_response_error("Error in retrieving model instance", model_instance_json)
@@ -2131,7 +2131,7 @@ class ModelCatalog(BaseClient):
             if model_id:
                 url = self.url + "/models/" + model_id + "/instances/?size=100000"
             else:
-                url = self.url + "/models/" + quote(alias) + "/instances/?size=100000"
+                url = self.url + "/models/" + quote(str(alias)) + "/instances/?size=100000"
             model_instances_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_instances_json.status_code != 200:
             handle_response_error("Error in retrieving model instances", model_instances_json)
@@ -2196,7 +2196,7 @@ class ModelCatalog(BaseClient):
         if not model_id:
             raise Exception("model_id or alias needs to be provided for finding the model.")
         else:
-            url = self.url + "/models/" + quote(model_id) + "/instances/"
+            url = self.url + "/models/" + quote(str(model_id)) + "/instances/"
 
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps(instance_data),
@@ -2323,7 +2323,7 @@ class ModelCatalog(BaseClient):
         if instance_id:
             url = self.url + "/models/query/instances/" + instance_id
         else:
-            model_identifier = quote(model_id or alias)
+            model_identifier = quote(str(model_id or alias))
             response0 = requests.get(self.url + f"/models/{model_identifier}/instances/?version={version}",
                                      auth=self.auth, verify=self.verify)
             if response0.status_code != 200:
