@@ -259,6 +259,7 @@ def run_test_offline(model="", test_config_file=""):
     t_start = datetime.utcnow()
     score = test.judge(model, deep_error=True)
     t_end = datetime.utcnow()
+    score.dont_hide = ["related_data"]
 
     print("----------------------------------------------")
     print("Score: ", score.score)
@@ -717,7 +718,7 @@ def generate_PDF_report(html_report_path=None, username="", password=None,
                        goto="temp")
     return filepath, valid_result_uuids
 
-def generate_score_matrix(username="", password=None, environment="production", model_list=[], model_instance_list=[], test_list=[], test_instance_list=[], result_list=[], show_links=True, client_obj=None):
+def generate_score_matrix(username="", password=None, environment="production", model_list=[], model_instance_list=[], test_list=[], test_instance_list=[], result_list=[], show_links=True, round_places=None, client_obj=None):
     """Generates a styled pandas dataframe with score matrix
 
     This method will generate a styled pandas dataframe for the specified test results.
@@ -747,6 +748,9 @@ def generate_score_matrix(username="", password=None, environment="production", 
     show_links : boolean, optional
         To specify if hyperlinks to results are to be provided.
         If false, these data units will not have clickable hyperlinks.
+    round_places: int, optional
+        Specify to how many decimal places the scores should be rounded while displaying.
+        No rounding done as default.
     client_obj : ModelCatalog/TestLibrary object
         Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
         Avoids need for repeated authentications; improves performance. Also, helps minimize
@@ -829,17 +833,18 @@ def generate_score_matrix(username="", password=None, environment="production", 
     excluded_results = []   # not latest entry for a particular model instance and test instance combination
     for r_id in result_list:
         result = test_library.get_result(result_id = r_id)
+        temp_score = round(float(result["score"]), round_places) if round_places else result["score"]
         # '#*#' is used as separator between score and result UUID (latter used for constructing hyperlink)
         if result["test_instance_id"] in results_dict.keys():
             if result["model_instance_id"] not in results_dict[result["test_instance_id"]].keys():
-                results_dict[result["test_instance_id"]][result["model_instance_id"]] = [result["timestamp"], str(result["score"]) + "#*#" + r_id]
+                results_dict[result["test_instance_id"]][result["model_instance_id"]] = [result["timestamp"], str(temp_score) + "#*#" + r_id]
             elif result["timestamp"] > results_dict[result["test_instance_id"]][result["model_instance_id"]][0]:
                 excluded_results.append(results_dict[result["test_instance_id"]][result["model_instance_id"]][1].split('#*#')[1])
-                results_dict[result["test_instance_id"]][result["model_instance_id"]] = [result["timestamp"], str(result["score"]) + "#*#" + r_id]
+                results_dict[result["test_instance_id"]][result["model_instance_id"]] = [result["timestamp"], str(temp_score) + "#*#" + r_id]
             else:
                 excluded_results.append(r_id)
         else:
-            results_dict[result["test_instance_id"]] = {result["model_instance_id"]: [result["timestamp"], str(result["score"]) + "#*#" + r_id]}
+            results_dict[result["test_instance_id"]] = {result["model_instance_id"]: [result["timestamp"], str(temp_score) + "#*#" + r_id]}
 
         if result["model_instance_id"] not in model_instances_dict.keys():
             model_instances_dict[result["model_instance_id"]] = None
