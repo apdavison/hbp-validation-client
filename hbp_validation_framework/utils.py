@@ -274,22 +274,27 @@ def run_test_offline(model="", test_config_file=""):
     # score.exec_platform = str(self._get_platform())
 
     # Save result info to file
+    def remove_unpickleable_items(item, filename):
+        # removes unpickleable items upto two levels
+        for key1, val1 in item.__dict__.items():
+            try:
+                with open(filename, 'wb') as file:
+                    pickle.dump(val1, file)
+            except TypeError:
+                if hasattr(item.__dict__[key1], "__dict__"):
+                    for key2, val2 in item.__dict__[key1].__dict__.items():
+                        try:
+                            with open(filename, 'wb') as file:
+                                pickle.dump(val2, file)
+                        except TypeError:
+                            item.__dict__[key1].__dict__[key2] = "(Removed; unpickleable)"
+        return item
+
     Path(os.path.join(base_folder, "results")).mkdir(parents=True, exist_ok=True)
     test_result_file = os.path.join(base_folder, "results", "result__" + model.name + "__" + datetime.now().strftime("%Y%m%d%H%M%S") + ".pkl")
-    try:
-        with open(test_result_file, 'wb') as file:
-            pickle.dump(score, file)
-    except:
-        # e.g. issue with some NEURON models: TypeError: can't pickle nrn.Section objects
-        model_sciunit = sciunit.Model
-        model_params = ["name", "params", "unpicklable", "description",
-                        "model_instance_uuid", "model_uuid", "model_alias", "model_version", ]
-        for param in model_params:
-            setattr(model_sciunit, param, getattr(score.model, param, None))
-        score.model = model_sciunit
-        score.test.last_model = model_sciunit
-        with open(test_result_file, 'wb') as file:
-            pickle.dump(score, file)
+    score = remove_unpickleable_items(score, test_result_file)
+    with open(test_result_file, 'wb') as file:
+        pickle.dump(score, file)
     return test_result_file
 
 def upload_test_result(username="", password=None, environment="production", test_result_file="", storage_collab_id="", register_result=True, client_obj=None):
