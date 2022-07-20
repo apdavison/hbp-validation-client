@@ -8,4 +8,5 @@ pip install pytest
 pip install pytest-sugar
 pip install pytest-dependency
 pip install pytest-cov
+pip install flaky
 python setup.py install
