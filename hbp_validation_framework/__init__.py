@@ -700,7 +700,7 @@ class TestLibrary(BaseClient):
         args = locals()
         for field in ["name", "alias", "author", 
                       "species", "age", "brain_region", "cell_type",
-                      "publication", "description", "recording_modality", "test_type", "score_type", "data_location", "data_type", "implementation_status"
+                      "publication", "description", "recording_modality", "test_type", "score_type", "data_location", "data_type", "implementation_status",
                       "instances"]:
             if args[field]:
                 test_data[field] = args[field]
