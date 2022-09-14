@@ -580,7 +580,7 @@ class TestLibrary(BaseClient):
         observation_data = self._load_reference_data(test_json["data_location"])
 
         # Create the :class:`sciunit.Test` instance
-        test_instance = test_cls(observation=observation_data, **params)
+        test_instance = test_cls(observation=observation_data[0], **params)
         test_instance.uuid = test_instance_json["id"]
         return test_instance
 

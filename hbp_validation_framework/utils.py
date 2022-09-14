@@ -459,6 +459,203 @@ def run_test(username="", password=None, environment="production", model="", tes
     result, score = upload_test_result(username=username, password=password, environment=environment, test_result_file=test_result_file, storage_collab_id=storage_collab_id, register_result=register_result, client_obj=client_obj)
     return result, score
 
+def run_test_standalone(username="", password=None, environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **params):
+    """Run validation test and register result
+
+    This method will accept a model, located locally, run the specified
+    test on the model, and store the results on the validation service.
+    The test can be specified in the following ways (in order of priority):
+    1. specify `test_instance_id` corresponding to test instance in test library
+    2. specify `test_id` and `test_version`
+    3. specify `test_alias` and `test_version`
+    Note: for (2) and (3) above, if `test_version` is not specified,
+          then the latest test version is retrieved
+
+    Parameters
+    ----------
+    username : string
+        Your HBP Collaboratory username.
+    password : string
+        Your HBP Collaboratory password.
+    environment : string, optional
+        Used to indicate whether being used for development/testing purposes.
+        Set as `production` as default for using the production system,
+        which is appropriate for most users. When set to `dev`, it uses the
+        `development` system. For other values, an external config file would
+        be read (the latter is currently not implemented).
+    model : sciunit.Model
+        A :class:`sciunit.Model` instance.
+    test_instance_id : UUID
+        System generated unique identifier associated with test instance.
+    test_id : UUID
+        System generated unique identifier associated with test definition.
+    test_alias : string
+        User-assigned unique identifier associated with test definition.
+    test_version : string
+        User-assigned identifier (unique for each test) associated with test instance.
+    storage_collab_id : string
+        Collab ID where output files should be stored; if empty, stored in model's host Collab.
+    register_result : boolean
+        Specify whether the test results are to be scored on the validation framework.
+        Default is set as True.
+    client_obj : ModelCatalog/TestLibrary object
+        Used to easily create a new ModelCatalog/TestLibrary object if either exist already.
+        Avoids need for repeated authentications; improves performance. Also, helps minimize
+        being blocked out by the authentication server for repeated authentication requests
+        (applicable when running several tests in quick succession, e.g. in a loop).
+    **params : list
+        Keyword arguments to be passed to the Test constructor.
+
+    Note
+    ----
+    This is a very basic implementation that would suffice for simple use cases.
+    You can customize and create your own run_test() implementations.
+
+    Returns
+    -------
+    dict
+        data of test result that has been created.
+    object
+        score object evaluated by the test.
+
+    Examples
+    --------
+    >>> utils.run_test_standalone(username="shailesh", model=mymodel, test_alias="CDT-5", test_version="5.0")
+    """
+
+    if client_obj:
+        test_library = TestLibrary.from_existing(client_obj)
+    else:
+        test_library = TestLibrary(username, password, environment=environment)
+
+    if test_instance_id == "" and test_id == "" and test_alias == "":
+        raise Exception("test_instance_id or test_id or test_alias needs to be provided for finding test.")
+
+    test = test_library.get_validation_test(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version, **params)
+
+    # # Gather specified test info
+    # test_instance_json = test_library.get_test_instance(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version)
+    # test_id = test_instance_json["test_id"]
+    # test_instance_id = test_instance_json["id"]
+    # test_instance_path = test_instance_json["path"]
+    # test_instance_parameters = test_instance_json["parameters"]
+
+    # # Download test observation to local storage
+    # base_folder = os.path.join(os.getcwd(), "hbp_validation_framework", test_id, datetime.now().strftime("%Y%m%d-%H%M%S"))
+    # test_observation_paths = test_library.get_test_definition(test_id=test_id)["data_location"]
+    # for test_observation_path in test_observation_paths:
+    #     parse_result = urlparse(test_observation_path)
+    #     datastore = URI_SCHEME_MAP[parse_result.scheme](auth=test_library.auth)
+    #     test_observation_file = datastore.download_data([test_observation_path], local_directory=base_folder)[0]
+
+    # # Create test config required for offline execution
+    # test_info = {}
+    # test_info["test_id"] = test_id
+    # test_info["test_instance_id"] = test_instance_id
+    # test_info["test_instance_path"] = test_instance_path
+    # test_info["test_instance_parameters"] = test_instance_parameters
+    # test_info["test_observation_file"] = os.path.basename(os.path.realpath(test_observation_file))
+    # test_info["params"] = params
+
+    # # Identify test class path
+    # path_parts = test_info["test_instance_path"].split(".")
+    # cls_name = path_parts[-1]
+    # module_name = ".".join(path_parts[:-1])
+    # test_module = import_module(module_name)
+    # test_cls = getattr(test_module, cls_name)
+
+    # # Read observation data required by test
+    # with open(os.path.join(base_folder, test_info["test_observation_file"]), 'rb') as file:
+    #     observation_data = file.read()
+    # content_type = mimetypes.guess_type(test_info["test_observation_file"])[0]
+    # if content_type == "application/json":
+    #     observation_data = json.loads(observation_data)
+
+    # # Create the :class:`sciunit.Test` instance
+    # params = test_info["params"]
+    # test_instance_parameters = test_info["test_instance_parameters"]
+    # try:
+    #     if isinstance(eval(test_instance_parameters), dict):
+    #         params.update(eval(test_instance_parameters))
+    # except:
+    #     pass
+    # test = test_cls(observation=observation_data, **params)
+    # test.uuid = test_info["test_instance_id"]
+
+    print("----------------------------------------------")
+    print("Test name: ", test.name)
+    print("Test type: ", type(test))
+    print("----------------------------------------------")
+
+    # Check the model
+    if not isinstance(model, sciunit.Model):
+        raise TypeError("`model` is not a sciunit Model!")
+    print("----------------------------------------------")
+    print("Model name: ", model.name)
+    print("Model type: ", type(model))
+    print("----------------------------------------------")
+
+    # Run the test
+    t_start = datetime.utcnow()
+    score = test.judge(model, deep_error=True)
+    t_end = datetime.utcnow()
+
+    print("----------------------------------------------")
+    print("Score: ", score.score)
+    if "figures" in score.related_data:
+        print("Output files: ")
+        for item in score.related_data["figures"]:
+            print(item)
+    print("----------------------------------------------")
+
+    score.runtime = str(int(math.ceil((t_end-t_start).total_seconds()))) + " s"
+    score.exec_timestamp = t_end
+    # score.exec_platform = str(self._get_platform())
+
+    if not register_result:
+        return None, score
+
+    # Register the result with the HBP validation framework
+    if client_obj:
+        model_catalog = ModelCatalog.from_existing(client_obj)
+    else:
+        model_catalog = ModelCatalog(username, password, environment=environment)
+    model_instance_uuid = model_catalog.find_model_instance_else_add(score.model)["id"]
+    model_instance_json = model_catalog.get_model_instance(instance_id=model_instance_uuid)
+    model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
+    model_host_collab_id = model_json["collab_id"]
+    model_name = model_json["name"]
+
+    if not storage_collab_id:
+        storage_collab_id = model_host_collab_id
+    score.related_data["collab_id"] = storage_collab_id
+
+    # Check if result with same hash has already been uploaded for
+    # this (model instance, test instance) combination; if yes, don't register result
+    # result_json = {
+    #                 "model_instance_id": model_instance_uuid,
+    #                 "test_instance_id": score.test.uuid,
+    #                 "score": score.score,
+    #                 "runtime": score.runtime,
+    #                 "exectime": score.exec_timestamp#,
+    #                 # "platform": score.exec_platform
+    #               }
+    # score.score_hash = str(hash(json.dumps(result_json, sort_keys=True, default = str)))
+    test_library = TestLibrary.from_existing(model_catalog)
+    # results = test_library.list_results(model_instance_id=model_instance_uuid, test_instance_id=score.test.uuid)["results"]
+    # duplicate_results =  [x["id"] for x in results if x["hash"] == score.score_hash]
+    # if duplicate_results:
+    #     raise Exception("An identical result has already been registered on the validation framework.\nExisting Result UUID = {}".format(", ".join(duplicate_results)))
+
+    # `.replace(" ", "_")` used to avoid Collab storage path errors due to spaces
+    collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name.replace(" ", "_"), datetime.now().strftime("%Y%m%d-%H%M%S"))
+    collab_storage = CollabV2DataStore(collab_id=storage_collab_id,
+                                       base_folder=collab_folder,
+                                       auth=test_library.auth)
+
+    response = test_library.register_result(test_result=score, data_store=collab_storage)
+    return response, score
+
 def generate_HTML_report(username="", password=None, environment="production", model_list=[],
                          model_instance_list=[], test_list=[], test_instance_list=[],
                          result_list=[], show_links=True, client_obj=None):
