@@ -580,7 +580,7 @@ class TestLibrary(BaseClient):
         observation_data = self._load_reference_data(test_json["data_location"])
 
         # Create the :class:`sciunit.Test` instance
-        test_instance = test_cls(observation=observation_data, **params)
+        test_instance = test_cls(observation=observation_data[0], **params)
         test_instance.uuid = test_instance_json["id"]
         return test_instance
 
@@ -639,7 +639,8 @@ class TestLibrary(BaseClient):
 
     def add_test(self, name=None, alias=None, author=None,  
                 species=None, age=None, brain_region=None, cell_type=None, 
-                publication=None, description=None, recording_modality=None, test_type=None, score_type=None,  data_location=None, data_type=None, 
+                publication=None, description=None, recording_modality=None, test_type=None, score_type=None,  
+                data_location=None, data_type=None, implementation_status=None, 
                 instances=[]):
         """Register a new test on the test library.
 
@@ -675,6 +676,8 @@ class TestLibrary(BaseClient):
             The type of reference data (observation).
         publication : string
             Publication or comment (e.g. "Unpublished") to be associated with observation.
+        implementation_status : string
+            Status of test: 'in development' / 'proposal' / 'published'
         instances : list, optional
             Specify a list of instances (versions) of the test.
 
@@ -697,13 +700,13 @@ class TestLibrary(BaseClient):
         args = locals()
         for field in ["name", "alias", "author", 
                       "species", "age", "brain_region", "cell_type",
-                      "publication", "description", "recording_modality", "test_type", "score_type", "data_location", "data_type",
+                      "publication", "description", "recording_modality", "test_type", "score_type", "data_location", "data_type", "implementation_status",
                       "instances"]:
             if args[field]:
                 test_data[field] = args[field]
 
         values = self.get_attribute_options()
-        for field in ("species", "brain_region", "cell_type", "recording_modality", "test_type", "score_type"):
+        for field in ("species", "brain_region", "cell_type", "recording_modality", "test_type", "score_type", "implementation_status"):
             if field in test_data and test_data[field] not in values[field] + [None]:
                 raise Exception("{} = '{}' is invalid.\nValue has to be one of these: {}".format(field, test_data[field], values[field]))
         
@@ -727,7 +730,8 @@ class TestLibrary(BaseClient):
 
     def edit_test(self, test_id=None, name=None, alias=None, author=None,
                   species=None, age=None, brain_region=None, cell_type=None,
-                  publication=None, description=None, recording_modality=None, test_type=None, score_type=None, data_location=None, data_type=None, ):
+                  publication=None, description=None, recording_modality=None, 
+                  test_type=None, score_type=None, data_location=None, data_type=None, implementation_status=None):
         """Edit an existing test in the test library.
 
         To update an existing test, the `test_id` must be provided. Any of the
@@ -766,6 +770,8 @@ class TestLibrary(BaseClient):
             The type of reference data (observation).
         publication : string
             Publication or comment (e.g. "Unpublished") to be associated with observation.
+        implementation_status : string
+            Status of test: 'in development' / 'proposal' / 'published'
 
         Note
         ----
@@ -791,12 +797,12 @@ class TestLibrary(BaseClient):
         args = locals()
         for field in ["name", "alias", "author", 
                       "species", "age", "brain_region", "cell_type",
-                      "publication", "description", "recording_modality", "test_type", "score_type", "data_location", "data_type"]:
+                      "publication", "description", "recording_modality", "test_type", "score_type", "data_location", "data_type", "implementation_status"]:
             if args[field]:
                 test_data[field] = args[field]
 
         values = self.get_attribute_options()
-        for field in ("species", "brain_region", "cell_type", "recording_modality", "test_type", "score_type"):
+        for field in ("species", "brain_region", "cell_type", "recording_modality", "test_type", "score_type", "implementation_status"):
             if field in test_data and test_data[field] not in values[field] + [None]:
                 raise Exception("{} = '{}' is invalid.\nValue has to be one of these: {}".format(field, test_data[field], values[field]))
         
@@ -805,7 +811,7 @@ class TestLibrary(BaseClient):
             test_data["author"] = self._format_people_name(test_data["author"])
 
         # 'data_location' is now a list of urls
-        if not isinstance(test_data["data_location"], list):
+        if "data_location" in test_data and not isinstance(test_data["data_location"], list):
             test_data["data_location"] = [test_data["data_location"]]
 
         url = self.url + "/tests/" + test_id
