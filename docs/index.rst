@@ -56,8 +56,8 @@ More detailed tutorials will be published soon.
 
 For any queries, you can contact:
 
-* Andrew Davison: ``andrew.davison@unic.cnrs-gif.fr``
-* Shailesh Appukuttan: ``shailesh.appukuttan@unic.cnrs-gif.fr``
+* Andrew Davison: ``andrew.davison@cnrs.fr``
+* Shailesh Appukuttan: ``appukuttan.shailesh@gmail.com``
 
 General Info
 ============

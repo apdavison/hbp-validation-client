@@ -11,7 +11,8 @@ View JSON data in web browser             :meth:`view_json_tree`
 Prepare test for execution                :meth:`prepare_run_test_offline`
 Run the validation test                   :meth:`run_test_offline`
 Register result with validation service   :meth:`upload_test_result`
-Run test and register result              :meth:`run_test`
+Run test and register result (in steps)   :meth:`run_test`
+Run test and register result (direct)     :meth:`run_test_standalone`
 Generate HTML report of test results      :meth:`generate_HTML_report`
 Generate PDF report of test results       :meth:`generate_PDF_report`
 Obtain score matrix for test results      :meth:`generate_score_matrix`
@@ -159,6 +160,8 @@ def prepare_run_test_offline(username="", password=None, environment="production
     # Download test observation to local storage
     base_folder = os.path.join(os.getcwd(), "hbp_validation_framework", test_id, datetime.now().strftime("%Y%m%d-%H%M%S"))
     test_observation_paths = test_library.get_test_definition(test_id=test_id)["data_location"]
+    if len(test_observation_paths) == 0:
+        raise Exception("No observation data found for test with id: {}".format(test_id))
     for test_observation_path in test_observation_paths:
         parse_result = urlparse(test_observation_path)
         datastore = URI_SCHEME_MAP[parse_result.scheme](auth=test_library.auth)
@@ -273,28 +276,19 @@ def run_test_offline(model="", test_config_file=""):
     score.exec_timestamp = t_end
     # score.exec_platform = str(self._get_platform())
 
-    # Save result info to file
-    def remove_unpickleable_items(item, filename):
-        # removes unpickleable items upto two levels
-        for key1, val1 in item.__dict__.items():
-            try:
-                with open(filename, 'wb') as file:
-                    pickle.dump(val1, file)
-            except TypeError:
-                if hasattr(item.__dict__[key1], "__dict__"):
-                    for key2, val2 in item.__dict__[key1].__dict__.items():
-                        try:
-                            with open(filename, 'wb') as file:
-                                pickle.dump(val2, file)
-                        except TypeError:
-                            item.__dict__[key1].__dict__[key2] = "(Removed; unpickleable)"
-        return item
+    # Save the test result
+    # Create a custom sciunit.Score object with 
+    # minimally required attributes to avoid pickling issues
+    score_obj = sciunit.Score(score=score.score, related_data=score.related_data)
+    score_obj.dont_hide = score.dont_hide
+    score_obj.runtime = score.runtime
+    score_obj.exec_timestamp = score.exec_timestamp
+    # score_obj.exec_platform = score.exec_platform
 
     Path(os.path.join(base_folder, "results")).mkdir(parents=True, exist_ok=True)
     test_result_file = os.path.join(base_folder, "results", "result__" + model.name + "__" + datetime.now().strftime("%Y%m%d%H%M%S") + ".pkl")
-    score = remove_unpickleable_items(score, test_result_file)
     with open(test_result_file, 'wb') as file:
-        pickle.dump(score, file)
+        pickle.dump(score_obj, file)
     return test_result_file
 
 def upload_test_result(username="", password=None, environment="production", test_result_file="", storage_collab_id="", register_result=True, client_obj=None):
@@ -336,12 +330,12 @@ def upload_test_result(username="", password=None, environment="production", tes
     -------
     dict
         data of test result that has been created.
-    object
-        score object evaluated by the test.
+    int or float or bool
+        score evaluated by the test.
 
     Examples
     --------
-    >>> result_id, score = utils.upload_test_result(username="shailesh", test_result_file=test_result_file)
+    >>> result, score = utils.upload_test_result(username="shailesh", test_result_file=test_result_file)
     """
 
     if not os.path.isfile(test_result_file) :
@@ -393,7 +387,7 @@ def upload_test_result(username="", password=None, environment="production", tes
                                        auth=test_library.auth)
 
     response = test_library.register_result(test_result=score, data_store=collab_storage)
-    return response, score
+    return response, score.score
 
 def run_test(username="", password=None, environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **params):
     """Run validation test and register result
@@ -446,8 +440,8 @@ def run_test(username="", password=None, environment="production", model="", tes
     -------
     dict
         data of test result that has been created.
-    object
-        score object evaluated by the test.
+    int or float or bool
+        score evaluated by the test.
 
     Examples
     --------
@@ -470,6 +464,15 @@ def run_test_standalone(username="", password=None, environment="production", mo
     3. specify `test_alias` and `test_version`
     Note: for (2) and (3) above, if `test_version` is not specified,
           then the latest test version is retrieved
+
+    Note
+    ----
+    :meth:`run_test_standalone()` is different from :meth:`run_test()` in that
+    the former runs the entire workflow in one go, whereas the latter
+    is a wrapper for the sub-steps: :meth:`prepare_run_test_offline()`, 
+    :meth:`run_test_offline()`, and :meth:`upload_test_result()`. 
+    Also, :meth:`run_test()` returns the score as the value (int or float or bool) while 
+    :meth:`run_test_standalone()` returns the `sciunit.Score` object.
 
     Parameters
     ----------
@@ -520,7 +523,7 @@ def run_test_standalone(username="", password=None, environment="production", mo
 
     Examples
     --------
-    >>> utils.run_test_standalone(username="shailesh", model=mymodel, test_alias="CDT-5", test_version="5.0")
+    >>> result, score = utils.run_test_standalone(username="shailesh", model=mymodel, test_alias="CDT-5", test_version="5.0")
     """
 
     if client_obj:
