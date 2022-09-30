@@ -284,15 +284,17 @@ def run_test_offline(model="", test_config_file=""):
     score_obj.runtime = score.runtime
     score_obj.exec_timestamp = score.exec_timestamp
     # score_obj.exec_platform = score.exec_platform
-    score_obj.model = sciunit.Model()
-    if hasattr(score.model, "model_instance_uuid"):
-        score_obj.model_instance_uuid = score.model.model_instance_uuid
-    if hasattr(score.model, "model_uuid"):
-        score_obj.model_uuid = score.model.model_uuid
-    if hasattr(score.model, "model_alias"):
-        score_obj.model_alias = score.model.model_alias
-    if hasattr(score.model, "model_version"):
-        score_obj.model_version = score.model.model_version
+    score_obj.test = sciunit.Test(name=test.name, observation=test.observation)
+    score_obj.test.uuid = test.uuid
+    score_obj.model = sciunit.Model(name=model.name)
+    if hasattr(model, "model_instance_uuid"):
+        score_obj.model.model_instance_uuid = model.model_instance_uuid
+    if hasattr(model, "model_uuid"):
+        score_obj.model.model_uuid = model.model_uuid
+    if hasattr(model, "model_alias"):
+        score_obj.model.model_alias = model.model_alias
+    if hasattr(model, "model_version"):
+        score_obj.model.model_version = model.model_version
 
     Path(os.path.join(base_folder, "results")).mkdir(parents=True, exist_ok=True)
     test_result_file = os.path.join(base_folder, "results", "result__" + model.name + "__" + datetime.now().strftime("%Y%m%d%H%M%S") + ".pkl")
@@ -353,10 +355,7 @@ def upload_test_result(username="", password=None, environment="production", tes
     # Load result info from file
     with open(test_result_file, 'rb') as file:
         score = pickle.load(file)
-    print(score)
-    print(score.__dict__)
-    print(score.model.__dict__)
-    print(score.model.model_alias)
+    
     if not register_result:
         return None, score.score
 
