@@ -1,7 +1,7 @@
 """
-A Python package for working with the Human Brain Project Model Validation Framework.
+A Python package for working with the EBRAINS / Human Brain Project Model Validation Framework.
 
-Andrew Davison and Shailesh Appukuttan, CNRS, 2017-2020
+Andrew Davison and Shailesh Appukuttan, CNRS, 2017-2022
 
 License: BSD 3-clause, see LICENSE.txt
 
@@ -17,15 +17,13 @@ import socket
 from importlib import import_module
 from pathlib import Path
 from urllib.error import URLError
-from urllib.parse import urlparse, urljoin, urlencode, parse_qs, quote
-from urllib.request import urlopen
+from urllib.parse import urlparse, urljoin, urlencode, quote
 
-import ast
-import simplejson
 import requests
 from requests.auth import AuthBase
 from .datastores import URI_SCHEME_MAP
 from nameparser import HumanName
+
 
 # check if running within Jupyter notebook inside Collab v2
 try:
@@ -33,6 +31,10 @@ try:
     have_collab_token_handler = True
 except ImportError:
     have_collab_token_handler = False
+
+
+__version__ = "0.8.0"
+
 
 TOKENFILE = os.path.expanduser("~/.hbptoken")
 
@@ -44,7 +46,7 @@ class ResponseError(Exception):
 def handle_response_error(message, response):
     try:
         structured_error_message = response.json()
-    except simplejson.errors.JSONDecodeError:
+    except json.JSONDecodeError:
         structured_error_message = None
     if structured_error_message:
         response_text = str(structured_error_message)  # temporary, to be improved
@@ -77,7 +79,7 @@ class HBPAuth(AuthBase):
 
 class BaseClient(object):
     """
-    Base class that handles HBP authentication
+    Base class that handles EBRAINS authentication
     """
     # Note: Could possibly simplify the code later
 
@@ -93,21 +95,17 @@ class BaseClient(object):
         self.token = token
         if environment == "production":
             self.url = "https://validation-v2.brainsimulation.eu"
-            self.client_id = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c" # Prod ID
         elif environment == "integration":
             self.url = "https://validation-staging.brainsimulation.eu"
-            self.client_id = "8a6b7458-1044-4ebd-9b7e-f8fd3469069c"
         elif environment == "dev":
-            self.url = "https://validation-dev.brainsimulation.eu"
-            self.client_id = "90c719e0-29ce-43a2-9c53-15cb314c2d0b" # Dev ID
+            self.url = "http://localhost:8000"
         else:
             if os.path.isfile('config.json') and os.access('config.json', os.R_OK):
                 with open('config.json') as config_file:
                     config = json.load(config_file)
                     if environment in config:
-                        if "url" in config[environment] and "client_id" in config[environment]:
+                        if "url" in config[environment]:
                             self.url = config[environment]["url"]
-                            self.client_id = config[environment]["client_id"]
                             self.verify = config[environment].get("verify_ssl", True)
                         else:
                             raise KeyError("Cannot load environment info: config.json does not contain sufficient info for environment = {}".format(environment))
@@ -131,29 +129,29 @@ class BaseClient(object):
                     if data and "access_token" in data:
                         self.token = data["access_token"]
                         if not self._check_token_valid():
-                            print("HBP authentication token is invalid or has expired. Will need to re-authenticate.")
+                            print("EBRAINS authentication token is invalid or has expired. Will need to re-authenticate.")
                             self.token = None
                     else:
-                        print("HBP authentication token file not having required JSON data.")
+                        print("EBRAINS authentication token file not having required JSON data.")
             else:
-                print("HBP authentication token file not found locally.")
+                print("EBRAINS authentication token file not found locally.")
 
             if self.token is None:
                 if not username:
                     print("\n==============================================")
-                    print("Please enter your HBP username.")
-                    username = input('HBP Username: ')
+                    print("Please enter your EBRAINS username.")
+                    username = input('EBRAINS Username: ')
 
-                password = os.environ.get('HBP_PASS')
+                password = os.environ.get('EBRAINS_PASS')
                 if password is not None:
                     try:
                         self._hbp_auth(username, password)
                     except Exception:
-                        print("Authentication Failure. Possibly incorrect HBP password saved in environment variable 'HBP_PASS'.")
+                        print("Authentication Failure. Possibly incorrect EBRAINS password saved in environment variable 'EBRAINS_PASS'.")
                 if not hasattr(self, 'config'):
                     try:
                         # prompt for password
-                        print("Please enter your HBP password: ")
+                        print("Please enter your EBRAINS password: ")
                         password = getpass.getpass()
                         self._hbp_auth(username, password)
                     except Exception:
@@ -299,7 +297,7 @@ class BaseClient(object):
 
     def _hbp_auth(self, username, password):
         """
-        HBP authentication
+        EBRAINS authentication
         """
         redirect_uri = self.url + '/auth'
         session = requests.Session()
@@ -331,7 +329,12 @@ class BaseClient(object):
             raise Exception(
                 "Something went wrong. Status code {} from authenticate, expected 302"
                 .format(r_iam2.status_code))
-        # redirects back to model validation service
+        # redirects either to "grant permissions" page or back to model validation service
+        if r_iam2.headers['Location'].startswith("https://iam.ebrains.eu"):
+            raise Exception("Before you can use this Python client, you must grant it permission "
+                            "to access certain information from your EBRAINS account. "
+                            f"Please visit {self.url}/login in a web browser and click 'Yes' "
+                            "to grant the required privileges, then try again.")
         r_val = session.get(r_iam2.headers['Location'])
         if r_val.status_code != 200:
             raise Exception(
@@ -345,7 +348,7 @@ class BaseClient(object):
     def from_existing(cls, client):
         """Used to easily create a TestLibrary if you already have a ModelCatalog, or vice versa"""
         obj = cls.__new__(cls)
-        for attrname in ("username", "url", "client_id", "token", "verify", "auth", "environment"):
+        for attrname in ("username", "url", "token", "verify", "auth", "environment"):
             setattr(obj, attrname, getattr(client, attrname))
         obj._set_app_info()
         return obj
@@ -359,9 +362,12 @@ class BaseClient(object):
             raise Exception("Specified attribute '{}' is invalid. Valid attributes: {}".format(param, valid_params))
         return requests.get(url, auth=self.auth, verify=self.verify).json()
 
+    def api_info(self):
+        return requests.get(self.url).json()
+
 
 class TestLibrary(BaseClient):
-    """Client for the HBP Validation Test library.
+    """Client for the EBRAINS Validation Test library.
 
     The TestLibrary client manages all actions pertaining to tests and results.
     The following actions can be performed:
@@ -387,11 +393,11 @@ class TestLibrary(BaseClient):
     Parameters
     ----------
     username : string
-        Your HBP Collaboratory username. Not needed in Jupyter notebooks within the HBP Collaboratory.
+        Your EBRAINS Collaboratory username. Not needed in Jupyter notebooks within the EBRAINS Collaboratory.
     password : string, optional
-        Your HBP Collaboratory password; advisable to not enter as plaintext.
+        Your EBRAINS Collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
-        Not needed in Jupyter notebooks within the HBP Collaboratory.
+        Not needed in Jupyter notebooks within the EBRAINS Collaboratory.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
@@ -404,11 +410,9 @@ class TestLibrary(BaseClient):
             {
                 "prod": {
                     "url": "https://validation-v1.brainsimulation.eu",
-                    "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
                 },
                 "dev_test": {
                     "url": "https://localhost:8000",
-                    "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
                     "verify_ssl": false
                 }
             }
@@ -451,7 +455,7 @@ class TestLibrary(BaseClient):
     #     params["config"]["app_type"] = "validation_app"
     #     self._configure_app_collab(params)
 
-    def get_test_definition(self, test_path="", test_id = "", alias=""):
+    def get_test_definition(self, test_path="", test_id="", alias=""):
         """Retrieve a specific test definition.
 
         A specific test definition can be retrieved from the test library
@@ -506,7 +510,7 @@ class TestLibrary(BaseClient):
             handle_response_error("Error in retrieving test", test_json)
         return test_json.json()
 
-    def get_validation_test(self, test_path="", instance_path="", instance_id ="", test_id = "", alias="", version="", **params):
+    def get_validation_test(self, test_path="", instance_path="", instance_id="", test_id="", alias="", version="", **params):
         """Retrieve a specific test instance as a Python class (sciunit.Test instance).
 
         A specific test definition can be specified
@@ -580,7 +584,7 @@ class TestLibrary(BaseClient):
         observation_data = self._load_reference_data(test_json["data_location"])
 
         # Create the :class:`sciunit.Test` instance
-        test_instance = test_cls(observation=observation_data[0], **params)
+        test_instance = test_cls(observation=observation_data, **params)
         test_instance.uuid = test_instance_json["id"]
         return test_instance
 
@@ -690,7 +694,7 @@ class TestLibrary(BaseClient):
         --------
         >>> test = test_library.add_test(name="Cell Density Test", alias="", version="1.0", author="Shailesh Appukuttan",
                                 species="Mouse (Mus musculus)", age="TBD", brain_region="Hippocampus", cell_type="Other",
-                                recording_modality="electron microscopy", test_type="network structure", score_type="Other", description="Later",
+                                recording_modality="electron microscopy", test_type="network: microcircuit", score_type="mean squared error", description="Later",
                                 data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/hippounit/feat_CA1_pyr_cACpyr_more_features.json",
                                 data_type="Mean, SD", publication="Halasy et al., 1996",
                                 repository="https://github.com/appukuttan-shailesh/morphounit.git", path="morphounit.tests.CellDensityTest")
@@ -698,7 +702,7 @@ class TestLibrary(BaseClient):
 
         test_data = {}
         args = locals()
-        for field in ["name", "alias", "author", 
+        for field in ["name", "alias", "author",
                       "species", "age", "brain_region", "cell_type",
                       "publication", "description", "recording_modality", "test_type", "score_type", "data_location", "data_type", "implementation_status",
                       "instances"]:
@@ -709,9 +713,9 @@ class TestLibrary(BaseClient):
         for field in ("species", "brain_region", "cell_type", "recording_modality", "test_type", "score_type", "implementation_status"):
             if field in test_data and test_data[field] not in values[field] + [None]:
                 raise Exception("{} = '{}' is invalid.\nValue has to be one of these: {}".format(field, test_data[field], values[field]))
-        
+
         # format names of authors as required by API
-        if "author" in test_data:   
+        if "author" in test_data:
             test_data["author"] = self._format_people_name(test_data["author"])
 
         # 'data_location' is now a list of urls
@@ -730,7 +734,7 @@ class TestLibrary(BaseClient):
 
     def edit_test(self, test_id=None, name=None, alias=None, author=None,
                   species=None, age=None, brain_region=None, cell_type=None,
-                  publication=None, description=None, recording_modality=None, 
+                  publication=None, description=None, recording_modality=None,
                   test_type=None, score_type=None, data_location=None, data_type=None, implementation_status=None):
         """Edit an existing test in the test library.
 
@@ -787,15 +791,15 @@ class TestLibrary(BaseClient):
         --------
         test = test_library.edit_test(name="Cell Density Test", test_id="7b63f87b-d709-4194-bae1-15329daf3dec", alias="CDT-6", author="Shailesh Appukuttan", publication="Halasy et al., 1996",
                                       species="Mouse (Mus musculus)", brain_region="Hippocampus", cell_type="Other", age="TBD", recording_modality="electron microscopy",
-                                      test_type="network structure", score_type="Other", protocol="To be filled sometime later", data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/hippounit/feat_CA1_pyr_cACpyr_more_features.json", data_type="Mean, SD")
+                                      test_type="network: microcircuit", score_type="mean squared error", protocol="To be filled sometime later", data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/hippounit/feat_CA1_pyr_cACpyr_more_features.json", data_type="Mean, SD")
         """
 
         if not test_id:
             raise Exception("Test ID needs to be provided for editing a test.")
-        
+
         test_data = {}
         args = locals()
-        for field in ["name", "alias", "author", 
+        for field in ["name", "alias", "author",
                       "species", "age", "brain_region", "cell_type",
                       "publication", "description", "recording_modality", "test_type", "score_type", "data_location", "data_type", "implementation_status"]:
             if args[field]:
@@ -805,7 +809,7 @@ class TestLibrary(BaseClient):
         for field in ("species", "brain_region", "cell_type", "recording_modality", "test_type", "score_type", "implementation_status"):
             if field in test_data and test_data[field] not in values[field] + [None]:
                 raise Exception("{} = '{}' is invalid.\nValue has to be one of these: {}".format(field, test_data[field], values[field]))
-        
+
         # format names of authors as required by API
         if "author" in test_data:
             test_data["author"] = self._format_people_name(test_data["author"])
@@ -873,7 +877,7 @@ class TestLibrary(BaseClient):
         2. specify `instance_id` corresponding to test instance in test library
         3. specify `test_id` and `version`
         4. specify `alias` (of the test) and `version`
-        
+
         Note: for (3) and (4) above, if `version` is not specified,
               then the latest test version is retrieved
 
@@ -1322,7 +1326,7 @@ class TestLibrary(BaseClient):
         results_storage = []
         if data_store:
             if not data_store.authorized:
-                data_store.authorize(self.auth)  # relies on data store using HBP authorization
+                data_store.authorize(self.auth)  # relies on data store using EBRAINS authorization
                                                  # if this is not the case, need to authenticate/authorize
                                                  # the data store before passing to `register()`
             if data_store.collab_id is None:
@@ -1406,7 +1410,7 @@ class TestLibrary(BaseClient):
 
 
 class ModelCatalog(BaseClient):
-    """Client for the HBP Model Catalog.
+    """Client for the EBRAINS Model Catalog.
 
     The ModelCatalog client manages all actions pertaining to models.
     The following actions can be performed:
@@ -1430,11 +1434,11 @@ class ModelCatalog(BaseClient):
     Parameters
     ----------
     username : string
-        Your HBP Collaboratory username. Not needed in Jupyter notebooks within the HBP Collaboratory.
+        Your EBRAINS Collaboratory username. Not needed in Jupyter notebooks within the EBRAINS Collaboratory.
     password : string, optional
-        Your HBP Collaboratory password; advisable to not enter as plaintext.
+        Your EBRAINS Collaboratory password; advisable to not enter as plaintext.
         If left empty, you would be prompted for password at run time (safer).
-        Not needed in Jupyter notebooks within the HBP Collaboratory.
+        Not needed in Jupyter notebooks within the EBRAINS Collaboratory.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
@@ -1447,11 +1451,9 @@ class ModelCatalog(BaseClient):
             {
                 "prod": {
                     "url": "https://validation-v1.brainsimulation.eu",
-                    "client_id": "3ae21f28-0302-4d28-8581-15853ad6107d"
                 },
                 "dev_test": {
                     "url": "https://localhost:8000",
-                    "client_id": "90c719e0-29ce-43a2-9c53-15cb314c2d0b",
                     "verify_ssl": false
                 }
             }
@@ -1583,7 +1585,7 @@ class ModelCatalog(BaseClient):
             model_json.pop("instances")
         if images is False:
             model_json.pop("images")
-        return renameNestedJSONKey(model_json, "project_id", "collab_id")   
+        return renameNestedJSONKey(model_json, "project_id", "collab_id")
 
     def list_models(self, size=1000000, from_index=0, **filters):
         """Retrieve list of model descriptions satisfying specified filters.
@@ -1630,7 +1632,7 @@ class ModelCatalog(BaseClient):
         for filter in params:
             if filter not in valid_filters:
                 raise ValueError("The specified filter '{}' is an invalid filter!\nValid filters are: {}".format(filter, valid_filters))
-        
+
         # handle naming difference with API: collab_id <-> project_id
         if "collab_id" in params:
             params["project_id"] = params.pop("collab_id")
@@ -1640,13 +1642,13 @@ class ModelCatalog(BaseClient):
         response = requests.get(url, auth=self.auth, verify=self.verify)
         try:
             models = response.json()
-        except (json.JSONDecodeError, simplejson.JSONDecodeError):
+        except json.JSONDecodeError:
             handle_response_error("Error in list_models()", response)
         return renameNestedJSONKey(models, "project_id", "collab_id")
 
     def register_model(self, collab_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=False,
                        species=None, brain_region=None, cell_type=None, model_scope=None, abstraction_level=None,
-                       project=None, license=None, description=None, instances=[], images=[]):
+                       license=None, description=None, instances=[]):
         """Register a new model in the model catalog.
 
         This allows you to add a new model to the model catalog. Model instances
@@ -1656,7 +1658,7 @@ class ModelCatalog(BaseClient):
         Parameters
         ----------
         collab_id : string
-            Specifies the ID of the host collab in the HBP Collaboratory.
+            Specifies the ID of the host collab in the EBRAINS Collaboratory.
             (the model would belong to this collab)
         name : string
             Name of the model description to be created.
@@ -1680,16 +1682,10 @@ class ModelCatalog(BaseClient):
             Specifies the model abstraction level.
         owner : string
             Specifies the owner of the model. Need not necessarily be the same as the author.
-        project : string
-            Can be used to indicate the project to which the model belongs.
-        license : string
-            Indicates the license applicable for this model.
         description : string
             Provides a description of the model.
         instances : list, optional
             Specify a list of instances (versions) of the model.
-        images : list, optional
-            Specify a list of images (figures) to be linked to the model.
 
         Returns
         -------
@@ -1701,30 +1697,27 @@ class ModelCatalog(BaseClient):
         (without instances and images)
 
         >>> model = model_catalog.register_model(collab_id="model-validation", name="Test Model - B2",
-                        alias="Model vB2", author="Shailesh Appukuttan", organization="HBP-SP6",
+                        alias="Model vB2", author="Shailesh Appukuttan", organization="CNRS",
                         private=False, cell_type="Granule Cell", model_scope="Single cell model",
                         abstraction_level="Spiking neurons",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
-                        owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
+                        owner="Andrew Davison",
                         description="This is a test entry")
 
-        (with instances and images)
+        (with instances)
 
         >>> model = model_catalog.register_model(collab_id="model-validation", name="Test Model - C2",
-                        alias="Model vC2", author="Shailesh Appukuttan", organization="HBP-SP6",
+                        alias="Model vC2", author="Shailesh Appukuttan", organization="CNRS",
                         private=False, cell_type="Granule Cell", model_scope="Single cell model",
                         abstraction_level="Spiking neurons",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
-                        owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
+                        owner="Andrew Davison", license="BSD 3-Clause",
                         description="This is a test entry! Please ignore.",
-                        instances=[{"source":"https://www.abcde.com",
+                        instances=[{"source":"https://www.abcde.com", license="BSD 3-Clause",
                                     "version":"1.0", "parameters":""},
-                                   {"source":"https://www.12345.com",
+                                   {"source":"https://www.12345.com", license="BSD 3-Clause",
                                     "version":"2.0", "parameters":""}],
-                        images=[{"url":"http://www.neuron.yale.edu/neuron/sites/default/themes/xchameleon/logo.png",
-                                 "caption":"NEURON Logo"},
-                                {"url":"https://collab.humanbrainproject.eu/assets/hbp_diamond_120.png",
-                                 "caption":"HBP Logo"}])
+                        )
         """
 
         model_data = {}
@@ -1735,8 +1728,8 @@ class ModelCatalog(BaseClient):
 
         for field in ["project_id", "name", "alias", "author", "organization", "private",
                       "cell_type", "model_scope", "abstraction_level", "brain_region",
-                      "species", "owner", "project", "license", "description",
-                      "instances", "images"]:
+                      "species", "owner", "description",
+                      "instances"]:
             if args[field] or field == "private":
                 model_data[field] = args[field]
 
@@ -1777,7 +1770,7 @@ class ModelCatalog(BaseClient):
         model_id : UUID
             System generated unique identifier associated with model description.
         collab_id : string
-            Specifies the ID of the host collab in the HBP Collaboratory.
+            Specifies the ID of the host collab in the EBRAINS Collaboratory.
             (the model would belong to this collab)
         name : string
             Name of the model description to be created.
@@ -1857,7 +1850,7 @@ class ModelCatalog(BaseClient):
         for field in ("author", "owner"):
             if model_data.get(field):
                 model_data[field] = self._format_people_name(model_data[field])
-            
+
         if "alias" in model_data and model_data["alias"] == "":
             model_data["alias"] = None
 
@@ -1924,7 +1917,6 @@ class ModelCatalog(BaseClient):
     	* model_scope
         * abstraction_level
     	* species
-    	* organization
 
         If an attribute is specified then, only values that correspond to it will be returned,
         else values for all attributes are returned.
@@ -2144,7 +2136,7 @@ class ModelCatalog(BaseClient):
         model_instances_json = model_instances_json.json()
         return model_instances_json
 
-    def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters="", code_format="", hash="", morphology="", license=""):
+    def add_model_instance(self, model_id="", alias="", source="", version="", description="", parameters=None, code_format="", hash="", morphology="", license=""):
         """Register a new model instance.
 
         This allows to add a new instance of an existing model in the model catalog.
@@ -2184,7 +2176,7 @@ class ModelCatalog(BaseClient):
                                                   source="https://www.abcde.com",
                                                   version="1.0",
                                                   description="basic model variant",
-                                                  parameters="",
+                                                  parameters=None,
                                                   code_format="py",
                                                   hash="",
                                                   morphology="",
@@ -2246,7 +2238,7 @@ class ModelCatalog(BaseClient):
                                      "Please register it with the Validation Framework and add the 'model_uuid'/'model_alias' to the model object.")
             if not hasattr(model_obj, "model_version"):
                 raise AttributeError("Model object does not have a 'model_version' attribute")
-            
+
             model_instance = self.get_model_instance(model_id=getattr(model_obj, "model_uuid", None),
                                                             alias=getattr(model_obj, "model_alias", None),
                                                             version=model_obj.model_version)
@@ -2312,7 +2304,7 @@ class ModelCatalog(BaseClient):
                                                 source="https://www.abcde.com",
                                                 version="1.0",
                                                 description="passive model variant",
-                                                parameters="",
+                                                parameters=None,
                                                 code_format="py",
                                                 hash="",
                                                 morphology="",

@@ -109,10 +109,10 @@ def test_addModelInstance_valid(modelCatalog, myModelID):
     model_instance = model_catalog.add_model_instance(model_id=model_id,
                                                        source="https://www.12345.com",
                                                        version="3.0",
-                                                       parameters="",
+                                                       #parameters=None,
                                                        code_format="",
                                                        hash="",
-                                                       morphology="",
+                                                       #morphology="",
                                                        description="")
     assert isinstance(uuid.UUID(model_instance["id"], version=4), uuid.UUID)
 
@@ -122,10 +122,10 @@ def test_addModelInstance_no_id(modelCatalog):
     with pytest.raises(Exception) as excinfo:
         model_instance = model_catalog.add_model_instance(source="https://www.12345.com",
                                                             version="4.0",
-                                                            parameters="",
+                                                            #parameters=None,
                                                             code_format="",
                                                             hash="",
-                                                            morphology="",
+                                                            #morphology="",
                                                             description="")
     assert str(excinfo.value) == "model_id or alias needs to be provided for finding the model."
 
@@ -136,10 +136,10 @@ def test_addModelInstance_invalid_id_format(modelCatalog):
         model_instance = model_catalog.add_model_instance(model_id="abcde",
                                                            source="https://www.12345.com",
                                                            version="5.0",
-                                                           parameters="",
+                                                           #parameters=None,
                                                            code_format="",
                                                            hash="",
-                                                           morphology="",
+                                                           #morphology="",
                                                            description="")
     assert "Error in adding model instance." in str(excinfo.value)
 
@@ -150,10 +150,10 @@ def test_addModelInstance_invalid_id_value(modelCatalog):
         model_instance = model_catalog.add_model_instance(model_id=str(uuid.uuid4()),
                                                            source="https://www.12345.com",
                                                            version="6.0",
-                                                           parameters="",
+                                                           #parameters=None,
                                                            code_format="",
                                                            hash="",
-                                                           morphology="",
+                                                           #morphology="",
                                                            description="")
     assert "Error in adding model instance." in str(excinfo.value)
 
@@ -164,20 +164,20 @@ def test_addModelInstance_duplicate_version(modelCatalog, myModelID):
     model_instance = model_catalog.add_model_instance(model_id=model_id,
                                                        source="https://www.12345.com",
                                                        version="7.0",
-                                                       parameters="",
+                                                       #parameters=None,
                                                        code_format="",
                                                        hash="",
-                                                       morphology="",
+                                                       #morphology="",
                                                        description="")
     sleep(20)
     with pytest.raises(Exception) as excinfo:
         model_instance2 = model_catalog.add_model_instance(model_id=model_id,
                                                            source="https://www.12345.com",
                                                            version="7.0",
-                                                           parameters="",
+                                                           #parameters=None,
                                                            code_format="",
                                                            hash="",
-                                                           morphology="",
+                                                           #morphology="",
                                                            description="")
     assert "Error in adding model instance." in str(excinfo.value)
 
@@ -194,17 +194,17 @@ def test_editModelInstance_valid_id(modelCatalog, myModelID):
     model = model_catalog.get_model(model_id=model_id)
     model_instance = model_catalog.edit_model_instance(instance_id=model["instances"][0]["id"],
                                                         source="https://www.abcde.com",
-                                                        parameters="a",
-                                                        code_format="b",
+                                                        parameters="http://example.com/params.yaml",
+                                                        code_format="image/bmp",
                                                         hash="c",
-                                                        morphology="http://example.com/d.txt",
+                                                        morphology="http://example.com/d.asc",
                                                         description="e")
     assert model_instance["id"] == model["instances"][0]["id"]
     assert model_instance["source"] == "https://www.abcde.com"
-    assert model_instance["parameters"] == "a"
-    assert model_instance["code_format"] == "b"
+    assert model_instance["parameters"] == "http://example.com/params.yaml"
+    assert model_instance["code_format"] == "image/bmp"
     ###assert model_instance["hash"] == "c"
-    assert model_instance["morphology"] == "http://example.com/d.txt"
+    assert model_instance["morphology"] == "http://example.com/d.asc"
     assert model_instance["description"] == "e"
 
 #4.2) With valid details - model_id, version
@@ -215,17 +215,17 @@ def test_editModelInstance_valid_model_version(modelCatalog, myModelID):
     model = model_catalog.get_model(model_id=model_id)
     model_instance = model_catalog.edit_model_instance(model_id=model_id, version=model["instances"][0]["version"],
                                                           source="https://www.abcde.com",
-                                                          parameters="a",
-                                                          code_format="b",
+                                                          #parameters="a",
+                                                          code_format="image/bmp",
                                                           hash="c",
-                                                          morphology="http://example.com/d.txt",
+                                                          morphology="http://example.com/d.asc",
                                                           description="e")
     assert model_instance["id"] == model["instances"][0]["id"]
     assert model_instance["source"] == "https://www.abcde.com"
-    assert model_instance["parameters"] == "a"
-    assert model_instance["code_format"] == "b"
+    #assert model_instance["parameters"] == "a"
+    assert model_instance["code_format"] == "image/bmp"
     ###assert model_instance["hash"] == "c"
-    assert model_instance["morphology"] == "http://example.com/d.txt"
+    assert model_instance["morphology"] == "http://example.com/d.asc"
     assert model_instance["description"] == "e"
 
 #4.3) With valid details - alias, version
@@ -237,17 +237,17 @@ def test_editModelInstance_valid_alias_version(modelCatalog, myModelID):
     model_instance = model_catalog.edit_model_instance(alias=model["alias"],
                                                           version=model["instances"][0]["version"],
                                                         source="https://www.abcde.com",
-                                                        parameters="a",
-                                                        code_format="b",
+                                                        #parameters="a",
+                                                        code_format="image/bmp",
                                                         hash="c",
-                                                        morphology="http://example.com/d.txt",
+                                                        morphology="http://example.com/d.asc",
                                                         description="e")
     assert model_instance["id"] == model["instances"][0]["id"]
     assert model_instance["source"] == "https://www.abcde.com"
-    assert model_instance["parameters"] == "a"
-    assert model_instance["code_format"] == "b"
+    #assert model_instance["parameters"] == "a"
+    assert model_instance["code_format"] == "image/bmp"
     ###assert model_instance["hash"] == "c"
-    assert model_instance["morphology"] == "http://example.com/d.txt"
+    assert model_instance["morphology"] == "http://example.com/d.asc"
     assert model_instance["description"] == "e"
 
 #4.4) With invalid details - only model_id
@@ -257,10 +257,10 @@ def test_editModelInstance_invalid_only_model(modelCatalog, myModelID):
     with pytest.raises(Exception) as excinfo:
         model_instance = model_catalog.edit_model_instance(model_id=model_id,
                                                         source="https://www.abcde.com",
-                                                        parameters="a",
-                                                        code_format="b",
+                                                        #parameters="a",
+                                                        code_format="image/bmp",
                                                         hash="c",
-                                                        morphology="http://example.com/d.txt",
+                                                        morphology="http://example.com/d.asc",
                                                         description="e")
     assert str(excinfo.value) == "instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance."
 
@@ -272,10 +272,10 @@ def test_editModelInstance_invalid_only_alias(modelCatalog, myModelID):
     with pytest.raises(Exception) as excinfo:
         model_instance = model_catalog.edit_model_instance(alias=model["alias"],
                                                         source="https://www.abcde.com",
-                                                        parameters="a",
-                                                        code_format="b",
+                                                        #parameters="a",
+                                                        code_format="image/bmp",
                                                         hash="c",
-                                                        morphology="http://example.com/d.txt",
+                                                        morphology="http://example.com/d.asc",
                                                         description="e")
     assert str(excinfo.value) == "instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance."
 
@@ -287,10 +287,10 @@ def test_editModelInstance_invalid_only_version(modelCatalog, myModelID):
     with pytest.raises(Exception) as excinfo:
         model_instance = model_catalog.edit_model_instance(version=model["instances"][0]["version"],
                                                         source="https://www.abcde.com",
-                                                        parameters="a",
-                                                        code_format="b",
+                                                        #parameters="a",
+                                                        code_format="image/bmp",
                                                         hash="c",
-                                                        morphology="http://example.com/d.txt",
+                                                        morphology="http://example.com/d.asc",
                                                         description="e")
     assert str(excinfo.value) == "instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance."
 

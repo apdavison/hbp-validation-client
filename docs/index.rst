@@ -1,11 +1,6 @@
-.. HBP Validation Framework - Python Client documentation master file, created by
-   sphinx-quickstart on Thu Oct 12 14:00:18 2017.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-=======================================================
-HBP Validation Framework - Python Client: Documentation
-=======================================================
+===============================================================
+EBRAINS/HBP Validation Framework - Python Client: Documentation
+===============================================================
 
 .. toctree::
    :maxdepth: 2
@@ -66,9 +61,8 @@ General Info
   test for a model* under the validation framework is more accurately described as
   the *running of a specific test instance for a specific model instance*.
 
-
 * When running a test, the test metadata and test instance info is typically
-  retrieved from the validation framework. This involves authenticating your HBP
+  retrieved from the validation framework. This involves authenticating your EBRAINS
   login credentials.
 
 * The model being tested can be registered on the *Model Catalog* beforehand,
@@ -76,12 +70,9 @@ General Info
   before registering the result on the validation framework.
 
 * Registration of the model and its test results also require authenticating
-  your HBP login credentials.
+  with your EBRAINS login credentials (To create an account, visit https://ebrains.eu/register/).
 
-* It should be noted that an HBP account can be created even by non-HBP users.
-  For more information, please visit: https://services.humanbrainproject.eu/oidc/account/request
-
-* Collabs on the HBP Collaboratory can be either public or private. Public
+* Collabs on the EBRAINS Collaboratory can be either public or private. Public
   Collabs can be accessed by all registered users, whereas private Collabs
   require the user to be granted permission for access.
 
@@ -91,16 +82,13 @@ General Info
   can be used. These filters restrict the type of data displayed in that particular
   instance of the app.
 
-* All tests are public, i.e. every test registered on the *Validation Framework*
-  can be seen by all users.
-
-* Models are created inside specific Collab instances of the *Model Catalog* app.
+* Models and tests are created inside specific Collab instances of the *Model Catalog* app.
   The particular app inside which a model was created is termed its *host app*.
   Similarly, the Collab containing the *host app* is termed the *host Collab*.
 
-* Models can be set as public/private. If public, the model and its associated
-  results are available to all users. If private, it can only be seen by users who
-  have access to the *host Collab*. See table below for summary of access privileges.
+* Models and tests are private when first created, which means only members of your
+  collab can see them. If you would like to make your models or tests public,
+  please contact EBRAINS support (https://ebrains.eu/support/).
 
 * No information can be deleted from the *Model Catalog* and *Validation Framework*
   apps. In future, an option to *hide* data would be implemented. This would offer
@@ -165,30 +153,28 @@ General Info
     </div>
 
 
-Regarding HBP Authentication
+Regarding EBRAINS Authentication
 ============================
-The Python Client for the Validation Framework attempts to simplify the HBP
+The Python Client for the Validation Framework attempts to simplify the EBRAINS
 authentication process. It does this as follows:
 
 On first use, the users have the following options (in order of priority):
 
-#. Setting an environment variable named ``HBP_PASS`` with your HBP password.
+#. Setting an environment variable named ``EBRAINS_PASS`` with your EBRAINS password.
    On Linux, this can be done as:
 
-   ``export HBP_PASS='putyourpasswordhere'``
+   ``export EBRAINS_PASS='putyourpasswordhere'``
 
    Environment variables set like this are only stored temporally. When you exit
-   the running instance of bash by exiting the terminal, they get discarded. To
-   save this permanentally, write the above command into `~/.bashrc` or `~/.profile`
-   (you might need to reload these files by, for example, ``source ~/.bashrc``)
+   the running instance of bash by exiting the terminal, they get discarded.
 
-#. Enter your HBP password when prompted by the Python Client.
+#. Enter your EBRAINS password when prompted by the Python Client.
 
 Once you do either of the two, the Python Client will save the retrieved token
 locally on your system. Henceforth, this token would be used for all subsequent
 requests that require authentication. This approach has been found to significantly
 speed-up the processing of the requests. If the authentication token expires, or is
-found invalid, then the user would again be give the above two options.
+found to be invalid, then the user would again be given the above two options.
 
 TestLibrary
 ===========

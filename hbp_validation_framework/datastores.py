@@ -2,7 +2,7 @@
 Defines classes for interacting with remote data stores.
 
 Currently supported:
-    - HBP Collaboratory v2 seafile storage
+    - EBRAINS Collaboratory v2 seafile storage
     - Swift CSCS storage
     - ModelDB
 
@@ -46,7 +46,7 @@ class FileSystemDataStore(object):
 
 class CollabV2DataStore(object):
     """
-    A class for uploading and downloading data from HBP Collaboratory v2 seafile storage.
+    A class for uploading and downloading data from EBRAINS Collaboratory v2 seafile storage.
     """
 
     def __init__(self, collab_id=None, base_folder="/", auth=None, **kwargs):

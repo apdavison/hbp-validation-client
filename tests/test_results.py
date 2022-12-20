@@ -23,10 +23,10 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
     model = model_catalog.get_model(model_id=model_id)
     model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"])
 
-    test_name = "Test_{}_{}_py{}_getValTest_1".format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"), test_library.environment, platform.python_version())
+    test_name = "Test_{}_{}_py{}_getValTest_1".format(datetime.now().strftime("%Y%m%d-%H%M%S"), test_library.environment, platform.python_version())
     test = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
-                    species="Mus musculus", age="", brain_region="basal ganglia", cell_type="granule cell",
-                    recording_modality="electron microscopy", test_type="network structure", score_type="Other", description="Later",
+                    species="Mus musculus", age="", brain_region="collection of basal ganglia", cell_type="granule cell",
+                    recording_modality="electron microscopy", test_type="network: microcircuit", score_type="mean squared error", description="Later",
                     data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
                     data_type="Mean, SD", publication="Testing et al., 2019",
                     instances=[{"version":"1.0", "repository":"https://github.com/HumanBrainProject/hbp-validation-client.git", "path":"hbp_validation_framework.sample.SampleTest"}])

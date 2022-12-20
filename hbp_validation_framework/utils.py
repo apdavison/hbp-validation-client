@@ -96,16 +96,16 @@ def prepare_run_test_offline(username="", password=None, environment="production
     1. specify `test_instance_id` corresponding to test instance in test library
     2. specify `test_id` and `test_version`
     3. specify `test_alias` and `test_version`
-    
+
     Note: for (2) and (3) above, if `test_version` is not specified,
           then the latest test version is retrieved
 
     Parameters
     ----------
     username : string
-        Your HBP Collaboratory username.
+        Your EBRAINS Collaboratory username.
     password : string
-        Your HBP Collaboratory password.
+        Your EBRAINS Collaboratory password.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
@@ -277,7 +277,7 @@ def run_test_offline(model="", test_config_file=""):
     # score.exec_platform = str(self._get_platform())
 
     # Save the test result
-    # Create a custom sciunit.Score object with 
+    # Create a custom sciunit.Score object with
     # minimally required attributes to avoid pickling issues
     score_obj = sciunit.Score(score=score.score, related_data=score.related_data)
     score_obj.dont_hide = score.dont_hide
@@ -311,9 +311,9 @@ def upload_test_result(username="", password=None, environment="production", tes
     Parameters
     ----------
     username : string
-        Your HBP Collaboratory username.
+        Your EBRAINS Collaboratory username.
     password : string
-        Your HBP Collaboratory password.
+        Your EBRAINS Collaboratory password.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
@@ -355,11 +355,11 @@ def upload_test_result(username="", password=None, environment="production", tes
     # Load result info from file
     with open(test_result_file, 'rb') as file:
         score = pickle.load(file)
-    
+
     if not register_result:
         return None, score.score
 
-    # Register the result with the HBP validation framework
+    # Register the result with the EBRAINS validation framework
     if client_obj:
         model_catalog = ModelCatalog.from_existing(client_obj)
     else:
@@ -411,9 +411,9 @@ def run_test(username="", password=None, environment="production", model="", tes
     Parameters
     ----------
     username : string
-        Your HBP Collaboratory username.
+        Your EBRAINS Collaboratory username.
     password : string
-        Your HBP Collaboratory password.
+        Your EBRAINS Collaboratory password.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
@@ -456,7 +456,7 @@ def run_test(username="", password=None, environment="production", model="", tes
 
     Examples
     --------
-    >>> result, score = utils.run_test(username="HBP_USERNAME", password="HBP_PASSWORD" environment="production", model=cell_model, test_alias="basalg_msn_d1", test_version="1.0", storage_collab_id="8123", register_result=True)
+    >>> result, score = utils.run_test(username="EBRAINS_USERNAME", password="EBRAINS_PASSWORD" environment="production", model=cell_model, test_alias="basalg_msn_d1", test_version="1.0", storage_collab_id="8123", register_result=True)
     """
 
     test_config_file = prepare_run_test_offline(username=username, password=password, environment=environment, test_instance_id=test_instance_id, test_id=test_id, test_alias=test_alias, test_version=test_version, client_obj=client_obj, **params)
@@ -480,17 +480,17 @@ def run_test_standalone(username="", password=None, environment="production", mo
     ----
     :meth:`run_test_standalone()` is different from :meth:`run_test()` in that
     the former runs the entire workflow in one go, whereas the latter
-    is a wrapper for the sub-steps: :meth:`prepare_run_test_offline()`, 
-    :meth:`run_test_offline()`, and :meth:`upload_test_result()`. 
-    Also, :meth:`run_test()` returns the score as the value (int or float or bool) while 
+    is a wrapper for the sub-steps: :meth:`prepare_run_test_offline()`,
+    :meth:`run_test_offline()`, and :meth:`upload_test_result()`.
+    Also, :meth:`run_test()` returns the score as the value (int or float or bool) while
     :meth:`run_test_standalone()` returns the `sciunit.Score` object.
 
     Parameters
     ----------
     username : string
-        Your HBP Collaboratory username.
+        Your EBRAINS Collaboratory username.
     password : string
-        Your HBP Collaboratory password.
+        Your EBRAINS Collaboratory password.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
@@ -629,7 +629,7 @@ def run_test_standalone(username="", password=None, environment="production", mo
     if not register_result:
         return None, score
 
-    # Register the result with the HBP validation framework
+    # Register the result with the EBRAINS validation framework
     if client_obj:
         model_catalog = ModelCatalog.from_existing(client_obj)
     else:
@@ -680,7 +680,7 @@ def generate_HTML_report(username="", password=None, environment="production", m
     Parameters
     ----------
     username : string
-        Your HBP collaboratory username.
+        Your EBRAINS collaboratory username.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
@@ -805,7 +805,7 @@ def generate_HTML_report(username="", password=None, environment="production", m
                                          "score": (result["score"])})
 
     timestamp = datetime.now()
-    report_name = str("HBP_VF_Report_" + timestamp.strftime("%Y%m%d-%H%M%S") + ".html")
+    report_name = str("EBRAINS_VF_Report_" + timestamp.strftime("%Y%m%d-%H%M%S") + ".html")
 
     template_path = pkg_resources.resource_filename("hbp_validation_framework", "templates/report_template.html")
     env = Environment(loader=FileSystemLoader(os.path.dirname(template_path)))
@@ -828,7 +828,7 @@ def generate_HTML_report(username="", password=None, environment="production", m
 
 def generate_PDF_report(html_report_path=None, username="", password=None,
                         environment="production", model_list=[], model_instance_list=[],
-                        test_list=[], test_instance_list=[], result_list=[], show_links=True, 
+                        test_list=[], test_instance_list=[], result_list=[], show_links=True,
                         only_results=False, client_obj=None):
     """Generates a PDF report for specified test results
 
@@ -842,7 +842,7 @@ def generate_PDF_report(html_report_path=None, username="", password=None,
         irrelevant. If not specified, then this method will generate both
         an HTML report as well as a PDF report.
     username : string
-        Your HBP collaboratory username.
+        Your EBRAINS collaboratory username.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,
@@ -944,7 +944,7 @@ def generate_score_matrix(username="", password=None, environment="production", 
     Parameters
     ----------
     username : string
-        Your HBP collaboratory username.
+        Your EBRAINS collaboratory username.
     environment : string, optional
         Used to indicate whether being used for development/testing purposes.
         Set as `production` as default for using the production system,

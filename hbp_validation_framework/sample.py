@@ -32,6 +32,7 @@ class SampleTest(Test):
     def compute_score(self, observation, prediction, verbose=False):
         return SampleScore.compute()
 
+
 class SampleModel(Model):
     """For testing purposes"""
     def __init__(self, name = "Test Model", model_uuid="", model_version="", model_instance_uuid=""):
