@@ -83,13 +83,6 @@ def test_getModel_hide_instances(modelCatalog, myModelID):
     model = model_catalog.get_model(model_id=model_id, instances=False)
     assert "instances" not in model.keys()
 
-#1.11) Hide images
-def test_getModel_hide_images(modelCatalog, myModelID):
-    model_catalog = modelCatalog
-    model_id = myModelID
-    model = model_catalog.get_model(model_id=model_id, images=False)
-    assert "images" not in model.keys()
-
 
 """
 2] List models satisfying all specified filters
@@ -220,7 +213,7 @@ def test_addModel_invalidParam(modelCatalog):
                        description="This is a test entry! Please ignore.")
     assert "brain_region = 'ABCDE' is invalid." in str(excinfo.value)
 
-#4.4) Valid model without alias; without instances and images
+#4.4) Valid model without alias; without instances
 def test_addModel_valid_noalias_nodetails(modelCatalog):
     model_catalog = modelCatalog
     model_name = "Model_{}_{}_py{}_add4".format(datetime.now().strftime("%Y%m%d-%H%M%S"), model_catalog.environment, platform.python_version())
@@ -233,7 +226,7 @@ def test_addModel_valid_noalias_nodetails(modelCatalog):
                    description="This is a test entry! Please ignore.")
     assert isinstance(uuid.UUID(model["id"], version=4), uuid.UUID)
 
-#4.5) Valid model with alias; without instances and images
+#4.5) Valid model with alias; without instances
 def test_addModel_valid_withalias_nodetails(modelCatalog):
     model_catalog = modelCatalog
     model_name = "Model_{}_{}_py{}_add5".format(datetime.now().strftime("%Y%m%d-%H%M%S"), model_catalog.environment, platform.python_version())
@@ -246,7 +239,7 @@ def test_addModel_valid_withalias_nodetails(modelCatalog):
                    description="This is a test entry! Please ignore.")
     assert isinstance(uuid.UUID(model["id"], version=4), uuid.UUID)
 
-#4.6) Invalid model with repeated alias; without instances and images
+#4.6) Invalid model with repeated alias; without instances
 def test_addModel_repeat_alias_nodetails(modelCatalog):
     model_catalog = modelCatalog
     model_name = "Model_{}_{}_py{}_add6".format(datetime.now().strftime("%Y%m%d-%H%M%S"), model_catalog.environment, platform.python_version())
@@ -268,7 +261,7 @@ def test_addModel_repeat_alias_nodetails(modelCatalog):
                        description="This is a test entry! Please ignore.")
     assert "already exists." in str(excinfo.value)
 
-#4.7) Valid model with alias; with instances and images
+#4.7) Valid model with alias; with instances
 # Note: using current timestamp as alias to ensure uniqueness
 def test_addModel_valid_withalias_withdetails(modelCatalog):
     model_catalog = modelCatalog
@@ -281,9 +274,9 @@ def test_addModel_valid_withalias_withdetails(modelCatalog):
                    owner={"family_name": "Tester", "given_name": "Validation"}, license="BSD 3-Clause",
                    description="This is a test entry! Please ignore.",
                    instances=[{"source":"https://www.abcde.com",
-                               "version":"1.0", "parameters":""},
+                               "version":"1.0", "parameters": None},
                               {"source":"https://www.12345.com",
-                               "version":"2.0", "parameters":""}]
+                               "version":"2.0", "parameters": None}]
     )
     assert isinstance(uuid.UUID(model["id"], version=4), uuid.UUID)
 

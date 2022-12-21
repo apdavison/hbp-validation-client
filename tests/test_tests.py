@@ -224,7 +224,7 @@ def test_addtest_valid_withalias_nodetails(testLibrary):
                     instances=[{"version":"1.0", "repository":"https://github.com/HumanBrainProject/hbp-validation-client.git", "path":"hbp_validation_framework.sample.SampleTest"}])
     assert isinstance(uuid.UUID(test["id"], version=4), uuid.UUID)
 
-#4.6) Invalid test with repeated alias; without instances and images
+#4.6) Invalid test with repeated alias; without instances
 def test_addtest_repeat_alias_nodetails(testLibrary):
     test_library = testLibrary
     test_name = "Test_{}_{}_py{}_add6".format(datetime.now().strftime("%Y%m%d-%H%M%S"), test_library.environment, platform.python_version())
@@ -244,17 +244,17 @@ def test_addtest_repeat_alias_nodetails(testLibrary):
                         instances=[{"version":"1.0", "repository":"https://github.com/HumanBrainProject/hbp-validation-client.git", "path":"hbp_validation_framework.sample.SampleTest"}])
     assert "already exists" in str(excinfo.value)
 
-#4.7) Invalid test with no instances
-def test_addtest_valid_withalias_withdetails(testLibrary):
-    test_library = testLibrary
-    test_name = "Test_{}_{}_py{}_add7".format(datetime.now().strftime("%Y%m%d-%H%M%S"), test_library.environment, platform.python_version())
-    with pytest.raises(Exception) as excinfo:
-        test = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
-                        species="Mus musculus", age="", brain_region="collection of basal ganglia", cell_type="granule cell",
-                        recording_modality="electron microscopy", test_type="network: microcircuit", score_type="mean squared error", description="Later",
-                        data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
-                        data_type="Mean, SD", publication="Testing et al., 2019")
-    assert "Error in adding test." in str(excinfo.value)
+# #4.7) Invalid test with no instances
+# def test_addtest_valid_withalias_withdetails(testLibrary):
+#     test_library = testLibrary
+#     test_name = "Test_{}_{}_py{}_add7".format(datetime.now().strftime("%Y%m%d-%H%M%S"), test_library.environment, platform.python_version())
+#     with pytest.raises(Exception) as excinfo:
+#         test = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
+#                         species="Mus musculus", age="", brain_region="collection of basal ganglia", cell_type="granule cell",
+#                         recording_modality="electron microscopy", test_type="network: microcircuit", score_type="mean squared error", description="Later",
+#                         data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
+#                         data_type="Mean, SD", publication="Testing et al., 2019")
+#     assert "Error in adding test." in str(excinfo.value)
 
 
 """
