@@ -618,7 +618,7 @@ class TestLibrary(BaseClient):
         Returns
         -------
         list
-            List of model descriptions satisfying specified filters.
+            List of test descriptions satisfying specified filters.
 
         Examples
         --------
@@ -641,10 +641,10 @@ class TestLibrary(BaseClient):
         tests = response.json()
         return tests
 
-    def add_test(self, name=None, alias=None, author=None,  
-                species=None, age=None, brain_region=None, cell_type=None, 
-                publication=None, description=None, recording_modality=None, test_type=None, score_type=None,  
-                data_location=None, data_type=None, implementation_status=None, 
+    def add_test(self, name=None, alias=None, author=None,
+                species=None, age=None, brain_region=None, cell_type=None,
+                publication=None, description=None, recording_modality=None, test_type=None, score_type=None,
+                data_location=None, data_type=None, implementation_status=None,
                 instances=[]):
         """Register a new test on the test library.
 
@@ -1583,8 +1583,6 @@ class ModelCatalog(BaseClient):
 
         if instances is False:
             model_json.pop("instances")
-        if images is False:
-            model_json.pop("images")
         return renameNestedJSONKey(model_json, "project_id", "collab_id")
 
     def list_models(self, size=1000000, from_index=0, **filters):
@@ -1640,11 +1638,17 @@ class ModelCatalog(BaseClient):
         url = self.url + "/models/"
         url += "?" + urlencode(params, doseq=True) + "&size=" + str(size) + "&from_index=" + str(from_index)
         response = requests.get(url, auth=self.auth, verify=self.verify)
-        try:
-            models = response.json()
-        except json.JSONDecodeError:
-            handle_response_error("Error in list_models()", response)
-        return renameNestedJSONKey(models, "project_id", "collab_id")
+        if response.status_code == 200:
+            try:
+                models = response.json()
+            except json.JSONDecodeError:
+                handle_response_error("Error in list_models()", response)
+            if isinstance(models, dict):
+                models = [models]
+            return renameNestedJSONKey(models, "project_id", "collab_id")
+        else:
+            error = response.json()
+            raise Exception(f"{error['detail']} (status code {response.status_code})")
 
     def register_model(self, collab_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=False,
                        species=None, brain_region=None, cell_type=None, model_scope=None, abstraction_level=None,
@@ -1652,7 +1656,7 @@ class ModelCatalog(BaseClient):
         """Register a new model in the model catalog.
 
         This allows you to add a new model to the model catalog. Model instances
-        and/or images (figures) can optionally be specified at the time of model
+        can optionally be specified at the time of model
         creation, or can be added later individually.
 
         Parameters
@@ -1694,7 +1698,7 @@ class ModelCatalog(BaseClient):
 
         Examples
         --------
-        (without instances and images)
+        (without instances)
 
         >>> model = model_catalog.register_model(collab_id="model-validation", name="Test Model - B2",
                         alias="Model vB2", author="Shailesh Appukuttan", organization="CNRS",
@@ -1756,7 +1760,7 @@ class ModelCatalog(BaseClient):
         else:
             handle_response_error("Error in adding model", response)
 
-    def edit_model(self, model_id=None, collab_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=None, 
+    def edit_model(self, model_id=None, collab_id=None, name=None, alias=None, author=None, owner=None, organization=None, private=None,
                    species=None, brain_region=None, cell_type=None, model_scope=None, abstraction_level=None,
                    project=None, license=None, description=None):
         """Edit an existing model on the model catalog.
@@ -1803,7 +1807,7 @@ class ModelCatalog(BaseClient):
 
         Note
         ----
-        Model instances and images (figures) cannot be edited here.
+        Model instances cannot be edited here.
         This has to be done using :meth:`edit_model_instance` and :meth:`edit_model_image`
 
         Returns
@@ -1871,7 +1875,7 @@ class ModelCatalog(BaseClient):
         """ONLY FOR SUPERUSERS: Delete a specific model description by its model_id or alias.
 
         A specific model description can be deleted from the model catalog, along with all
-        associated model instances, images and results, in the following ways (in order of priority):
+        associated model instances and results, in the following ways (in order of priority):
 
         1. specify the `model_id`
         2. specify the `alias` (of the model)
