@@ -7,6 +7,7 @@ import os
 
 class SampleScore(Score):
     """For testing purposes"""
+
     @classmethod
     def compute(cls):
         return SampleScore(1.0)
@@ -17,9 +18,7 @@ class SampleTest(Test):
 
     score_type = SampleScore
 
-    def __init__(self,
-                 observation={},
-                 name="Sample Test"):
+    def __init__(self, observation={}, name="Sample Test"):
         required_capabilities = ()
         sciunit.Test.__init__(self, observation, name)
 
@@ -35,7 +34,10 @@ class SampleTest(Test):
 
 class SampleModel(Model):
     """For testing purposes"""
-    def __init__(self, name = "Test Model", model_uuid="", model_version="", model_instance_uuid=""):
+
+    def __init__(
+        self, name="Test Model", model_uuid="", model_version="", model_instance_uuid=""
+    ):
         sciunit.Model.__init__(self, name=name)
         self.model_uuid = model_uuid
         self.model_version = model_version

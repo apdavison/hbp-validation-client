@@ -24,4 +24,5 @@ class Versioned(object):
         if repo.is_dirty():
             version += "*"
         return version
+
     version = property(get_version)

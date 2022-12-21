@@ -7,11 +7,11 @@ from hbp_validation_framework import ModelCatalog, TestLibrary, sample
 
 import pytest
 
-EBRAINS_USERNAME = os.environ.get('EBRAINS_USER')
-EBRAINS_PASSWORD = os.environ.get('EBRAINS_PASS')
+EBRAINS_USERNAME = os.environ.get("EBRAINS_USER")
+EBRAINS_PASSWORD = os.environ.get("EBRAINS_PASS")
 TOKEN = os.environ.get("EBRAINS_AUTH_TOKEN")
-EBRAINS_USERNAME_NORMAL_USER = os.environ.get('EBRAINS_USER_NORMAL')
-EBRAINS_PASSWORD_NORMAL_USER = os.environ.get('EBRAINS_PASS_NORMAL')
+EBRAINS_USERNAME_NORMAL_USER = os.environ.get("EBRAINS_USER_NORMAL")
+EBRAINS_PASSWORD_NORMAL_USER = os.environ.get("EBRAINS_PASS_NORMAL")
 TOKEN_NORMAL_USER = os.environ.get("EBRAINS_AUTH_TOKEN_NORMAL")
 
 
@@ -19,40 +19,82 @@ TOKEN_NORMAL_USER = os.environ.get("EBRAINS_AUTH_TOKEN_NORMAL")
 1. Verify superuser delete privileges
 """
 
-#1.1) Super user - Delete model, model_instance, model_image, test, test_instance and result
+# 1.1) Super user - Delete model, model_instance, model_image, test, test_instance and result
 def test_delete_superUser(request):
     ENVIRONMENT = request.config.getoption("--environment")
 
     if EBRAINS_USERNAME and EBRAINS_PASSWORD:
-        model_catalog = ModelCatalog(username=EBRAINS_USERNAME, password=EBRAINS_PASSWORD, environment=ENVIRONMENT)
+        model_catalog = ModelCatalog(
+            username=EBRAINS_USERNAME,
+            password=EBRAINS_PASSWORD,
+            environment=ENVIRONMENT,
+        )
     elif TOKEN:
         model_catalog = ModelCatalog(token=TOKEN, environment=ENVIRONMENT)
     else:
-        raise Exception("Credentials not provided. Please define environment variables (EBRAINS_AUTH_TOKEN or EBRAINS_USER and EBRAINS_PASS")
+        raise Exception(
+            "Credentials not provided. Please define environment variables (EBRAINS_AUTH_TOKEN or EBRAINS_USER and EBRAINS_PASS"
+        )
 
-    model_name = "Model_{}_{}_py{}_superuser1".format(datetime.now().strftime("%Y%m%d-%H%M%S"), model_catalog.environment, platform.python_version())
-    model = model_catalog.register_model(collab_id="model-validation", name="IGNORE - Test Model - " + model_name,
-                   alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
-                   private=False, cell_type="granule cell", model_scope="single cell",
-                   abstraction_level="spiking neurons",
-                   brain_region="collection of basal ganglia", species="Mus musculus",
-                   owner={"family_name": "Tester", "given_name": "Validation"}, license="BSD 3-Clause",
-                   description="This is a test entry! Please ignore.",
-                   instances=[{"source":"https://www.abcde.com",
-                               "version":"1.0", "parameters": None}],
-                   )
+    model_name = "Model_{}_{}_py{}_superuser1".format(
+        datetime.now().strftime("%Y%m%d-%H%M%S"),
+        model_catalog.environment,
+        platform.python_version(),
+    )
+    model = model_catalog.register_model(
+        collab_id="model-validation",
+        name="IGNORE - Test Model - " + model_name,
+        alias=model_name,
+        author={"family_name": "Tester", "given_name": "Validation"},
+        organization="HBP-SP6",
+        private=False,
+        cell_type="granule cell",
+        model_scope="single cell",
+        abstraction_level="spiking neurons",
+        brain_region="collection of basal ganglia",
+        species="Mus musculus",
+        owner={"family_name": "Tester", "given_name": "Validation"},
+        license="BSD 3-Clause",
+        description="This is a test entry! Please ignore.",
+        instances=[
+            {"source": "https://www.abcde.com", "version": "1.0", "parameters": None}
+        ],
+    )
 
     model_instance_id = model["instances"][0]["id"]
-    model_obj = sample.SampleModel(model_uuid=model["id"], model_version=model["instances"][0]["version"])
+    model_obj = sample.SampleModel(
+        model_uuid=model["id"], model_version=model["instances"][0]["version"]
+    )
 
     test_library = TestLibrary.from_existing(model_catalog)
-    test_name = "Test_{}_{}_py{}_superuser2".format(datetime.now().strftime("%Y%m%d-%H%M%S"), test_library.environment, platform.python_version())
-    test = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
-                    species="Mus musculus", age="", brain_region="collection of basal ganglia", cell_type="granule cell",
-                    recording_modality="electron microscopy", test_type="network: microcircuit", score_type="mean squared error", description="Later",
-                    data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
-                    data_type="Mean, SD", publication="Testing et al., 2019",
-                    instances=[{"version":"1.0", "repository":"https://github.com/HumanBrainProject/hbp-validation-client.git", "path":"hbp_validation_framework.sample.SampleTest"}])
+    test_name = "Test_{}_{}_py{}_superuser2".format(
+        datetime.now().strftime("%Y%m%d-%H%M%S"),
+        test_library.environment,
+        platform.python_version(),
+    )
+    test = test_library.add_test(
+        name="IGNORE - Test Test - " + test_name,
+        alias=test_name,
+        author={"family_name": "Tester", "given_name": "Validation"},
+        species="Mus musculus",
+        age="",
+        brain_region="collection of basal ganglia",
+        cell_type="granule cell",
+        recording_modality="electron microscopy",
+        test_type="network: microcircuit",
+        score_type="mean squared error",
+        description="Later",
+        data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
+        data_type="Mean, SD",
+        publication="Testing et al., 2019",
+        instances=[
+            {
+                "version": "1.0",
+                "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
+                "path": "hbp_validation_framework.sample.SampleTest",
+            }
+        ],
+    )
 
     test_instance_id = test["instances"][0]["id"]
     sleep(20)
@@ -60,8 +102,12 @@ def test_delete_superUser(request):
 
     score = test_obj.judge(model_obj)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    folder_name = "results_{}_{}_{}".format(model_obj.name, model_obj.model_uuid[:8], timestamp)
-    result = test_library.register_result(score, collab_id = "model-validation") # Collab ID = model-validation
+    folder_name = "results_{}_{}_{}".format(
+        model_obj.name, model_obj.model_uuid[:8], timestamp
+    )
+    result = test_library.register_result(
+        score, collab_id="model-validation"
+    )  # Collab ID = model-validation
 
     test_library.delete_result(result_id=result["id"])
     sleep(20)
@@ -94,40 +140,81 @@ def test_delete_superUser(request):
     assert "Error in retrieving test" in str(excinfo.value)
 
 
-#1.2) Normal user - Delete model, model_instance, model_image, test, test_instance and result
+# 1.2) Normal user - Delete model, model_instance, model_image, test, test_instance and result
 # @pytest.mark.xfail(reason="delete for normal users not handled properly yet?!")
 def test_delete_normalUser(request):
     ENVIRONMENT = request.config.getoption("--environment")
     if EBRAINS_USERNAME_NORMAL_USER and EBRAINS_PASSWORD_NORMAL_USER:
-        model_catalog = ModelCatalog(username=EBRAINS_USERNAME_NORMAL_USER,
-                                     password=EBRAINS_PASSWORD_NORMAL_USER, environment=ENVIRONMENT)
+        model_catalog = ModelCatalog(
+            username=EBRAINS_USERNAME_NORMAL_USER,
+            password=EBRAINS_PASSWORD_NORMAL_USER,
+            environment=ENVIRONMENT,
+        )
     elif TOKEN:
         model_catalog = ModelCatalog(token=TOKEN_NORMAL_USER, environment=ENVIRONMENT)
     else:
-        raise Exception("Credentials not provided. Please define environment variables (EBRAINS_AUTH_TOKEN or EBRAINS_USER and EBRAINS_PASS")
-    model_name = "Model_{}_{}_py{}_normaluser1".format(datetime.now().strftime("%Y%m%d-%H%M%S"), model_catalog.environment, platform.python_version())
-    model = model_catalog.register_model(collab_id="validation-tester", name="IGNORE - Test Model - " + model_name,
-                   alias=model_name, author={"family_name": "Tester", "given_name": "Validation"}, organization="HBP-SP6",
-                   private=False, cell_type="granule cell", model_scope="single cell",
-                   abstraction_level="spiking neurons",
-                   brain_region="collection of basal ganglia", species="Mus musculus",
-                   owner={"family_name": "Tester", "given_name": "Validation"}, license="BSD 3-Clause",
-                   description="This is a test entry! Please ignore.",
-                   instances=[{"source":"https://www.abcde.com",
-                               "version":"1.0", "parameters": None}],
-                   )
+        raise Exception(
+            "Credentials not provided. Please define environment variables (EBRAINS_AUTH_TOKEN or EBRAINS_USER and EBRAINS_PASS"
+        )
+    model_name = "Model_{}_{}_py{}_normaluser1".format(
+        datetime.now().strftime("%Y%m%d-%H%M%S"),
+        model_catalog.environment,
+        platform.python_version(),
+    )
+    model = model_catalog.register_model(
+        collab_id="validation-tester",
+        name="IGNORE - Test Model - " + model_name,
+        alias=model_name,
+        author={"family_name": "Tester", "given_name": "Validation"},
+        organization="HBP-SP6",
+        private=False,
+        cell_type="granule cell",
+        model_scope="single cell",
+        abstraction_level="spiking neurons",
+        brain_region="collection of basal ganglia",
+        species="Mus musculus",
+        owner={"family_name": "Tester", "given_name": "Validation"},
+        license="BSD 3-Clause",
+        description="This is a test entry! Please ignore.",
+        instances=[
+            {"source": "https://www.abcde.com", "version": "1.0", "parameters": None}
+        ],
+    )
 
     model_instance_id = model["instances"][0]["id"]
-    model_obj = sample.SampleModel(model_uuid=model["id"], model_version=model["instances"][0]["version"])
+    model_obj = sample.SampleModel(
+        model_uuid=model["id"], model_version=model["instances"][0]["version"]
+    )
 
     test_library = TestLibrary.from_existing(model_catalog)
-    test_name = "Test_{}_{}_py{}_normaluser2".format(datetime.now().strftime("%Y%m%d-%H%M%S"), test_library.environment, platform.python_version())
-    test = test_library.add_test(name="IGNORE - Test Test - " + test_name, alias=test_name, author={"family_name": "Tester", "given_name": "Validation"},
-                    species="Mus musculus", age="", brain_region="collection of basal ganglia", cell_type="granule cell",
-                    recording_modality="electron microscopy", test_type="network: microcircuit", score_type="mean squared error", description="Later",
-                    data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
-                    data_type="Mean, SD", publication="Testing et al., 2019",
-                    instances=[{"version":"1.0", "repository":"https://github.com/HumanBrainProject/hbp-validation-client.git", "path":"hbp_validation_framework.sample.SampleTest"}])
+    test_name = "Test_{}_{}_py{}_normaluser2".format(
+        datetime.now().strftime("%Y%m%d-%H%M%S"),
+        test_library.environment,
+        platform.python_version(),
+    )
+    test = test_library.add_test(
+        name="IGNORE - Test Test - " + test_name,
+        alias=test_name,
+        author={"family_name": "Tester", "given_name": "Validation"},
+        species="Mus musculus",
+        age="",
+        brain_region="collection of basal ganglia",
+        cell_type="granule cell",
+        recording_modality="electron microscopy",
+        test_type="network: microcircuit",
+        score_type="mean squared error",
+        description="Later",
+        data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/test.txt",
+        data_type="Mean, SD",
+        publication="Testing et al., 2019",
+        instances=[
+            {
+                "version": "1.0",
+                "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
+                "path": "hbp_validation_framework.sample.SampleTest",
+            }
+        ],
+    )
 
     test_instance_id = test["instances"][0]["id"]
     sleep(20)
@@ -135,9 +222,13 @@ def test_delete_normalUser(request):
 
     score = test_obj.judge(model_obj)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    folder_name = "results_{}_{}_{}".format(model_obj.name, model_obj.model_uuid[:8], timestamp)
+    folder_name = "results_{}_{}_{}".format(
+        model_obj.name, model_obj.model_uuid[:8], timestamp
+    )
 
-    result = test_library.register_result(score, collab_id="validation-tester") # Collab ID = validation-tester
+    result = test_library.register_result(
+        score, collab_id="validation-tester"
+    )  # Collab ID = validation-tester
 
     # normal users cannot delete results
     with pytest.raises(Exception) as excinfo:

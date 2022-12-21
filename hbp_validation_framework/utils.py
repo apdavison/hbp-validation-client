@@ -41,6 +41,7 @@ import sciunit
 from . import ModelCatalog, TestLibrary
 from .datastores import URI_SCHEME_MAP, CollabV2DataStore
 
+
 def view_json_tree(data):
     """Displays the JSON tree structure inside the web browser
 
@@ -71,6 +72,7 @@ def view_json_tree(data):
     abs_file_path = os.path.join(script_dir, rel_path)
     webbrowser.open(abs_file_path, new=2)
 
+
 def _make_js_file(data):
     """
     Creates a JavaScript file from give JSON object; loaded by the browser
@@ -80,12 +82,23 @@ def _make_js_file(data):
     script_dir = os.path.dirname(__file__)
     rel_path = "jsonTreeViewer/data.js"
     abs_file_path = os.path.join(script_dir, rel_path)
-    with open(abs_file_path, 'w') as outfile:
+    with open(abs_file_path, "w") as outfile:
         outfile.write("var data = '")
         json.dump(data, outfile)
         outfile.write("'")
 
-def prepare_run_test_offline(username="", password=None, environment="production", test_instance_id="", test_id="", test_alias="", test_version="", client_obj=None, **params):
+
+def prepare_run_test_offline(
+    username="",
+    password=None,
+    environment="production",
+    test_instance_id="",
+    test_id="",
+    test_alias="",
+    test_version="",
+    client_obj=None,
+    **params
+):
     """Gather info necessary for running validation test
 
     This method will select the specified test and prepare a config file
@@ -148,24 +161,42 @@ def prepare_run_test_offline(username="", password=None, environment="production
         test_library = TestLibrary(username, password, environment=environment)
 
     if test_instance_id == "" and test_id == "" and test_alias == "":
-        raise Exception("test_instance_id or test_id or test_alias needs to be provided for finding test.")
+        raise Exception(
+            "test_instance_id or test_id or test_alias needs to be provided for finding test."
+        )
 
     # Gather specified test info
-    test_instance_json = test_library.get_test_instance(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version)
+    test_instance_json = test_library.get_test_instance(
+        instance_id=test_instance_id,
+        test_id=test_id,
+        alias=test_alias,
+        version=test_version,
+    )
     test_id = test_instance_json["test_id"]
     test_instance_id = test_instance_json["id"]
     test_instance_path = test_instance_json["path"]
     test_instance_parameters = test_instance_json["parameters"]
 
     # Download test observation to local storage
-    base_folder = os.path.join(os.getcwd(), "hbp_validation_framework", test_id, datetime.now().strftime("%Y%m%d-%H%M%S"))
-    test_observation_paths = test_library.get_test_definition(test_id=test_id)["data_location"]
+    base_folder = os.path.join(
+        os.getcwd(),
+        "hbp_validation_framework",
+        test_id,
+        datetime.now().strftime("%Y%m%d-%H%M%S"),
+    )
+    test_observation_paths = test_library.get_test_definition(test_id=test_id)[
+        "data_location"
+    ]
     if len(test_observation_paths) == 0:
-        raise Exception("No observation data found for test with id: {}".format(test_id))
+        raise Exception(
+            "No observation data found for test with id: {}".format(test_id)
+        )
     for test_observation_path in test_observation_paths:
         parse_result = urlparse(test_observation_path)
         datastore = URI_SCHEME_MAP[parse_result.scheme](auth=test_library.auth)
-        test_observation_file = datastore.download_data([test_observation_path], local_directory=base_folder)[0]
+        test_observation_file = datastore.download_data(
+            [test_observation_path], local_directory=base_folder
+        )[0]
 
     # Create test config required for offline execution
     test_info = {}
@@ -173,14 +204,17 @@ def prepare_run_test_offline(username="", password=None, environment="production
     test_info["test_instance_id"] = test_instance_id
     test_info["test_instance_path"] = test_instance_path
     test_info["test_instance_parameters"] = test_instance_parameters
-    test_info["test_observation_file"] = os.path.basename(os.path.realpath(test_observation_file))
+    test_info["test_observation_file"] = os.path.basename(
+        os.path.realpath(test_observation_file)
+    )
     test_info["params"] = params
 
     # Save test info to config file
     test_config_file = os.path.join(base_folder, "test_config.json")
-    with open(test_config_file, 'w') as file:
+    with open(test_config_file, "w") as file:
         file.write(json.dumps(test_info, indent=4))
     return test_config_file
+
 
 def run_test_offline(model="", test_config_file=""):
     """Run the validation test
@@ -212,8 +246,10 @@ def run_test_offline(model="", test_config_file=""):
     >>> test_result_file = utils.run_test_offline(model=model, test_config_file=test_config_file)
     """
 
-    if not os.path.isfile(test_config_file) :
-        raise Exception("'test_config_file' should direct to file describing the test configuration.")
+    if not os.path.isfile(test_config_file):
+        raise Exception(
+            "'test_config_file' should direct to file describing the test configuration."
+        )
     base_folder = os.path.dirname(os.path.realpath(test_config_file))
 
     # Load the test info from config file
@@ -228,7 +264,9 @@ def run_test_offline(model="", test_config_file=""):
     test_cls = getattr(test_module, cls_name)
 
     # Read observation data required by test
-    with open(os.path.join(base_folder, test_info["test_observation_file"]), 'rb') as file:
+    with open(
+        os.path.join(base_folder, test_info["test_observation_file"]), "rb"
+    ) as file:
         observation_data = file.read()
     content_type = mimetypes.guess_type(test_info["test_observation_file"])[0]
     if content_type == "application/json":
@@ -272,7 +310,7 @@ def run_test_offline(model="", test_config_file=""):
             print(item)
     print("----------------------------------------------")
 
-    score.runtime = str(int(math.ceil((t_end-t_start).total_seconds()))) + " s"
+    score.runtime = str(int(math.ceil((t_end - t_start).total_seconds()))) + " s"
     score.exec_timestamp = t_end
     # score.exec_platform = str(self._get_platform())
 
@@ -297,12 +335,29 @@ def run_test_offline(model="", test_config_file=""):
         score_obj.model.model_version = model.model_version
 
     Path(os.path.join(base_folder, "results")).mkdir(parents=True, exist_ok=True)
-    test_result_file = os.path.join(base_folder, "results", "result__" + model.name + "__" + datetime.now().strftime("%Y%m%d%H%M%S") + ".pkl")
-    with open(test_result_file, 'wb') as file:
+    test_result_file = os.path.join(
+        base_folder,
+        "results",
+        "result__"
+        + model.name
+        + "__"
+        + datetime.now().strftime("%Y%m%d%H%M%S")
+        + ".pkl",
+    )
+    with open(test_result_file, "wb") as file:
         pickle.dump(score_obj, file)
     return test_result_file
 
-def upload_test_result(username="", password=None, environment="production", test_result_file="", storage_collab_id="", register_result=True, client_obj=None):
+
+def upload_test_result(
+    username="",
+    password=None,
+    environment="production",
+    test_result_file="",
+    storage_collab_id="",
+    register_result=True,
+    client_obj=None,
+):
     """Register the result with the Validation Service
 
     This method will register the validation result specified via the test result file
@@ -349,11 +404,13 @@ def upload_test_result(username="", password=None, environment="production", tes
     >>> result, score = utils.upload_test_result(username="shailesh", test_result_file=test_result_file)
     """
 
-    if not os.path.isfile(test_result_file) :
-        raise Exception("'test_result_file' should direct to file containg the test result data.")
+    if not os.path.isfile(test_result_file):
+        raise Exception(
+            "'test_result_file' should direct to file containg the test result data."
+        )
 
     # Load result info from file
-    with open(test_result_file, 'rb') as file:
+    with open(test_result_file, "rb") as file:
         score = pickle.load(file)
 
     if not register_result:
@@ -365,7 +422,9 @@ def upload_test_result(username="", password=None, environment="production", tes
     else:
         model_catalog = ModelCatalog(username, password, environment=environment)
     model_instance_uuid = model_catalog.find_model_instance_else_add(score.model)["id"]
-    model_instance_json = model_catalog.get_model_instance(instance_id=model_instance_uuid)
+    model_instance_json = model_catalog.get_model_instance(
+        instance_id=model_instance_uuid
+    )
     model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
     model_host_collab_id = model_json["collab_id"]
     model_name = model_json["name"]
@@ -392,15 +451,35 @@ def upload_test_result(username="", password=None, environment="production", tes
     #     raise Exception("An identical result has already been registered on the validation framework.\nExisting Result UUID = {}".format(", ".join(duplicate_results)))
 
     # `.replace(" ", "_")` used to avoid Collab storage path errors due to spaces
-    collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name.replace(" ", "_"), datetime.now().strftime("%Y%m%d-%H%M%S"))
-    collab_storage = CollabV2DataStore(collab_id=storage_collab_id,
-                                       base_folder=collab_folder,
-                                       auth=test_library.auth)
+    collab_folder = "validation_results/{}/{}_{}".format(
+        datetime.now().strftime("%Y-%m-%d"),
+        model_name.replace(" ", "_"),
+        datetime.now().strftime("%Y%m%d-%H%M%S"),
+    )
+    collab_storage = CollabV2DataStore(
+        collab_id=storage_collab_id, base_folder=collab_folder, auth=test_library.auth
+    )
 
-    response = test_library.register_result(test_result=score, data_store=collab_storage)
+    response = test_library.register_result(
+        test_result=score, data_store=collab_storage
+    )
     return response, score.score
 
-def run_test(username="", password=None, environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **params):
+
+def run_test(
+    username="",
+    password=None,
+    environment="production",
+    model="",
+    test_instance_id="",
+    test_id="",
+    test_alias="",
+    test_version="",
+    storage_collab_id="",
+    register_result=True,
+    client_obj=None,
+    **params
+):
     """Run validation test and register result
 
     This will execute the following methods by relaying the output of one to the next:
@@ -459,12 +538,44 @@ def run_test(username="", password=None, environment="production", model="", tes
     >>> result, score = utils.run_test(username="EBRAINS_USERNAME", password="EBRAINS_PASSWORD" environment="production", model=cell_model, test_alias="basalg_msn_d1", test_version="1.0", storage_collab_id="8123", register_result=True)
     """
 
-    test_config_file = prepare_run_test_offline(username=username, password=password, environment=environment, test_instance_id=test_instance_id, test_id=test_id, test_alias=test_alias, test_version=test_version, client_obj=client_obj, **params)
+    test_config_file = prepare_run_test_offline(
+        username=username,
+        password=password,
+        environment=environment,
+        test_instance_id=test_instance_id,
+        test_id=test_id,
+        test_alias=test_alias,
+        test_version=test_version,
+        client_obj=client_obj,
+        **params
+    )
     test_result_file = run_test_offline(model=model, test_config_file=test_config_file)
-    result, score = upload_test_result(username=username, password=password, environment=environment, test_result_file=test_result_file, storage_collab_id=storage_collab_id, register_result=register_result, client_obj=client_obj)
+    result, score = upload_test_result(
+        username=username,
+        password=password,
+        environment=environment,
+        test_result_file=test_result_file,
+        storage_collab_id=storage_collab_id,
+        register_result=register_result,
+        client_obj=client_obj,
+    )
     return result, score
 
-def run_test_standalone(username="", password=None, environment="production", model="", test_instance_id="", test_id="", test_alias="", test_version="", storage_collab_id="", register_result=True, client_obj=None, **params):
+
+def run_test_standalone(
+    username="",
+    password=None,
+    environment="production",
+    model="",
+    test_instance_id="",
+    test_id="",
+    test_alias="",
+    test_version="",
+    storage_collab_id="",
+    register_result=True,
+    client_obj=None,
+    **params
+):
     """Run validation test and register result
 
     This method will accept a model, located locally, run the specified
@@ -543,9 +654,17 @@ def run_test_standalone(username="", password=None, environment="production", mo
         test_library = TestLibrary(username, password, environment=environment)
 
     if test_instance_id == "" and test_id == "" and test_alias == "":
-        raise Exception("test_instance_id or test_id or test_alias needs to be provided for finding test.")
+        raise Exception(
+            "test_instance_id or test_id or test_alias needs to be provided for finding test."
+        )
 
-    test = test_library.get_validation_test(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version, **params)
+    test = test_library.get_validation_test(
+        instance_id=test_instance_id,
+        test_id=test_id,
+        alias=test_alias,
+        version=test_version,
+        **params
+    )
 
     # # Gather specified test info
     # test_instance_json = test_library.get_test_instance(instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version)
@@ -622,7 +741,7 @@ def run_test_standalone(username="", password=None, environment="production", mo
             print(item)
     print("----------------------------------------------")
 
-    score.runtime = str(int(math.ceil((t_end-t_start).total_seconds()))) + " s"
+    score.runtime = str(int(math.ceil((t_end - t_start).total_seconds()))) + " s"
     score.exec_timestamp = t_end
     # score.exec_platform = str(self._get_platform())
 
@@ -635,7 +754,9 @@ def run_test_standalone(username="", password=None, environment="production", mo
     else:
         model_catalog = ModelCatalog(username, password, environment=environment)
     model_instance_uuid = model_catalog.find_model_instance_else_add(score.model)["id"]
-    model_instance_json = model_catalog.get_model_instance(instance_id=model_instance_uuid)
+    model_instance_json = model_catalog.get_model_instance(
+        instance_id=model_instance_uuid
+    )
     model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
     model_host_collab_id = model_json["collab_id"]
     model_name = model_json["name"]
@@ -662,17 +783,33 @@ def run_test_standalone(username="", password=None, environment="production", mo
     #     raise Exception("An identical result has already been registered on the validation framework.\nExisting Result UUID = {}".format(", ".join(duplicate_results)))
 
     # `.replace(" ", "_")` used to avoid Collab storage path errors due to spaces
-    collab_folder = "validation_results/{}/{}_{}".format(datetime.now().strftime("%Y-%m-%d"),model_name.replace(" ", "_"), datetime.now().strftime("%Y%m%d-%H%M%S"))
-    collab_storage = CollabV2DataStore(collab_id=storage_collab_id,
-                                       base_folder=collab_folder,
-                                       auth=test_library.auth)
+    collab_folder = "validation_results/{}/{}_{}".format(
+        datetime.now().strftime("%Y-%m-%d"),
+        model_name.replace(" ", "_"),
+        datetime.now().strftime("%Y%m%d-%H%M%S"),
+    )
+    collab_storage = CollabV2DataStore(
+        collab_id=storage_collab_id, base_folder=collab_folder, auth=test_library.auth
+    )
 
-    response = test_library.register_result(test_result=score, data_store=collab_storage)
+    response = test_library.register_result(
+        test_result=score, data_store=collab_storage
+    )
     return response, score
 
-def generate_HTML_report(username="", password=None, environment="production", model_list=[],
-                         model_instance_list=[], test_list=[], test_instance_list=[],
-                         result_list=[], show_links=True, client_obj=None):
+
+def generate_HTML_report(
+    username="",
+    password=None,
+    environment="production",
+    model_list=[],
+    model_instance_list=[],
+    test_list=[],
+    test_instance_list=[],
+    result_list=[],
+    show_links=True,
+    client_obj=None,
+):
     """Generates an HTML report for specified test results
 
     This method will generate an HTML report for the specified test results.
@@ -767,7 +904,9 @@ def generate_HTML_report(username="", password=None, environment="production", m
     result_list = list(collections.OrderedDict.fromkeys(result_list).keys())
 
     # utilize each result entry
-    result_summary_table = [] # list of dicts, each with 4 keys -> result_id, model_label, test_label, score
+    result_summary_table = (
+        []
+    )  # list of dicts, each with 4 keys -> result_id, model_label, test_label, score
     list_results = []
     list_models = []
     list_model_instances = []
@@ -777,8 +916,12 @@ def generate_HTML_report(username="", password=None, environment="production", m
     for r_id in result_list:
         result = test_library.get_result(result_id=r_id)
         valid_result_uuids.append(r_id)
-        model_instance = model_catalog.get_model_instance(instance_id=result["model_instance_id"])
-        test_instance = test_library.get_test_instance(instance_id=result["test_instance_id"])
+        model_instance = model_catalog.get_model_instance(
+            instance_id=result["model_instance_id"]
+        )
+        test_instance = test_library.get_test_instance(
+            instance_id=result["test_instance_id"]
+        )
         model = model_catalog.get_model(model_id=model_instance["model_id"])
         test = test_library.get_test_definition(test_id=test_instance["test_id"])
 
@@ -788,37 +931,67 @@ def generate_HTML_report(username="", password=None, environment="production", m
         list_tests.append(test)
         list_test_instances.append(test_instance)
 
-        model_label = (model["alias"] if model["alias"] else model["name"]) + " (" + str(model_instance["version"]) + ")"
-        test_label = (test["alias"] if test["alias"] else test["name"]) + " (" + str(test_instance["version"]) + ")"
+        model_label = (
+            (model["alias"] if model["alias"] else model["name"])
+            + " ("
+            + str(model_instance["version"])
+            + ")"
+        )
+        test_label = (
+            (test["alias"] if test["alias"] else test["name"])
+            + " ("
+            + str(test_instance["version"])
+            + ")"
+        )
         if show_links:
-            result_url = "https://model-catalog.brainsimulation.eu/#result_id.{}".format(r_id)
-            model_url = "https://model-catalog.brainsimulation.eu/#model_id.{}".format(model["id"])
-            test_url = "https://model-catalog.brainsimulation.eu/#test_id.{}".format(test["id"])
-            result_summary_table.append({"result_id": (r_id, result_url),
-                                         "model_label": (model_label, model_url),
-                                         "test_label": (test_label, test_url),
-                                         "score": (result["score"], result_url)})
+            result_url = (
+                "https://model-catalog.brainsimulation.eu/#result_id.{}".format(r_id)
+            )
+            model_url = "https://model-catalog.brainsimulation.eu/#model_id.{}".format(
+                model["id"]
+            )
+            test_url = "https://model-catalog.brainsimulation.eu/#test_id.{}".format(
+                test["id"]
+            )
+            result_summary_table.append(
+                {
+                    "result_id": (r_id, result_url),
+                    "model_label": (model_label, model_url),
+                    "test_label": (test_label, test_url),
+                    "score": (result["score"], result_url),
+                }
+            )
         else:
-            result_summary_table.append({"result_id": (r_id),
-                                         "model_label": (model_label),
-                                         "test_label": (test_label),
-                                         "score": (result["score"])})
+            result_summary_table.append(
+                {
+                    "result_id": (r_id),
+                    "model_label": (model_label),
+                    "test_label": (test_label),
+                    "score": (result["score"]),
+                }
+            )
 
     timestamp = datetime.now()
-    report_name = str("EBRAINS_VF_Report_" + timestamp.strftime("%Y%m%d-%H%M%S") + ".html")
+    report_name = str(
+        "EBRAINS_VF_Report_" + timestamp.strftime("%Y%m%d-%H%M%S") + ".html"
+    )
 
-    template_path = pkg_resources.resource_filename("hbp_validation_framework", "templates/report_template.html")
+    template_path = pkg_resources.resource_filename(
+        "hbp_validation_framework", "templates/report_template.html"
+    )
     env = Environment(loader=FileSystemLoader(os.path.dirname(template_path)))
     template = env.get_template(os.path.basename(template_path))
 
-    template_vars = {"report_name" : report_name,
-                     "created_date" : timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                     "result_summary_table" : result_summary_table,
-                     "list_results" : list_results,
-                     "list_models" : list_models,
-                     "list_model_instances" : list_model_instances,
-                     "list_tests" : list_tests,
-                     "list_test_instances" : list_test_instances}
+    template_vars = {
+        "report_name": report_name,
+        "created_date": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+        "result_summary_table": result_summary_table,
+        "list_results": list_results,
+        "list_models": list_models,
+        "list_model_instances": list_model_instances,
+        "list_tests": list_tests,
+        "list_test_instances": list_test_instances,
+    }
     html_out = template.render(template_vars)
 
     with open(report_name, "w") as outfile:
@@ -826,10 +999,20 @@ def generate_HTML_report(username="", password=None, environment="production", m
     return os.path.abspath(report_name), valid_result_uuids
 
 
-def generate_PDF_report(html_report_path=None, username="", password=None,
-                        environment="production", model_list=[], model_instance_list=[],
-                        test_list=[], test_instance_list=[], result_list=[], show_links=True,
-                        only_results=False, client_obj=None):
+def generate_PDF_report(
+    html_report_path=None,
+    username="",
+    password=None,
+    environment="production",
+    model_list=[],
+    model_instance_list=[],
+    test_list=[],
+    test_instance_list=[],
+    result_list=[],
+    show_links=True,
+    only_results=False,
+    client_obj=None,
+):
     """Generates a PDF report for specified test results
 
     This method will generate a PDF report for the specified test results.
@@ -896,7 +1079,9 @@ def generate_PDF_report(html_report_path=None, username="", password=None,
         try:
             from bs4 import BeautifulSoup
         except ImportError:
-            print("To use 'only_results=True', please install the following package: beautifulsoup4")
+            print(
+                "To use 'only_results=True', please install the following package: beautifulsoup4"
+            )
             return
 
     valid_result_uuids = None
@@ -920,21 +1105,47 @@ def generate_PDF_report(html_report_path=None, username="", password=None,
         for item in html_soup.findAll("ul", {"class": "tabs"}):
             item.parent.decompose()
         # remove model and test tabs
-        for item in html_soup.findAll('div', id=lambda x: x and x.startswith(('model_', 'test_'))):
+        for item in html_soup.findAll(
+            "div", id=lambda x: x and x.startswith(("model_", "test_"))
+        ):
             item.decompose()
         html_string = html_soup
 
     filepath = os.path.splitext(os.path.abspath(html_report_path))[0] + ".pdf"
-    content = save_pdf(output_file=filepath,
-                       html=html_string,
-                       args_dict={"pdf":{"format":"A4",
-                                         "landscape":False,
-                                         "printBackground":True,
-                                         "margin":{"top":'0.25in', "right":'0.25in', "bottom":'0.25in', "left":'0.25in'}}},
-                       goto="temp")
+    content = save_pdf(
+        output_file=filepath,
+        html=html_string,
+        args_dict={
+            "pdf": {
+                "format": "A4",
+                "landscape": False,
+                "printBackground": True,
+                "margin": {
+                    "top": "0.25in",
+                    "right": "0.25in",
+                    "bottom": "0.25in",
+                    "left": "0.25in",
+                },
+            }
+        },
+        goto="temp",
+    )
     return filepath, valid_result_uuids
 
-def generate_score_matrix(username="", password=None, environment="production", model_list=[], model_instance_list=[], test_list=[], test_instance_list=[], result_list=[], show_links=True, round_places=None, client_obj=None):
+
+def generate_score_matrix(
+    username="",
+    password=None,
+    environment="production",
+    model_list=[],
+    model_instance_list=[],
+    test_list=[],
+    test_instance_list=[],
+    result_list=[],
+    show_links=True,
+    round_places=None,
+    client_obj=None,
+):
     """Generates a styled pandas dataframe with score matrix
 
     This method will generate a styled pandas dataframe for the specified test results.
@@ -1046,21 +1257,48 @@ def generate_score_matrix(username="", password=None, environment="production", 
     model_instances_dict = collections.OrderedDict()
     test_instances_dict = collections.OrderedDict()
 
-    excluded_results = []   # not latest entry for a particular model instance and test instance combination
+    excluded_results = (
+        []
+    )  # not latest entry for a particular model instance and test instance combination
     for r_id in result_list:
-        result = test_library.get_result(result_id = r_id)
-        temp_score = round(float(result["score"]), round_places) if round_places else result["score"]
+        result = test_library.get_result(result_id=r_id)
+        temp_score = (
+            round(float(result["score"]), round_places)
+            if round_places
+            else result["score"]
+        )
         # '#*#' is used as separator between score and result UUID (latter used for constructing hyperlink)
         if result["test_instance_id"] in results_dict.keys():
-            if result["model_instance_id"] not in results_dict[result["test_instance_id"]].keys():
-                results_dict[result["test_instance_id"]][result["model_instance_id"]] = [result["timestamp"], str(temp_score) + "#*#" + r_id]
-            elif result["timestamp"] > results_dict[result["test_instance_id"]][result["model_instance_id"]][0]:
-                excluded_results.append(results_dict[result["test_instance_id"]][result["model_instance_id"]][1].split('#*#')[1])
-                results_dict[result["test_instance_id"]][result["model_instance_id"]] = [result["timestamp"], str(temp_score) + "#*#" + r_id]
+            if (
+                result["model_instance_id"]
+                not in results_dict[result["test_instance_id"]].keys()
+            ):
+                results_dict[result["test_instance_id"]][
+                    result["model_instance_id"]
+                ] = [result["timestamp"], str(temp_score) + "#*#" + r_id]
+            elif (
+                result["timestamp"]
+                > results_dict[result["test_instance_id"]][result["model_instance_id"]][
+                    0
+                ]
+            ):
+                excluded_results.append(
+                    results_dict[result["test_instance_id"]][
+                        result["model_instance_id"]
+                    ][1].split("#*#")[1]
+                )
+                results_dict[result["test_instance_id"]][
+                    result["model_instance_id"]
+                ] = [result["timestamp"], str(temp_score) + "#*#" + r_id]
             else:
                 excluded_results.append(r_id)
         else:
-            results_dict[result["test_instance_id"]] = {result["model_instance_id"]: [result["timestamp"], str(temp_score) + "#*#" + r_id]}
+            results_dict[result["test_instance_id"]] = {
+                result["model_instance_id"]: [
+                    result["timestamp"],
+                    str(temp_score) + "#*#" + r_id,
+                ]
+            }
 
         if result["model_instance_id"] not in model_instances_dict.keys():
             model_instances_dict[result["model_instance_id"]] = None
@@ -1099,19 +1337,24 @@ def generate_score_matrix(username="", password=None, environment="production", 
             except KeyError:
                 score_vals.append(None)
         data[t_val] = score_vals
-    df = pd.DataFrame(data, index = model_instances_dict.values())
+    df = pd.DataFrame(data, index=model_instances_dict.values())
 
     def make_clickable(value):
         if not value:
             return value
-        score, result_uuid = value.split('#*#')
+        score, result_uuid = value.split("#*#")
         if show_links:
-            result_url = "https://model-catalog.brainsimulation.eu/#result_id.{}".format(result_uuid)
-            return '<a target="_blank" href="{}">{}</a>'.format(result_url,score)
+            result_url = (
+                "https://model-catalog.brainsimulation.eu/#result_id.{}".format(
+                    result_uuid
+                )
+            )
+            return '<a target="_blank" href="{}">{}</a>'.format(result_url, score)
         else:
             return score
 
     return df.style.format(make_clickable), excluded_results
+
 
 def get_raw_dataframe(styled_df):
     """Creates DataFrame from output of :meth`generate_score_matrix`
@@ -1138,8 +1381,10 @@ def get_raw_dataframe(styled_df):
 
     def make_raw_scores(value):
         if value:
-            return value.split('#*#')[0]
+            return value.split("#*#")[0]
+
     return styled_df.data.applymap(make_raw_scores)
+
 
 def display_score_matrix_html(styled_df=None, df=None):
     """Displays score matrix generated from :meth`generate_score_matrix` inside web browser
@@ -1166,9 +1411,13 @@ def display_score_matrix_html(styled_df=None, df=None):
     """
 
     if styled_df is None and df is None:
-        raise Exception("styled_df or df needs to be provided for displaying the score matrix.")
+        raise Exception(
+            "styled_df or df needs to be provided for displaying the score matrix."
+        )
 
-    filename = "hbp_vf_score_dataframe_{}.html".format(datetime.now().strftime("%Y%m%d-%H%M%S"))
+    filename = "hbp_vf_score_dataframe_{}.html".format(
+        datetime.now().strftime("%Y%m%d-%H%M%S")
+    )
     if styled_df:
         df = get_raw_dataframe(styled_df)
     df.to_html(filename)
