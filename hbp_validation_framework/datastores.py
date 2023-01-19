@@ -19,7 +19,7 @@ Other possibilities:
 import os
 import json
 import mimetypes
-
+from warnings import warn
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlretrieve
@@ -44,10 +44,8 @@ class FileSystemDataStore(object):
             observation_data = json.load(fp)
 
 
-class CollabV2DataStore(object):
-    """
-    A class for uploading and downloading data from EBRAINS Collaboratory v2 seafile storage.
-    """
+class _CollabDataStore(object):
+    """Base class for data stores that are part of the EBRAINS Collaboratory"""
 
     def __init__(self, collab_id=None, base_folder="/", auth=None, **kwargs):
         self.collab_id = collab_id
@@ -59,10 +57,25 @@ class CollabV2DataStore(object):
     def authorized(self):
         return self._authorized
 
+    def _get_relative_paths(self, file_paths):
+        if isinstance(file_paths, str):
+            file_paths = [file_paths]
+        if len(file_paths) > 1:
+            common_base_dir = os.path.dirname(os.path.commonprefix(file_paths))
+        else:
+            common_base_dir = os.path.dirname(file_paths[0])
+        return [os.path.relpath(p, common_base_dir) for p in file_paths]
+
+
+class CollabDriveDataStore(_CollabDataStore):
+    """
+    A class for uploading and downloading data from EBRAINS Collaboratory Drive storage.
+    """
+
     def authorize(self, auth=None):
         if auth is None:
             auth = self._auth
-        self.client = ebrains_drive.connect(token=auth.token)
+        self.client = ebrains_drive.DriveApiClient(token=auth.token)
         self._authorized = True
         self.repo = self.client.repos.get_repo_by_url(self.collab_id)
 
@@ -72,15 +85,7 @@ class CollabV2DataStore(object):
 
         # make specified base directory
         seafdir_base = self._make_folders(self.base_folder, parent="/")
-
-        if isinstance(file_paths, str):
-            file_paths = [file_paths]
-        if len(file_paths) > 1:
-            common_base_dir = os.path.dirname(os.path.commonprefix(file_paths))
-        else:
-            common_base_dir = os.path.dirname(file_paths[0])
-
-        relative_paths = [os.path.relpath(p, common_base_dir) for p in file_paths]
+        relative_paths = self._get_relative_paths(file_paths)
         uploaded_file_paths = []
         upload_path_prefix = "https://drive.ebrains.eu/lib/" + self.repo.id + "/file"
         for local_path, relative_path in zip(file_paths, relative_paths):
@@ -165,6 +170,44 @@ class CollabV2DataStore(object):
             return content.decode("utf-8")
         else:
             return content
+
+
+class CollabBucketDataStore(_CollabDataStore):
+    """
+    A class for uploading and downloading data from EBRAINS Collaboratory Bucket (aka DataProxy) storage.
+    """
+
+    def authorize(self, auth=None):
+        if auth is None:
+            auth = self._auth
+        self.client = ebrains_drive.BucketApiClient(token=auth.token)
+        self._authorized = True
+        self.bucket = self.client.buckets.get_bucket(self.collab_id)
+
+
+    def upload_data(self, file_paths, overwrite=False):
+        if not self.authorized:
+            self.authorize(self._auth)
+
+        if not overwrite:
+            existing_files = self.bucket.ls()
+
+        relative_paths = self._get_relative_paths(file_paths)
+        uploaded_file_paths = []
+        for local_path, relative_path in zip(file_paths, relative_paths):
+            remote_path = os.path.join(self.base_folder, relative_path)
+            if not overwrite:
+                if remote_path in existing_files:
+                    warn(f"File {remote_path} already exists and you have set overwrite=False")
+
+            self.bucket.upload(local_path, remote_path)
+            uploaded_file_paths.append(
+                {
+                    "filepath": f"https://data-proxy.ebrains.eu/api/v1/buckets/{self.collab_id}/{self.base_folder}/{remote_path}",
+                    "filesize": os.stat(local_path).st_size,
+                }
+            )
+        return uploaded_file_paths
 
 
 class HTTPDataStore(object):
@@ -370,7 +413,7 @@ class SwiftDataStore(object):
 
 
 URI_SCHEME_MAP = {
-    "collabv2": CollabV2DataStore,
+    "collabv2": CollabDriveDataStore,
     "http": HTTPDataStore,
     "https": HTTPDataStore,
     "swift": SwiftDataStore,
