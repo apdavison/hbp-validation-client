@@ -17,7 +17,7 @@ import socket
 from importlib import import_module
 from pathlib import Path
 from urllib.error import URLError
-from urllib.parse import urlparse, urljoin, urlencode, quote
+from urllib.parse import urlparse, urlunparse, parse_qs, urljoin, urlencode, quote
 
 import requests
 from requests.auth import AuthBase
@@ -47,7 +47,7 @@ class ResponseError(Exception):
 def handle_response_error(message, response):
     try:
         structured_error_message = response.json()
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, requests.JSONDecodeError):
         structured_error_message = None
     if structured_error_message:
         response_text = str(structured_error_message)  # temporary, to be improved
@@ -97,7 +97,7 @@ class BaseClient(object):
         self.environment = environment
         self.token = token
         if environment == "production":
-            self.url = "https://validation-v2.brainsimulation.eu"
+            self.url = "https://validation.brainsimulation.eu"
         elif environment == "integration":
             self.url = "https://validation-staging.brainsimulation.eu"
         elif environment == "dev":
@@ -135,21 +135,23 @@ class BaseClient(object):
                 # the token is already available
                 self.token = oauth.get_token()
             elif os.path.exists(TOKENFILE):
-                # check for a stored token
-                with open(TOKENFILE) as fp:
-                    # self.token = json.load(fp).get(username, None)["access_token"]
-                    data = json.load(fp).get(username, None)
-                    if data and "access_token" in data:
-                        self.token = data["access_token"]
-                        if not self._check_token_valid():
+                if username:
+                    # check for a stored token
+                    with open(TOKENFILE) as fp:
+                        data = json.load(fp).get(username, None)
+                        if data and "access_token" in data:
+                            self.token = data["access_token"]
+                            if not self._check_token_valid():
+                                print(
+                                    "EBRAINS authentication token is invalid or has expired. Will need to re-authenticate."
+                                )
+                                self.token = None
+                        else:
                             print(
-                                "EBRAINS authentication token is invalid or has expired. Will need to re-authenticate."
+                                f"EBRAINS authentication token file not having required JSON data. data = {data}"
                             )
-                            self.token = None
-                    else:
-                        print(
-                            "EBRAINS authentication token file not having required JSON data."
-                        )
+                else:
+                    print("Authentication token file found, but you have not provided your username.")
             else:
                 print("EBRAINS authentication token file not found locally.")
 
@@ -179,7 +181,7 @@ class BaseClient(object):
                         )
                         raise
                 with open(TOKENFILE, "w") as fp:
-                    json.dump({username: self.config["token"]}, fp)
+                    json.dump({username: {"access_token": self.config["access_token"]}}, fp)
                 os.chmod(TOKENFILE, 0o600)
         else:
             try:
@@ -188,16 +190,17 @@ class BaseClient(object):
                 print("Authentication Failure! Password entered is possibly incorrect.")
                 raise
             with open(TOKENFILE, "w") as fp:
-                json.dump({username: self.config["token"]}, fp)
+                json.dump({username: {"access_token": self.config["access_token"]}}, fp)
             os.chmod(TOKENFILE, 0o600)
         self.auth = HBPAuth(self.token)
 
     def _check_token_valid(self):
-        url = "https://drive.ebrains.eu/api2/auth/ping/"
+        url = "https://iam.ebrains.eu/auth/realms/hbp/protocol/openid-connect/userinfo"
         data = requests.get(url, auth=HBPAuth(self.token), verify=self.verify)
         if data.status_code == 200:
             return True
         else:
+            raise Exception()
             return False
 
     def _format_people_name(self, names):
@@ -368,6 +371,9 @@ class BaseClient(object):
             allow_redirects=False,
         )
         if r_iam2.status_code != 302:
+            if r_iam2.status_code == 200 and "Invalid username or password" in r_iam2.text:
+                raise Exception("Invalid username or password")
+
             raise Exception(
                 "Something went wrong. Status code {} from authenticate, expected 302".format(
                     r_iam2.status_code
@@ -389,7 +395,7 @@ class BaseClient(object):
                 )
             )
         config = r_val.json()
-        self.token = config["token"]["access_token"]
+        self.token = config["access_token"]
         self.config = config
 
     @classmethod
@@ -2493,13 +2499,14 @@ class ModelCatalog(BaseClient):
         >>> file_path = model_catalog.download_model_instance(instance_id="a035f2b2-fe2e-42fd-82e2-4173a304263b")
         """
 
-        model_source = self.get_model_instance(
+        model_instance = self.get_model_instance(
             instance_path=instance_path,
             instance_id=instance_id,
             model_id=model_id,
             alias=alias,
             version=version,
-        )["source"]
+        )
+        model_source = model_instance["source"]
         if model_source[-1] == "/":
             model_source = model_source[:-1]  # remove trailing '/'
         Path(local_directory).mkdir(parents=True, exist_ok=True)
@@ -2523,9 +2530,16 @@ class ModelCatalog(BaseClient):
             )
         elif model_source.startswith("https://object.cscs.ch/"):
             # ***** Handles CSCS public urls (file or folder) *****
-            model_source = urljoin(
-                model_source, urlparse(model_source).path
-            )  # remove query params from URL, e.g. `?bluenaas=true`
+            if "?prefix" in model_source:
+                url_parts = urlparse(model_source)
+                query_params = parse_qs(url_parts.query)
+                prefix = query_params["prefix"][0]
+                resolved_parts = (url_parts.scheme, url_parts.netloc, url_parts.path + "/" + prefix, None, None, None)
+                model_source = urlunparse(resolved_parts)
+            else:
+                model_source = urljoin(
+                    model_source, urlparse(model_source).path
+                )  # remove query params from URL, e.g. `?bluenaas=true`
             req = requests.head(model_source)
             if req.status_code == 200:
                 if "directory" in req.headers["Content-Type"]:
