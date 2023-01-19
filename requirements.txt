@@ -1,4 +1,3 @@
 sciunit
 requests
-simplejson
 ebrains-drive
