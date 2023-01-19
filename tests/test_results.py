@@ -4,7 +4,6 @@ from datetime import datetime
 from time import sleep
 
 from hbp_validation_framework import sample
-from hbp_validation_framework.datastores import CollabV2DataStore
 
 import pytest
 
