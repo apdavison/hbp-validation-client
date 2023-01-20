@@ -34,7 +34,7 @@ except ImportError:
     have_collab_token_handler = False
 
 
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 
 
 TOKENFILE = os.path.expanduser("~/.hbptoken")
