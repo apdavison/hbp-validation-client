@@ -110,7 +110,7 @@ def test_upload_test_result(modelCatalog, testLibrary, myModelID, myTestID):
         test_result_file=test_result_file, client_obj=test_library
     )
     assert isinstance(uuid.UUID(result["id"], version=4), uuid.UUID)
-    assert isinstance(score, sciunit.Score)
+    assert isinstance(score, float)
 
 
 """
@@ -136,4 +136,4 @@ def test_run_test_combined(modelCatalog, testLibrary, myModelID, myTestID):
         client_obj=test_library,
     )
     assert isinstance(uuid.UUID(result["id"], version=4), uuid.UUID)
-    assert isinstance(score, sciunit.Score)
+    assert isinstance(score, float)

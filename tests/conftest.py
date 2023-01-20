@@ -19,7 +19,7 @@ def pytest_addoption(parser):
         "--environment",
         action="store",
         default="dev",
-        help="options: production, integration, or dev",
+        help="options: production, staging, or dev",
     )
 
 
@@ -74,7 +74,6 @@ def myModelID(modelCatalog):
         name="IGNORE - Test Model - " + model_name,
         alias=model_name,
         author={"family_name": "Tester", "given_name": "Validation"},
-        private=False,
         cell_type="granule cell",
         model_scope="single cell",
         abstraction_level="spiking neurons",
@@ -115,6 +114,7 @@ def myTestID(testLibrary):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Test - " + test_name,
         alias=test_name,
         author={"family_name": "Tester", "given_name": "Validation"},
@@ -165,6 +165,7 @@ def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Test - " + test_name,
         alias=test_name,
         author={"family_name": "Tester", "given_name": "Validation"},

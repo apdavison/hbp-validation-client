@@ -98,7 +98,7 @@ class BaseClient(object):
         self.token = token
         if environment == "production":
             self.url = "https://validation.brainsimulation.eu"
-        elif environment == "integration":
+        elif environment == "staging":
             self.url = "https://validation-staging.brainsimulation.eu"
         elif environment == "dev":
             self.url = "http://localhost:8000"
@@ -500,7 +500,7 @@ class TestLibrary(BaseClient):
             self.app_name = "Validation Framework"
         elif self.environment == "dev":
             self.app_name = "Validation Framework (dev)"
-        elif self.environment == "integration":
+        elif self.environment == "staging":
             self.app_name = "Model Validation app (staging)"
 
     # def set_app_config(self, collab_id="", only_if_new=False, recording_modality="", test_type="", species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
@@ -752,6 +752,7 @@ class TestLibrary(BaseClient):
 
     def add_test(
         self,
+        collab_id=None,
         name=None,
         alias=None,
         author=None,
@@ -775,6 +776,8 @@ class TestLibrary(BaseClient):
 
         Parameters
         ----------
+        collab_id : string
+            Identifier of the Collab that will be used for access control for this test
         name : string
             Name of the test definition to be created.
         alias : string, optional
@@ -825,7 +828,11 @@ class TestLibrary(BaseClient):
 
         test_data = {}
         args = locals()
+        # handle naming difference with API: collab_id <-> project_id
+        args["project_id"] = args.pop("collab_id")
+
         for field in [
+            "project_id",
             "name",
             "alias",
             "author",
@@ -888,6 +895,7 @@ class TestLibrary(BaseClient):
     def edit_test(
         self,
         test_id=None,
+        collab_id=None,
         name=None,
         alias=None,
         author=None,
@@ -967,7 +975,11 @@ class TestLibrary(BaseClient):
 
         test_data = {}
         args = locals()
+        # handle naming difference with API: collab_id <-> project_id
+        args["project_id"] = args.pop("collab_id")
+
         for field in [
+            "project_id",
             "name",
             "alias",
             "author",
@@ -1785,7 +1797,7 @@ class ModelCatalog(BaseClient):
             self.app_name = "Model Catalog"
         elif self.environment == "dev":
             self.app_name = "Model Catalog (dev)"
-        elif self.environment == "integration":
+        elif self.environment == "staging":
             self.app_name = "Model Catalog (staging)"
 
     # def set_app_config(self, collab_id="", only_if_new=False, species="", brain_region="", cell_type="", model_scope="", abstraction_level="", organization=""):
@@ -1988,7 +2000,6 @@ class ModelCatalog(BaseClient):
         author=None,
         owner=None,
         organization=None,
-        private=False,
         species=None,
         brain_region=None,
         cell_type=None,
@@ -2017,8 +2028,6 @@ class ModelCatalog(BaseClient):
             Name of person creating the model description.
         organization : string, optional
             Option to tag model with organization info.
-        private : boolean
-            Set visibility of model description. If True, model would only be seen in host app (where created). Default False.
         species : string
             The species for which the model is developed.
         brain_region : string
@@ -2047,7 +2056,7 @@ class ModelCatalog(BaseClient):
 
         >>> model = model_catalog.register_model(collab_id="model-validation", name="Test Model - B2",
                         alias="Model vB2", author="Shailesh Appukuttan", organization="CNRS",
-                        private=False, cell_type="Granule Cell", model_scope="Single cell model",
+                        cell_type="Granule Cell", model_scope="Single cell model",
                         abstraction_level="Spiking neurons",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
                         owner="Andrew Davison",
@@ -2057,7 +2066,7 @@ class ModelCatalog(BaseClient):
 
         >>> model = model_catalog.register_model(collab_id="model-validation", name="Test Model - C2",
                         alias="Model vC2", author="Shailesh Appukuttan", organization="CNRS",
-                        private=False, cell_type="Granule Cell", model_scope="Single cell model",
+                        cell_type="Granule Cell", model_scope="Single cell model",
                         abstraction_level="Spiking neurons",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
                         owner="Andrew Davison", license="BSD 3-Clause",
@@ -2081,7 +2090,6 @@ class ModelCatalog(BaseClient):
             "alias",
             "author",
             "organization",
-            "private",
             "cell_type",
             "model_scope",
             "abstraction_level",
@@ -2091,7 +2099,7 @@ class ModelCatalog(BaseClient):
             "description",
             "instances",
         ]:
-            if args[field] or field == "private":
+            if args[field]:
                 model_data[field] = args[field]
 
         values = self.get_attribute_options()
@@ -2108,11 +2116,6 @@ class ModelCatalog(BaseClient):
                         field, model_data[field], values[field]
                     )
                 )
-
-        if private not in [True, False]:
-            raise Exception(
-                "Model's 'private' attribute should be specified as True / False. Default value is False."
-            )
 
         # format names of authors and owners as required by API
         for field in ("author", "owner"):
@@ -2142,7 +2145,6 @@ class ModelCatalog(BaseClient):
         author=None,
         owner=None,
         organization=None,
-        private=None,
         species=None,
         brain_region=None,
         cell_type=None,
@@ -2173,8 +2175,6 @@ class ModelCatalog(BaseClient):
             Name of person creating the model description.
         organization : string, optional
             Option to tag model with organization info.
-        private : boolean
-            Set visibility of model description. If True, model would only be seen in host app (where created). Default False.
         species : string
             The species for which the model is developed.
         brain_region : string
@@ -2209,7 +2209,7 @@ class ModelCatalog(BaseClient):
         >>> model = model_catalog.edit_model(collab_id="model-validation", name="Test Model - B2",
                         model_id="8c7cb9f6-e380-452c-9e98-e77254b088c5",
                         alias="Model-B2", author="Shailesh Appukuttan", organization="HBP-SP6",
-                        private=False, cell_type="Granule Cell", model_scope="Single cell model",
+                        cell_type="Granule Cell", model_scope="Single cell model",
                         abstraction_level="Spiking neurons",
                         brain_region="Basal Ganglia", species="Mouse (Mus musculus)",
                         owner="Andrew Davison", project="SP 6.4", license="BSD 3-Clause",
@@ -2231,7 +2231,6 @@ class ModelCatalog(BaseClient):
             "alias",
             "author",
             "organization",
-            "private",
             "cell_type",
             "model_scope",
             "abstraction_level",
@@ -2242,7 +2241,7 @@ class ModelCatalog(BaseClient):
             "license",
             "description",
         ]:
-            if args[field] or (field == "private" and args[field] != None):
+            if args[field]:
                 model_data[field] = args[field]
 
         values = self.get_attribute_options()
@@ -2260,11 +2259,6 @@ class ModelCatalog(BaseClient):
                     )
                 )
 
-        if private and private not in [True, False]:
-            raise Exception(
-                "Model's 'private' attribute should be specified as True / False. Default value is False."
-            )
-
         # format names of authors and owners as required by API
         for field in ("author", "owner"):
             if model_data.get(field):
@@ -2272,11 +2266,6 @@ class ModelCatalog(BaseClient):
 
         if "alias" in model_data and model_data["alias"] == "":
             model_data["alias"] = None
-
-        if model_data.get("private", False) not in (True, False):
-            raise Exception(
-                "Model's 'private' attribute should be specified as True / False. Default value is False."
-            )
 
         headers = {"Content-type": "application/json"}
         url = self.url + "/models/" + model_id

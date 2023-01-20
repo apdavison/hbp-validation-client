@@ -6,6 +6,7 @@ from time import sleep
 from hbp_validation_framework import sample
 
 import pytest
+from .conftest import TESTING_COLLAB
 
 
 """
@@ -30,6 +31,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Test - " + test_name,
         alias=test_name,
         author={"family_name": "Tester", "given_name": "Validation"},

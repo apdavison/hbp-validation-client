@@ -6,6 +6,7 @@ from time import sleep
 import sciunit
 
 import pytest
+from .conftest import TESTING_COLLAB
 
 
 """
@@ -216,6 +217,7 @@ def test_addtest_missingParam(testLibrary):
             platform.python_version(),
         )
         test = test_library.add_test(
+            collab_id=TESTING_COLLAB,
             name="IGNORE - Test Test - " + test_name,
             alias=test_name,
             species="Mus musculus",
@@ -250,6 +252,7 @@ def test_addtest_invalidParam(testLibrary):
             platform.python_version(),
         )
         test = test_library.add_test(
+            collab_id=TESTING_COLLAB,
             name="IGNORE - Test Test - " + test_name,
             alias=test_name,
             author={"family_name": "Tester", "given_name": "Validation"},
@@ -284,6 +287,7 @@ def test_addtest_valid_noalias_nodetails(testLibrary):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Test - " + test_name,
         author={"family_name": "Tester", "given_name": "Validation"},
         species="Mus musculus",
@@ -316,6 +320,7 @@ def test_addtest_valid_withalias_nodetails(testLibrary):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Test - " + test_name,
         alias=test_name,
         author={"family_name": "Tester", "given_name": "Validation"},
@@ -350,6 +355,7 @@ def test_addtest_repeat_alias_nodetails(testLibrary):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Test - " + test_name,
         alias=test_name,
         author={"family_name": "Tester", "given_name": "Validation"},
@@ -375,6 +381,7 @@ def test_addtest_repeat_alias_nodetails(testLibrary):
     sleep(20)
     with pytest.raises(Exception) as excinfo:
         test = test_library.add_test(
+            collab_id=TESTING_COLLAB,
             name="IGNORE - Test Test - " + test_name,
             alias=test_name,
             author={"family_name": "Tester", "given_name": "Validation"},
@@ -426,6 +433,7 @@ def test_editTest_invalid_noID(testLibrary):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Test - " + test_name,
         alias=test_name,
         author={"family_name": "Tester", "given_name": "Validation"},
@@ -477,6 +485,7 @@ def test_editTest_valid(testLibrary):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Test - " + test_name,
         alias=test_name,
         author={"family_name": "Tester", "given_name": "Validation"},
@@ -528,6 +537,7 @@ def test_editTest_invalid_duplicate_alias(testLibrary):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Test - " + test_name1,
         alias=test_name1,
         author={"family_name": "Tester", "given_name": "Validation"},
@@ -556,6 +566,7 @@ def test_editTest_invalid_duplicate_alias(testLibrary):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Test - " + test_name2,
         alias=test_name2,
         author={"family_name": "Tester", "given_name": "Validation"},
@@ -610,6 +621,7 @@ def test_editTest_invalid_version_info(testLibrary):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Test - " + test_name,
         alias=test_name,
         author={"family_name": "Tester", "given_name": "Validation"},
@@ -674,6 +686,7 @@ def test_getValidationTest_testID(testLibrary):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Test - " + test_name,
         alias=test_name,
         author={"family_name": "Tester", "given_name": "Validation"},
