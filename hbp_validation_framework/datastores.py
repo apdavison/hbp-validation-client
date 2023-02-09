@@ -239,14 +239,14 @@ class HTTPDataStore(object):
                         )[1]
                     else:
                         filename = url.split("/")[-1]
-                local_path = os.path.join(local_directory, filename)
-                # local_path = os.path.join(local_directory, os.path.basename(urlparse(url).path))
-                if os.path.exists(local_path):
-                    raise FileExistsError(
-                        "Target file path `{}` already exists!\nSet `overwrite=True` if you wish overwrite existing files!".format(
-                            local_path
+                    local_path = os.path.join(local_directory, filename)
+                    # local_path = os.path.join(local_directory, os.path.basename(urlparse(url).path))
+                    if os.path.exists(local_path):
+                        raise FileExistsError(
+                            "Target file path `{}` already exists!\nSet `overwrite=True` if you wish overwrite existing files!".format(
+                                local_path
+                            )
                         )
-                    )
 
         for url in remote_paths:
             req = requests.head(url)
@@ -257,11 +257,13 @@ class HTTPDataStore(object):
                     filename = req.headers["Content-Disposition"].split("filename=")[1]
                 else:
                     filename = url.split("/")[-1]
-            local_path = os.path.join(local_directory, filename)
-            # local_path = os.path.join(local_directory, os.path.basename(urlparse(url).path))
-            Path(os.path.dirname(local_path)).mkdir(parents=True, exist_ok=True)
-            filename, headers = urlretrieve(url, local_path)
-            local_paths.append(filename)
+                local_path = os.path.join(local_directory, filename)
+                # local_path = os.path.join(local_directory, os.path.basename(urlparse(url).path))
+                Path(os.path.dirname(local_path)).mkdir(parents=True, exist_ok=True)
+                filename, headers = urlretrieve(url, local_path)
+                local_paths.append(filename)
+            else:
+                print(f"Unable to download file from {url}. Error message {req.text}")
         return local_paths
 
     def load_data(self, remote_path):
