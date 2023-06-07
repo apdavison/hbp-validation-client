@@ -669,8 +669,23 @@ class TestLibrary(BaseClient):
         # Load the reference data ("observations")
         observation_data = self._load_reference_data(test_json["data_location"])
 
+        # Combine parameters from test definition with locally-defined parameters
+        if test_instance_json["parameters"]:
+            response = requests.get(test_instance_json["parameters"])
+            if response.status_code == 200:
+                all_parameters = response.json()
+            else:
+                raise Exception(
+                    f"Unable to retrieve parameter file at {test_instance_json['parameters']}"
+                )
+        else:
+            all_parameters = {}
+        all_parameters.update(params)
+
         # Create the :class:`sciunit.Test` instance
-        test_instance = test_cls(observation=observation_data, **params)
+        test_instance = test_cls(
+            observation=observation_data, name=test_json["name"], **all_parameters
+        )
         test_instance.uuid = test_instance_json["id"]
         return test_instance
 
