@@ -11,6 +11,7 @@ import os
 import re
 import getpass
 import json
+from datetime import datetime
 
 import platform
 import socket
@@ -1619,6 +1620,13 @@ class TestLibrary(BaseClient):
         >>> response = test_library.register_result(test_result=score)
         """
 
+        if hasattr(test_result, "exec_timestamp"):
+            timestamp = test_result.exec_timestamp
+        elif "timestamp" in test_result.related_data:
+            timestamp = test_result.related_data["timestamp"]
+        else:
+            timestamp = datetime.now()
+
         if collab_id is None:
             collab_id = test_result.related_data.get("collab_id", None)
         if collab_id is None:
@@ -1663,6 +1671,7 @@ class TestLibrary(BaseClient):
             if "passed" not in test_result.related_data
             else test_result.related_data["passed"],
             # "platform": str(self._get_platform()), # not currently supported in v2
+            "timestamp": timestamp.isoformat(),
             "project_id": collab_id,
             "normalized_score": int(test_result.score)
             if isinstance(test_result.score, bool)
