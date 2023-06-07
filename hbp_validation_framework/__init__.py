@@ -1,7 +1,7 @@
 """
 A Python package for working with the EBRAINS / Human Brain Project Model Validation Framework.
 
-Andrew Davison and Shailesh Appukuttan, CNRS, 2017-2022
+Andrew Davison and Shailesh Appukuttan, CNRS, 2017-2023
 
 License: BSD 3-clause, see LICENSE.txt
 
@@ -35,7 +35,7 @@ except ImportError:
     have_collab_token_handler = False
 
 
-__version__ = "0.8.1"
+__version__ = "0.8.2"
 
 
 TOKENFILE = os.path.expanduser("~/.hbptoken")

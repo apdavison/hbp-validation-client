@@ -1,7 +1,7 @@
 A Python package for working with the EBRAINS/Human Brain Project Model Validation Framework
 ============================================================================================
 
-Andrew Davison and Shailesh Appukuttan, CNRS, 2017-2022
+Andrew Davison and Shailesh Appukuttan, CNRS, 2017-2023
 
 Documentation: http://hbp-validation-client.readthedocs.io
 
