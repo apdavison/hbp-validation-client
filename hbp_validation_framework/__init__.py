@@ -1461,6 +1461,8 @@ class TestLibrary(BaseClient):
         if not isinstance(uri_list, list):
             uri_list = [uri_list]
             return_single = True
+        elif len(uri_list) == 1:
+            return_single = True
         for uri in uri_list:
             parse_result = urlparse(uri)
             datastore = URI_SCHEME_MAP[parse_result.scheme](auth=self.auth)
@@ -1629,6 +1631,8 @@ class TestLibrary(BaseClient):
 
         if collab_id is None:
             collab_id = test_result.related_data.get("collab_id", None)
+            if collab_id is None and data_store:
+                collab_id = data_store.collab_id
         if collab_id is None:
             raise Exception(
                 "Don't know where to register this result. Please specify `collab_id`!"
@@ -1653,29 +1657,34 @@ class TestLibrary(BaseClient):
             if "figures" in test_result.related_data:
                 files_to_upload.extend(test_result.related_data["figures"])
             if files_to_upload:
-                list_dict_files_to_upload = [
+                list_dict_files_uploaded = [
                     {"download_url": f["filepath"], "size": f["filesize"]}
                     for f in data_store.upload_data(files_to_upload)
                 ]
-                results_storage.extend(list_dict_files_to_upload)
+                results_storage.extend(list_dict_files_uploaded)
 
         url = self.url + "/results/"
         result_json = {
             "model_instance_id": model_instance_uuid,
             "test_instance_id": test_result.test.uuid,
             "results_storage": results_storage,
-            "score": int(test_result.score)
-            if isinstance(test_result.score, bool)
-            else test_result.score,
-            "passed": None
-            if "passed" not in test_result.related_data
-            else test_result.related_data["passed"],
-            # "platform": str(self._get_platform()), # not currently supported in v2
+            "score": (
+                int(test_result.score)
+                if isinstance(test_result.score, bool)
+                else test_result.score
+            ),
+            "passed": (
+                None
+                if "passed" not in test_result.related_data
+                else test_result.related_data["passed"]
+            ),
             "timestamp": timestamp.isoformat(),
             "project_id": collab_id,
-            "normalized_score": int(test_result.score)
-            if isinstance(test_result.score, bool)
-            else test_result.score,
+            "normalized_score": (
+                int(test_result.score)
+                if isinstance(test_result.score, bool)
+                else test_result.score
+            ),
         }
 
         headers = {"Content-type": "application/json"}
@@ -1944,6 +1953,7 @@ class ModelCatalog(BaseClient):
         * owner
         * organization
         * collab_id
+        * format
         * private
 
         Parameters
@@ -1979,6 +1989,7 @@ class ModelCatalog(BaseClient):
             "owner",
             "organization",
             "collab_id",
+            "format",
             "private",
         ]
         params = locals()["filters"]
