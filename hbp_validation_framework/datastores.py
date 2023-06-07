@@ -201,9 +201,16 @@ class CollabBucketDataStore(_CollabDataStore):
                     warn(f"File {remote_path} already exists and you have set overwrite=False")
 
             self.bucket.upload(local_path, remote_path)
+
+            # try to resolve the data-proxy path
+            remote_url = f"https://data-proxy.ebrains.eu/api/v1/buckets/{self.collab_id}/{remote_path}"
+            response = requests.get(remote_url, allow_redirects=False)
+            if response.status_code == 307:
+                remote_url = response.headers["location"]
+
             uploaded_file_paths.append(
                 {
-                    "filepath": f"https://data-proxy.ebrains.eu/api/v1/buckets/{self.collab_id}/{self.base_folder}/{remote_path}",
+                    "filepath": remote_url,
                     "filesize": os.stat(local_path).st_size,
                 }
             )
