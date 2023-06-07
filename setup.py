@@ -18,13 +18,13 @@ template_files = package_files("hbp_validation_framework", "templates")
 
 setup(
     name="hbp_validation_framework",
-    version="0.8.2",
+    version="0.8.3.dev",
     packages=["hbp_validation_framework"],
     package_data={"": json_files + template_files},
     url="https://github.com/HumanBrainProject/hbp-validation-client",
     license="BSD",
     author="Andrew Davison and Shailesh Appukuttan",
-    author_email="andrew.davison@unic.cnrs-gif.fr, shailesh.appukuttan@unic.cnrs-gif.fr",
+    author_email="andrew.davison@cnrs.fr, appukuttan.shailesh@gmail.com",
     description="Python client for the EBRAINS Validation Framework web services",
     install_requires=["requests", "nameparser", "ebrains_drive"],
     extras_require={

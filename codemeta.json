@@ -1,0 +1,57 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "license": "https://spdx.org/licenses/BSD-3-Clause.html",
+  "codeRepository": "https://github.com/HumanBrainProject/hbp-validation-client",
+  "dateModified": "2023-06-07",
+  "downloadUrl": "https://files.pythonhosted.org/packages/ec/f2/8844fafd4d38e6503d01a658dd2f94bce1983d14a9ee24203383302b0f6f/hbp_validation_framework-0.8.2.tar.gz",
+  "issueTracker": "https://github.com/HumanBrainProject/hbp-validation-client/issues",
+  "name": "hbp-validation-framework",
+  "version": "0.8.2",
+  "identifier": "https://pypi.org/project/hbp-validation-framework/0.8.2/",
+  "description": "Python client for the EBRAINS Validation Framework web services",
+  "applicationCategory": "neuroscience",
+  "funding": "https://cordis.europa.eu/project/id/945539",
+  "developmentStatus": "active",
+  "referencePublication": null,
+  "funder": {
+    "@type": "Organization",
+    "name": "European Commission"
+  },
+  "programmingLanguage": [
+    "Python"
+  ],
+  "operatingSystem": [
+    "Linux",
+    "Windows",
+    "macOS"
+  ],
+  "softwareRequirements": null,
+  "relatedLink": [
+    "https://hbp-validation-client.readthedocs.io"
+  ],
+  "author": [
+    {
+      "@type": "Person",
+      "@id": "http://orcid.org/0000-0002-4793-7541",
+      "givenName": "Andrew P.",
+      "familyName": "Davison",
+      "affiliation": [
+        {
+          "@id": "https://ror.org/02feahw73"
+        }
+      ]
+    },
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0000-0002-0148-8023",
+      "givenName": "Shailesh",
+      "familyName": "Appukuttan",
+      "affiliation": [
+        {
+          "@id": "https://ror.org/02feahw73"
+        }
+      ]
+    }
+  ]
+}
