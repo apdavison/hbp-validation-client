@@ -1,7 +1,7 @@
 """
 A Python package for working with the EBRAINS / Human Brain Project Model Validation Framework.
 
-Andrew Davison and Shailesh Appukuttan, CNRS, 2017-2023
+Andrew Davison and Shailesh Appukuttan, CNRS, 2017-2024
 
 License: BSD 3-clause, see LICENSE.txt
 
