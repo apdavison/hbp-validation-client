@@ -3,7 +3,7 @@ import platform
 from datetime import datetime
 from time import sleep
 
-from hbp_validation_framework import ModelCatalog, TestLibrary, sample
+from ebrains_validation_framework import ModelCatalog, TestLibrary, sample
 
 import pytest
 
@@ -133,7 +133,7 @@ def myTestID(testLibrary):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )
@@ -141,7 +141,7 @@ def myTestID(testLibrary):
         test_id=test["id"],
         version="2.0",
         repository="http://www.12345.com",
-        path="hbp_validation_framework.sample.SampleTest",
+        path="ebrains_validation_framework.sample.SampleTest",
         description="",
     )
     return test["id"]
@@ -184,7 +184,7 @@ def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )

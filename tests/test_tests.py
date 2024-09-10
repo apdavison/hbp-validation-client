@@ -235,7 +235,7 @@ def test_addtest_missingParam(testLibrary):
                 {
                     "version": "1.0",
                     "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                    "path": "hbp_validation_framework.sample.SampleTest",
+                    "path": "ebrains_validation_framework.sample.SampleTest",
                 }
             ],
         )
@@ -271,7 +271,7 @@ def test_addtest_invalidParam(testLibrary):
                 {
                     "version": "1.0",
                     "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                    "path": "hbp_validation_framework.sample.SampleTest",
+                    "path": "ebrains_validation_framework.sample.SampleTest",
                 }
             ],
         )
@@ -305,7 +305,7 @@ def test_addtest_valid_noalias_nodetails(testLibrary):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )
@@ -339,7 +339,7 @@ def test_addtest_valid_withalias_nodetails(testLibrary):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )
@@ -374,7 +374,7 @@ def test_addtest_repeat_alias_nodetails(testLibrary):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )
@@ -400,7 +400,7 @@ def test_addtest_repeat_alias_nodetails(testLibrary):
                 {
                     "version": "1.0",
                     "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                    "path": "hbp_validation_framework.sample.SampleTest",
+                    "path": "ebrains_validation_framework.sample.SampleTest",
                 }
             ],
         )
@@ -452,7 +452,7 @@ def test_editTest_invalid_noID(testLibrary):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )
@@ -504,7 +504,7 @@ def test_editTest_valid(testLibrary):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )
@@ -556,7 +556,7 @@ def test_editTest_invalid_duplicate_alias(testLibrary):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )
@@ -585,7 +585,7 @@ def test_editTest_invalid_duplicate_alias(testLibrary):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )
@@ -640,7 +640,7 @@ def test_editTest_invalid_version_info(testLibrary):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )
@@ -666,7 +666,7 @@ def test_editTest_invalid_version_info(testLibrary):
                 {
                     "version": "1.0",
                     "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                    "path": "hbp_validation_framework.sample.SampleTest",
+                    "path": "ebrains_validation_framework.sample.SampleTest",
                 }
             ],
         )
@@ -705,7 +705,7 @@ def test_getValidationTest_testID(testLibrary):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )

@@ -3,7 +3,7 @@ import uuid
 from time import sleep
 
 import sciunit
-from hbp_validation_framework import sample, utils
+from ebrains_validation_framework import sample, utils
 
 import pytest
 

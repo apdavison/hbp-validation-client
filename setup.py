@@ -13,13 +13,13 @@ def package_files(base_dir, directory):
     return paths
 
 
-json_files = package_files("hbp_validation_framework", "jsonTreeViewer")
-template_files = package_files("hbp_validation_framework", "templates")
+json_files = package_files("ebrains_validation_framework", "jsonTreeViewer")
+template_files = package_files("ebrains_validation_framework", "templates")
 
 setup(
-    name="hbp_validation_framework",
+    name="ebrains_validation_framework",
     version="0.8.3.dev",
-    packages=["hbp_validation_framework"],
+    packages=["ebrains_validation_framework"],
     package_data={"": json_files + template_files},
     url="https://github.com/HumanBrainProject/hbp-validation-client",
     license="BSD",

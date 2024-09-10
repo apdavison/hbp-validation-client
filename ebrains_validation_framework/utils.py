@@ -61,7 +61,7 @@ def view_json_tree(data):
     Examples
     --------
     >>> model = model_catalog.get_model(alias="HCkt")
-    >>> from hbp_validation_framework import utils
+    >>> from ebrains_validation_framework import utils
     >>> utils.view_json_tree(model)
     """
 
@@ -180,7 +180,7 @@ def prepare_run_test_offline(
     # Download test observation to local storage
     base_folder = os.path.join(
         os.getcwd(),
-        "hbp_validation_framework",
+        "ebrains_validation_framework",
         test_id,
         datetime.now().strftime("%Y%m%d-%H%M%S"),
     )
@@ -683,7 +683,7 @@ def run_test_standalone(
     # test_instance_parameters = test_instance_json["parameters"]
 
     # # Download test observation to local storage
-    # base_folder = os.path.join(os.getcwd(), "hbp_validation_framework", test_id, datetime.now().strftime("%Y%m%d-%H%M%S"))
+    # base_folder = os.path.join(os.getcwd(), "ebrains_validation_framework", test_id, datetime.now().strftime("%Y%m%d-%H%M%S"))
     # test_observation_paths = test_library.get_test_definition(test_id=test_id)["data_location"]
     # for test_observation_path in test_observation_paths:
     #     parse_result = urlparse(test_observation_path)
@@ -992,7 +992,7 @@ def generate_HTML_report(
     )
 
     template_path = pkg_resources.resource_filename(
-        "hbp_validation_framework", "templates/report_template.html"
+        "ebrains_validation_framework", "templates/report_template.html"
     )
     env = Environment(loader=FileSystemLoader(os.path.dirname(template_path)))
     template = env.get_template(os.path.basename(template_path))

@@ -127,7 +127,7 @@ def test_addTestInstance_valid(testLibrary, myTestID):
         test_id=test_id,
         version="3.0",
         repository="http://www.12345.com",
-        path="hbp_validation_framework.sample.SampleTest",
+        path="ebrains_validation_framework.sample.SampleTest",
         parameters=None,
         description="",
     )
@@ -141,7 +141,7 @@ def test_addTestInstance_no_id(testLibrary):
         test_instance = test_library.add_test_instance(
             version="4.0",
             repository="http://www.12345.com",
-            path="hbp_validation_framework.sample.SampleTest",
+            path="ebrains_validation_framework.sample.SampleTest",
             parameters=None,
             description="",
         )
@@ -159,7 +159,7 @@ def test_addTestInstance_invalid_id_format(testLibrary):
             test_id="abcde",
             version="5.0",
             repository="http://www.12345.com",
-            path="hbp_validation_framework.sample.SampleTest",
+            path="ebrains_validation_framework.sample.SampleTest",
             parameters=None,
             description="",
         )
@@ -174,7 +174,7 @@ def test_addTestInstance_invalid_id_value(testLibrary):
             test_id=str(uuid.uuid4()),
             version="6.0",
             repository="http://www.12345.com",
-            path="hbp_validation_framework.sample.SampleTest",
+            path="ebrains_validation_framework.sample.SampleTest",
             parameters=None,
             description="",
         )
@@ -189,7 +189,7 @@ def test_addTestInstance_duplicate_version(testLibrary, myTestID):
         test_id=test_id,
         version="7.0",
         repository="http://www.12345.com",
-        path="hbp_validation_framework.sample.SampleTest",
+        path="ebrains_validation_framework.sample.SampleTest",
         parameters=None,
         description="",
     )
@@ -199,7 +199,7 @@ def test_addTestInstance_duplicate_version(testLibrary, myTestID):
             test_id=test_id,
             version="7.0",
             repository="http://www.12345.com",
-            path="hbp_validation_framework.sample.SampleTest",
+            path="ebrains_validation_framework.sample.SampleTest",
             parameters=None,
             description="",
         )
@@ -219,13 +219,13 @@ def test_editTestInstance_valid_id(testLibrary, myTestID):
     test_instance = test_library.edit_test_instance(
         instance_id=test["instances"][0]["id"],
         repository="http://www.12345.com",
-        path="hbp_validation_framework.sample.SampleTest",
+        path="ebrains_validation_framework.sample.SampleTest",
         parameters="http://example.com/config.json",
         description="e",
     )
     assert test_instance["id"] == test["instances"][0]["id"]
     assert test_instance["repository"] == "http://www.12345.com"
-    assert test_instance["path"] == "hbp_validation_framework.sample.SampleTest"
+    assert test_instance["path"] == "ebrains_validation_framework.sample.SampleTest"
     # assert test_instance["parameters"] == "http://example.com/config.json"  # to re-enable one parameters supported in openMINDS
     assert test_instance["description"] == "e"
 
@@ -240,13 +240,13 @@ def test_editTestInstance_valid_test_version(testLibrary, myTestID):
         test_id=test_id,
         version=test["instances"][0]["version"],
         repository="https://www.12345.com",
-        path="hbp_validation_framework.sample.SampleTest",
+        path="ebrains_validation_framework.sample.SampleTest",
         parameters="http://example.com/config.yml",
         description="e",
     )
     assert test_instance["id"] == test["instances"][0]["id"]
     assert test_instance["repository"] == "https://www.12345.com"
-    assert test_instance["path"] == "hbp_validation_framework.sample.SampleTest"
+    assert test_instance["path"] == "ebrains_validation_framework.sample.SampleTest"
     # assert test_instance["parameters"] == "http://example.com/config.yml"  # to re-enable one parameters supported in openMINDS
     assert test_instance["description"] == "e"
 
@@ -261,13 +261,13 @@ def test_editTestInstance_valid_alias_version(testLibrary, myTestID):
         alias=test["alias"],
         version=test["instances"][0]["version"],
         repository="https://www.abcde.com",
-        path="hbp_validation_framework.sample.SampleTest",
+        path="ebrains_validation_framework.sample.SampleTest",
         parameters="http://example.com/config.json",
         description="e",
     )
     assert test_instance["id"] == test["instances"][0]["id"]
     assert test_instance["repository"] == "https://www.abcde.com"
-    assert test_instance["path"] == "hbp_validation_framework.sample.SampleTest"
+    assert test_instance["path"] == "ebrains_validation_framework.sample.SampleTest"
     # assert test_instance["parameters"] == "http://example.com/config.json"  # to re-enable one parameters supported in openMINDS
     assert test_instance["description"] == "e"
 
@@ -280,7 +280,7 @@ def test_editTestInstance_invalid_only_test(testLibrary, myTestID):
         test_instance = test_library.edit_test_instance(
             test_id=test_id,
             repository="https://www.abcde.com",
-            path="hbp_validation_framework.sample.SampleTest",
+            path="ebrains_validation_framework.sample.SampleTest",
             parameters="http://example.com/parameters.config",
             description="e",
         )
@@ -299,7 +299,7 @@ def test_editTestInstance_invalid_only_alias(testLibrary, myTestID):
         test_instance = test_library.edit_test_instance(
             alias=test["alias"],
             repository="https://www.abcde.com",
-            path="hbp_validation_framework.sample.SampleTest",
+            path="ebrains_validation_framework.sample.SampleTest",
             parameters="http://example.com/config.json",
             description="e",
         )
@@ -318,7 +318,7 @@ def test_editTestInstance_invalid_only_version(testLibrary, myTestID):
         test_instance = test_library.edit_test_instance(
             version=test["instances"][0]["version"],
             repository="https://www.abcde.com",
-            path="hbp_validation_framework.sample.SampleTest",
+            path="ebrains_validation_framework.sample.SampleTest",
             parameters="http://example.com/config.json",
             description="e",
         )
@@ -337,7 +337,7 @@ def test_editTestInstance_valid_change_version(testLibrary, myTestID):
         test_id=test_id,
         version="1.0_edit",
         repository="http://www.12345.com",
-        path="hbp_validation_framework.sample.SampleTest",
+        path="ebrains_validation_framework.sample.SampleTest",
         parameters=None,
         description="",
     )

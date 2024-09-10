@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from time import sleep
 
-from hbp_validation_framework import sample
+from ebrains_validation_framework import sample
 
 import pytest
 from .conftest import TESTING_COLLAB
@@ -50,7 +50,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )

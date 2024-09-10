@@ -2,7 +2,7 @@ import os
 import uuid
 from time import sleep
 
-from hbp_validation_framework import sample
+from ebrains_validation_framework import sample
 
 import pytest
 

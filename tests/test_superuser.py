@@ -3,7 +3,7 @@ import platform
 from datetime import datetime
 from time import sleep
 
-from hbp_validation_framework import ModelCatalog, TestLibrary, sample
+from ebrains_validation_framework import ModelCatalog, TestLibrary, sample
 
 import pytest
 
@@ -90,7 +90,7 @@ def test_delete_superUser(request):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )
@@ -209,7 +209,7 @@ def test_delete_normalUser(request):
             {
                 "version": "1.0",
                 "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )
