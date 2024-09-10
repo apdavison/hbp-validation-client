@@ -98,9 +98,9 @@ class BaseClient(object):
         self.environment = environment
         self.token = token
         if environment == "production":
-            self.url = "https://validation.brainsimulation.eu"
+            self.url = "https://model-validation-api.apps.ebrains.eu"
         elif environment == "staging":
-            self.url = "https://validation-staging.brainsimulation.eu"
+            raise Exception("The staging environment is not currently available")
         elif environment == "dev":
             self.url = "http://localhost:8000"
         else:
@@ -201,7 +201,6 @@ class BaseClient(object):
         if data.status_code == 200:
             return True
         else:
-            raise Exception()
             return False
 
     def _format_people_name(self, names):
@@ -303,7 +302,7 @@ class BaseClient(object):
     #               "test_type":""
     #            },
     #            "only_if_new":False,
-    #            "url":"https://validation-v1.brainsimulation.eu/parametersconfiguration-model-catalog/parametersconfigurationrest/"
+    #            "url":"https://model-validation-api.apps.ebrains.eu//parametersconfiguration-model-catalog/parametersconfigurationrest/"
     #         }
     #     """
     #     if not config_data["config"]["collab_id"]:
@@ -468,7 +467,7 @@ class TestLibrary(BaseClient):
 
             {
                 "prod": {
-                    "url": "https://validation-v1.brainsimulation.eu",
+                    "url": "https://model-validation-api.apps.ebrains.eu",
                 },
                 "dev_test": {
                     "url": "https://localhost:8000",
@@ -1696,7 +1695,8 @@ class TestLibrary(BaseClient):
             verify=self.verify,
         )
         if response.status_code == 201:
-            print("Result registered successfully!")
+            print("Result registered successfully! "
+                  f"- see https://model-catalog.apps.ebrains.eu/#result_id.{result['id']}")
             return renameNestedJSONKey(response.json(), "project_id", "collab_id")
         else:
             handle_response_error("Error registering result", response)
@@ -1797,7 +1797,7 @@ class ModelCatalog(BaseClient):
 
             {
                 "prod": {
-                    "url": "https://validation-v1.brainsimulation.eu",
+                    "url": "https://model-validation-api.apps.ebrains.eu",
                 },
                 "dev_test": {
                     "url": "https://localhost:8000",

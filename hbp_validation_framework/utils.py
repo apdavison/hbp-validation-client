@@ -960,12 +960,12 @@ def generate_HTML_report(
         )
         if show_links:
             result_url = (
-                "https://model-catalog.brainsimulation.eu/#result_id.{}".format(r_id)
+                "https://model-catalog.apps.ebrains.eu/#result_id.{}".format(r_id)
             )
-            model_url = "https://model-catalog.brainsimulation.eu/#model_id.{}".format(
+            model_url = "https://model-catalog.apps.ebrains.eu/#model_id.{}".format(
                 model["id"]
             )
-            test_url = "https://model-catalog.brainsimulation.eu/#test_id.{}".format(
+            test_url = "https://model-catalog.apps.ebrains.eu/#test_id.{}".format(
                 test["id"]
             )
             result_summary_table.append(
@@ -1360,7 +1360,7 @@ def generate_score_matrix(
         score, result_uuid = value.split("#*#")
         if show_links:
             result_url = (
-                "https://model-catalog.brainsimulation.eu/#result_id.{}".format(
+                "https://model-catalog.apps.ebrains.eu/#result_id.{}".format(
                     result_uuid
                 )
             )
