@@ -1,6 +1,6 @@
 [project]
 name = "ebrains_validation_framework"
-version = "0.9.0"
+version = "0.9.1"
 description = "Python client for the EBRAINS Validation Framework web services."
 readme = "README.md"
 authors = [
@@ -33,7 +33,7 @@ utils = ["sciunit"]
 "Homepage" = "https://github.com/HumanBrainProject/ebrains-validation-client"
 
 [tool.setuptools.packages.find]
-include = ["ebrains-validation-client*"]
+include = ["ebrains_validation_framework*"]
 
 [build-system]
  requires = [
