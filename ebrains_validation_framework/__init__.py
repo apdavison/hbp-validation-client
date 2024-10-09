@@ -35,7 +35,7 @@ except ImportError:
     have_collab_token_handler = False
 
 
-__version__ = "0.8.3.dev"
+__version__ = "0.9.0"
 
 
 TOKENFILE = os.path.expanduser("~/.ebrainstoken")

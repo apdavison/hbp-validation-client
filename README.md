@@ -5,7 +5,7 @@ Andrew Davison and Shailesh Appukuttan, CNRS, 2017-2024
 
 Documentation: http://ebrains-validation-client.readthedocs.io
 
-This package replaces "hbp-validation-client".
+The "ebrains_validation_framework" package replaces "hbp_validation_framework".
 
 Licence: BSD 3-clause, see LICENSE.txt
 
