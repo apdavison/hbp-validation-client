@@ -49,7 +49,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
         instances=[
             {
                 "version": "1.0",
-                "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
+                "repository": "https://github.com/HumanBrainProject/ebrains-validation-client.git",
                 "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],

@@ -240,7 +240,7 @@ html_theme = "nature"
 # html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "HBPValidationFramework-PythonClientdoc"
+htmlhelp_basename = "EBRAINSValidationFramework-PythonClientdoc"
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -265,7 +265,7 @@ latex_elements = {
 latex_documents = [
     (
         master_doc,
-        "HBPValidationFramework-PythonClient.tex",
+        "EBRAINSValidationFramework-PythonClient.tex",
         "EBRAINS Validation Framework - Python Client Documentation",
         "Shailesh Appukuttan",
         "manual",
@@ -312,7 +312,7 @@ latex_documents = [
 man_pages = [
     (
         master_doc,
-        "hbpvalidationframework-pythonclient",
+        "ebrainsvalidationframework-pythonclient",
         "EBRAINS Validation Framework - Python Client Documentation",
         [author],
         1,
@@ -332,10 +332,10 @@ man_pages = [
 texinfo_documents = [
     (
         master_doc,
-        "HBPValidationFramework-PythonClient",
+        "EBRAINSValidationFramework-PythonClient",
         "EBRAINS Validation Framework - Python Client Documentation",
         author,
-        "HBPValidationFramework-PythonClient",
+        "EBRAINSValidationFramework-PythonClient",
         "One line description of project.",
         "Miscellaneous",
     ),

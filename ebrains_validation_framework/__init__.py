@@ -1,5 +1,5 @@
 """
-A Python package for working with the EBRAINS / Human Brain Project Model Validation Framework.
+A Python package for working with the EBRAINS Model Validation Framework.
 
 Andrew Davison and Shailesh Appukuttan, CNRS, 2017-2024
 
@@ -38,7 +38,7 @@ except ImportError:
 __version__ = "0.8.3.dev"
 
 
-TOKENFILE = os.path.expanduser("~/.hbptoken")
+TOKENFILE = os.path.expanduser("~/.ebrainstoken")
 
 
 class ResponseError(Exception):
@@ -68,7 +68,7 @@ def renameNestedJSONKey(iterable, old_key, new_key):
     return iterable
 
 
-class HBPAuth(AuthBase):
+class EBRAINSAuth(AuthBase):
     """Attaches OIDC Bearer Authentication to the given Request object."""
 
     def __init__(self, token):
@@ -165,7 +165,7 @@ class BaseClient(object):
                 password = os.environ.get("EBRAINS_PASS")
                 if password is not None:
                     try:
-                        self._hbp_auth(username, password)
+                        self._ebrains_auth(username, password)
                     except Exception:
                         print(
                             "Authentication Failure. Possibly incorrect EBRAINS password saved in environment variable 'EBRAINS_PASS'."
@@ -175,7 +175,7 @@ class BaseClient(object):
                         # prompt for password
                         print("Please enter your EBRAINS password: ")
                         password = getpass.getpass()
-                        self._hbp_auth(username, password)
+                        self._ebrains_auth(username, password)
                     except Exception:
                         print(
                             "Authentication Failure! Password entered is possibly incorrect."
@@ -186,18 +186,18 @@ class BaseClient(object):
                 os.chmod(TOKENFILE, 0o600)
         else:
             try:
-                self._hbp_auth(username, password)
+                self._ebrains_auth(username, password)
             except Exception:
                 print("Authentication Failure! Password entered is possibly incorrect.")
                 raise
             with open(TOKENFILE, "w") as fp:
                 json.dump({username: {"access_token": self.config["access_token"]}}, fp)
             os.chmod(TOKENFILE, 0o600)
-        self.auth = HBPAuth(self.token)
+        self.auth = EBRAINSAuth(self.token)
 
     def _check_token_valid(self):
         url = "https://iam.ebrains.eu/auth/realms/hbp/protocol/openid-connect/userinfo"
-        data = requests.get(url, auth=HBPAuth(self.token), verify=self.verify)
+        data = requests.get(url, auth=EBRAINSAuth(self.token), verify=self.verify)
         if data.status_code == 200:
             return True
         else:
@@ -333,7 +333,7 @@ class BaseClient(object):
     #             else:
     #                 print("Error! App could not be reconfigured. Response = " + str(response.content))
 
-    def _hbp_auth(self, username, password):
+    def _ebrains_auth(self, username, password):
         """
         EBRAINS authentication
         """
@@ -484,7 +484,7 @@ class TestLibrary(BaseClient):
     --------
     Instantiate an instance of the TestLibrary class
 
-    >>> test_library = TestLibrary(username="<<hbp_username>>", password="<<hbp_password>>")
+    >>> test_library = TestLibrary(username="<<ebrains_username>>", password="<<ebrains_password>>")
     >>> test_library = TestLibrary(token="<<token>>")
     """
 
@@ -1591,7 +1591,7 @@ class TestLibrary(BaseClient):
         return renameNestedJSONKey(result_json, "project_id", "collab_id")
 
     def register_result(self, test_result, data_store=None, collab_id=None):
-        """Register test result with HBP Validation Results Service.
+        """Register test result with EBRAINS Validation Results Service.
 
         The score of a test, along with related output data such as figures,
         can be registered on the validation framework.
@@ -1815,7 +1815,7 @@ class ModelCatalog(BaseClient):
     --------
     Instantiate an instance of the ModelCatalog class
 
-    >>> model_catalog = ModelCatalog(username="<<hbp_username>>", password="<<hbp_password>>")
+    >>> model_catalog = ModelCatalog(username="<<ebrains_username>>", password="<<ebrains_password>>")
     >>> model_catalog = ModelCatalog(token="<<token>>")
     """
 

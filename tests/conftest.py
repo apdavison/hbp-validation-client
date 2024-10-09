@@ -131,7 +131,7 @@ def myTestID(testLibrary):
         instances=[
             {
                 "version": "1.0",
-                "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
+                "repository": "https://github.com/HumanBrainProject/ebrains-validation-client.git",
                 "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
@@ -182,7 +182,7 @@ def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
         instances=[
             {
                 "version": "1.0",
-                "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
+                "repository": "https://github.com/HumanBrainProject/ebrains-validation-client.git",
                 "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
