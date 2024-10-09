@@ -1,6 +1,6 @@
-===========================================================
-EBRAINS Validation Framework - Python Client: Documentation
-===========================================================
+============================================
+EBRAINS Validation Framework - Python Client
+============================================
 
 .. toctree::
    :maxdepth: 2

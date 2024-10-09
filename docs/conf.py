@@ -126,7 +126,7 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "nature"
+html_theme = "sphinx_rtd_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -140,7 +140,7 @@ html_theme = "nature"
 # The name for this set of Sphinx documents.
 # "<project> v<release> documentation" by default.
 #
-# html_title = u'EBRAINS Validation Framework - Python Client v0.1'
+html_title = "EBRAINS Validation Framework - Python client"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #
