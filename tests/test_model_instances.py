@@ -17,9 +17,7 @@ def test_getModelInstance_valid_id(modelCatalog, myModelID):
     model_id = myModelID
     sleep(10)
     model = model_catalog.get_model(model_id=model_id)
-    model_instance = model_catalog.get_model_instance(
-        instance_id=model["instances"][0]["id"]
-    )
+    model_instance = model_catalog.get_model_instance(instance_id=model["instances"][0]["id"])
     assert model_instance["id"] == model["instances"][0]["id"]
 
 
@@ -29,9 +27,7 @@ def test_getModelInstance_valid_model_version(modelCatalog, myModelID):
     model_id = myModelID
     sleep(10)
     model = model_catalog.get_model(model_id=model_id)
-    model_instance = model_catalog.get_model_instance(
-        model_id=model_id, version=model["instances"][0]["version"]
-    )
+    model_instance = model_catalog.get_model_instance(model_id=model_id, version=model["instances"][0]["version"])
     assert model_instance["id"] == model["instances"][0]["id"]
 
 
@@ -41,9 +37,7 @@ def test_getModelInstance_valid_alias_version(modelCatalog, myModelID):
     model_id = myModelID
     sleep(30)
     model = model_catalog.get_model(model_id=model_id)
-    model_instance = model_catalog.get_model_instance(
-        alias=model["alias"], version=model["instances"][0]["version"]
-    )
+    model_instance = model_catalog.get_model_instance(alias=model["alias"], version=model["instances"][0]["version"])
     assert model_instance["id"] == model["instances"][0]["id"]
 
 
@@ -78,9 +72,7 @@ def test_getModelInstance_invalid_only_version(modelCatalog, myModelID):
     model_id = myModelID
     model = model_catalog.get_model(model_id=model_id)
     with pytest.raises(Exception) as excinfo:
-        model_instance = model_catalog.get_model_instance(
-            version=model["instances"][0]["version"]
-        )
+        model_instance = model_catalog.get_model_instance(version=model["instances"][0]["version"])
     assert (
         str(excinfo.value)
         == "instance_path or instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance."
@@ -118,10 +110,7 @@ def test_listModelInstances_invalid_noInput(modelCatalog):
     model_catalog = modelCatalog
     with pytest.raises(Exception) as excinfo:
         model_instances = model_catalog.list_model_instances()
-    assert (
-        str(excinfo.value)
-        == "instance_path or model_id or alias needs to be provided for finding model instances."
-    )
+    assert str(excinfo.value) == "instance_path or model_id or alias needs to be provided for finding model instances."
 
 
 """
@@ -159,10 +148,7 @@ def test_addModelInstance_no_id(modelCatalog):
             # morphology="",
             description="",
         )
-    assert (
-        str(excinfo.value)
-        == "model_id or alias needs to be provided for finding the model."
-    )
+    assert str(excinfo.value) == "model_id or alias needs to be provided for finding the model."
 
 
 # 3.3) With invalid model_id format
@@ -375,9 +361,7 @@ def test_editModelInstance_valid_change_version(modelCatalog, myModelID):
     sleep(20)
     model = model_catalog.get_model(model_id=model_id)
     model_instance = model_catalog.get_model_instance(model_id=model_id, version="1.0a")
-    model_instance = model_catalog.edit_model_instance(
-        instance_id=model_instance["id"], version="a.1"
-    )
+    model_instance = model_catalog.edit_model_instance(instance_id=model_instance["id"], version="a.1")
     assert "1.0a" not in [i["id"] for i in model["instances"]]
 
 
@@ -392,9 +376,7 @@ def test_downloadModelInstance_valid_id_cscs(modelCatalog, myModelID):
     model_catalog = modelCatalog
     model_id = myModelID
     model_instance = model_catalog.get_model_instance(model_id=model_id, version="2.0a")
-    file_path = model_catalog.download_model_instance(
-        instance_id=model_instance["id"], overwrite=True
-    )
+    file_path = model_catalog.download_model_instance(instance_id=model_instance["id"], overwrite=True)
     assert os.path.isfile(file_path)
 
 
@@ -404,9 +386,7 @@ def test_downloadModelInstance_valid_id_collab(modelCatalog, myModelID):
     model_catalog = modelCatalog
     model_id = myModelID
     model_instance = model_catalog.get_model_instance(model_id=model_id, version="2.0a")
-    file_path = model_catalog.download_model_instance(
-        instance_id=model_instance["id"], overwrite=True
-    )
+    file_path = model_catalog.download_model_instance(instance_id=model_instance["id"], overwrite=True)
     assert os.path.isfile(file_path)
 
 
@@ -426,9 +406,7 @@ def test_downloadModelInstance_valid_id_directory(modelCatalog, myModelID):
 def test_downloadModelInstance_valid_model_version(modelCatalog, myModelID):
     model_catalog = modelCatalog
     model_id = myModelID
-    file_path = model_catalog.download_model_instance(
-        model_id=model_id, version="2.0a", overwrite=True
-    )
+    file_path = model_catalog.download_model_instance(model_id=model_id, version="2.0a", overwrite=True)
     assert os.path.isfile(file_path)
 
 
@@ -437,9 +415,7 @@ def test_downloadModelInstance_valid_alias_version(modelCatalog, myModelID):
     model_catalog = modelCatalog
     model_id = myModelID
     model = model_catalog.get_model(model_id=model_id)
-    file_path = model_catalog.download_model_instance(
-        alias=model["alias"], version="2.0a", overwrite=True
-    )
+    file_path = model_catalog.download_model_instance(alias=model["alias"], version="2.0a", overwrite=True)
     assert os.path.isfile(file_path)
 
 
@@ -462,9 +438,7 @@ def test_findCreateModelInstance_valid_exist_modelID_version(modelCatalog, myMod
     model_catalog = modelCatalog
     model_id = myModelID
     model = model_catalog.get_model(model_id=model_id)
-    test_model = sample.SampleModel(
-        model_uuid=model_id, model_version=model["instances"][0]["version"]
-    )
+    test_model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"])
     model_instance = model_catalog.find_model_instance_else_add(test_model)
     assert isinstance(uuid.UUID(model_instance["id"], version=4), uuid.UUID)
 
@@ -473,8 +447,6 @@ def test_findCreateModelInstance_valid_create(modelCatalog, myModelID):
     model_catalog = modelCatalog
     model_id = myModelID
     model = model_catalog.get_model(model_id=model_id)
-    test_model = sample.SampleModel(
-        model_uuid=model_id, model_version=model["instances"][0]["version"] + "_new"
-    )
+    test_model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"] + "_new")
     model_instance = model_catalog.find_model_instance_else_add(test_model)
     assert isinstance(uuid.UUID(model_instance["id"], version=4), uuid.UUID)

@@ -14,9 +14,7 @@ def test_getTestInstance_valid_id(testLibrary, myTestID):
     test_id = myTestID
     sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
-    test_instance = test_library.get_test_instance(
-        instance_id=test["instances"][0]["id"]
-    )
+    test_instance = test_library.get_test_instance(instance_id=test["instances"][0]["id"])
     assert test_instance["id"] == test["instances"][0]["id"]
 
 
@@ -26,9 +24,7 @@ def test_getTestInstance_valid_test_version(testLibrary, myTestID):
     test_id = myTestID
     sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
-    test_instance = test_library.get_test_instance(
-        test_id=test_id, version=test["instances"][0]["version"]
-    )
+    test_instance = test_library.get_test_instance(test_id=test_id, version=test["instances"][0]["version"])
     assert test_instance["id"] == test["instances"][0]["id"]
 
 
@@ -38,9 +34,7 @@ def test_getTestInstance_valid_alias_version(testLibrary, myTestID):
     test_id = myTestID
     sleep(20)
     test = test_library.get_test_definition(test_id=test_id)
-    test_instance = test_library.get_test_instance(
-        alias=test["alias"], version=test["instances"][0]["version"]
-    )
+    test_instance = test_library.get_test_instance(alias=test["alias"], version=test["instances"][0]["version"])
     assert test_instance["id"] == test["instances"][0]["id"]
 
 
@@ -68,9 +62,7 @@ def test_getTestInstance_invalid_only_version(testLibrary, myTestID):
     test_id = myTestID
     test = test_library.get_test_definition(test_id=test_id)
     with pytest.raises(Exception) as excinfo:
-        test_instance = test_library.get_test_instance(
-            version=test["instances"][0]["version"]
-        )
+        test_instance = test_library.get_test_instance(version=test["instances"][0]["version"])
     assert (
         str(excinfo.value)
         == "instance_path or instance_id or test_id or alias needs to be provided for finding a test instance."
@@ -108,10 +100,7 @@ def test_listTestInstances_invalid_noInput(testLibrary):
     test_library = testLibrary
     with pytest.raises(Exception) as excinfo:
         test_instances = test_library.list_test_instances()
-    assert (
-        str(excinfo.value)
-        == "instance_path or test_id or alias needs to be provided for finding test instances."
-    )
+    assert str(excinfo.value) == "instance_path or test_id or alias needs to be provided for finding test instances."
 
 
 """
@@ -145,10 +134,7 @@ def test_addTestInstance_no_id(testLibrary):
             parameters=None,
             description="",
         )
-    assert (
-        str(excinfo.value)
-        == "test_id or alias needs to be provided for finding the test."
-    )
+    assert str(excinfo.value) == "test_id or alias needs to be provided for finding the test."
 
 
 # 3.3) With invalid test_id format
@@ -341,9 +327,7 @@ def test_editTestInstance_valid_change_version(testLibrary, myTestID):
         parameters=None,
         description="",
     )
-    test_instance = test_library.edit_test_instance(
-        instance_id=test_instance["id"], version="a.1_edit"
-    )
+    test_instance = test_library.edit_test_instance(instance_id=test_instance["id"], version="a.1_edit")
     sleep(20)
     test_instances = test_library.list_test_instances(test_id=test_id)
     assert "1.0_edit" not in [i["version"] for i in test_instances] and "a.1_edit" in [

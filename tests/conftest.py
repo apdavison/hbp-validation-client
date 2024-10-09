@@ -154,9 +154,7 @@ def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
     test_id = myTestID
     sleep(20)
     model = model_catalog.get_model(model_id=model_id)
-    model = sample.SampleModel(
-        model_uuid=model_id, model_version=model["instances"][0]["version"]
-    )
+    model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"])
 
     test_name = "Test_{}_{}_py{}_getValTest_1".format(
         datetime.now().strftime("%Y%m%d-%H%M%S"),
@@ -193,9 +191,7 @@ def myResultID(modelCatalog, testLibrary, myModelID, myTestID):
     score = test.judge(model)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
-    result = test_library.register_result(
-        score, collab_id=TESTING_COLLAB
-    )  # Collab ID for testing
+    result = test_library.register_result(score, collab_id=TESTING_COLLAB)  # Collab ID for testing
     return result["id"]
 
 
@@ -215,10 +211,7 @@ def _delete_test_data(session):
         )
     models = model_catalog.list_models(collab_id=TESTING_COLLAB, author="Tester")
     for model in models:
-        if (
-            "IGNORE - Test Model - " in model["name"]
-            or "TestModel API v2" in model["name"]
-        ):
+        if "IGNORE - Test Model - " in model["name"] or "TestModel API v2" in model["name"]:
             model_catalog.delete_model(model["id"])
     test_library = TestLibrary.from_existing(model_catalog)
     tests = test_library.list_tests(author="Tester")

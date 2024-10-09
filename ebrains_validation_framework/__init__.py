@@ -90,9 +90,7 @@ class BaseClient(object):
 
     __test__ = False
 
-    def __init__(
-        self, username=None, password=None, environment="production", token=None
-    ):
+    def __init__(self, username=None, password=None, environment="production", token=None):
         self.username = username
         self.verify = True
         self.environment = environment
@@ -124,9 +122,7 @@ class BaseClient(object):
                             )
                         )
             else:
-                raise IOError(
-                    "Cannot load environment info: config.json not found in the current directory."
-                )
+                raise IOError("Cannot load environment info: config.json not found in the current directory.")
         if self.token:
             pass
         elif password is None:
@@ -148,9 +144,7 @@ class BaseClient(object):
                                 )
                                 self.token = None
                         else:
-                            print(
-                                f"EBRAINS authentication token file not having required JSON data. data = {data}"
-                            )
+                            print(f"EBRAINS authentication token file not having required JSON data. data = {data}")
                 else:
                     print("Authentication token file found, but you have not provided your username.")
             else:
@@ -177,9 +171,7 @@ class BaseClient(object):
                         password = getpass.getpass()
                         self._ebrains_auth(username, password)
                     except Exception:
-                        print(
-                            "Authentication Failure! Password entered is possibly incorrect."
-                        )
+                        print("Authentication Failure! Password entered is possibly incorrect.")
                         raise
                 with open(TOKENFILE, "w") as fp:
                     json.dump({username: {"access_token": self.config["access_token"]}}, fp)
@@ -215,18 +207,14 @@ class BaseClient(object):
             ):
                 return names
             else:
-                raise ValueError(
-                    "Name input as list but without required keys: given_name, family_name"
-                )
+                raise ValueError("Name input as list but without required keys: given_name, family_name")
 
         # dict input - single person
         if isinstance(names, dict):
             if "given_name" in names.keys() and "family_name" in names.keys():
                 return [names]
             else:
-                raise ValueError(
-                    "Name input as dict but without required keys: given_name, family_name"
-                )
+                raise ValueError("Name input as dict but without required keys: given_name, family_name")
 
         # string input - multiple persons
         output_names_list = []
@@ -236,9 +224,7 @@ class BaseClient(object):
                 parsed_name = HumanName(name.strip())
                 output_names_list.append(
                     {
-                        "given_name": " ".join(
-                            filter(None, [parsed_name.first, parsed_name.middle])
-                        ),
+                        "given_name": " ".join(filter(None, [parsed_name.first, parsed_name.middle])),
                         "family_name": parsed_name.last,
                     }
                 )
@@ -343,18 +329,14 @@ class BaseClient(object):
         r_login = session.get(self.url + "/login", allow_redirects=False)
         if r_login.status_code != 302:
             raise Exception(
-                "Something went wrong. Status code {} from login, expected 302".format(
-                    r_login.status_code
-                )
+                "Something went wrong. Status code {} from login, expected 302".format(r_login.status_code)
             )
         # redirects to EBRAINS IAM log-in page
         iam_auth_url = r_login.headers.get("location")
         r_iam1 = session.get(iam_auth_url, allow_redirects=False)
         if r_iam1.status_code != 200:
             raise Exception(
-                "Something went wrong loading EBRAINS log-in page. Status code {}".format(
-                    r_iam1.status_code
-                )
+                "Something went wrong loading EBRAINS log-in page. Status code {}".format(r_iam1.status_code)
             )
         # fill-in and submit form
         match = re.search(r"action=\"(?P<url>[^\"]+)\"", r_iam1.text)
@@ -376,9 +358,7 @@ class BaseClient(object):
                 raise Exception("Invalid username or password")
 
             raise Exception(
-                "Something went wrong. Status code {} from authenticate, expected 302".format(
-                    r_iam2.status_code
-                )
+                "Something went wrong. Status code {} from authenticate, expected 302".format(r_iam2.status_code)
             )
         # redirects either to "grant permissions" page or back to model validation service
         if r_iam2.headers["Location"].startswith("https://iam.ebrains.eu"):
@@ -391,9 +371,7 @@ class BaseClient(object):
         r_val = session.get(r_iam2.headers["Location"])
         if r_val.status_code != 200:
             raise Exception(
-                "Something went wrong. Status code {} from final authentication step".format(
-                    r_val.status_code
-                )
+                "Something went wrong. Status code {} from final authentication step".format(r_val.status_code)
             )
         config = r_val.json()
         self.token = config["access_token"]
@@ -414,11 +392,7 @@ class BaseClient(object):
         elif param in valid_params:
             url = self.url + "/vocab/" + param.replace("_", "-") + "/"
         else:
-            raise Exception(
-                "Specified attribute '{}' is invalid. Valid attributes: {}".format(
-                    param, valid_params
-                )
-            )
+            raise Exception("Specified attribute '{}' is invalid. Valid attributes: {}".format(param, valid_params))
         return requests.get(url, auth=self.auth, verify=self.verify).json()
 
     def api_info(self):
@@ -490,9 +464,7 @@ class TestLibrary(BaseClient):
 
     __test__ = False
 
-    def __init__(
-        self, username=None, password=None, environment="production", token=None
-    ):
+    def __init__(self, username=None, password=None, environment="production", token=None):
         super(TestLibrary, self).__init__(username, password, environment, token)
         self._set_app_info()
 
@@ -552,9 +524,7 @@ class TestLibrary(BaseClient):
         """
 
         if test_path == "" and test_id == "" and alias == "":
-            raise Exception(
-                "test_path or test_id or alias needs to be provided for finding a test."
-            )
+            raise Exception("test_path or test_id or alias needs to be provided for finding a test.")
         if test_path:
             if os.path.isfile(test_path):
                 # test_path is a local path
@@ -644,12 +614,8 @@ class TestLibrary(BaseClient):
                     test_path=test_path, test_id=test_id
                 )  # test_path added just to maintain order of priority
             else:
-                test_json = self.get_test_definition(
-                    test_path=test_path, test_id=test_id, alias=alias
-                )
-                test_id = test_json[
-                    "id"
-                ]  # in case test_id was not input for specifying test
+                test_json = self.get_test_definition(test_path=test_path, test_id=test_id, alias=alias)
+                test_id = test_json["id"]  # in case test_id was not input for specifying test
                 test_instance_json = self.get_test_instance(
                     instance_path=instance_path,
                     instance_id=instance_id,
@@ -676,17 +642,13 @@ class TestLibrary(BaseClient):
             if response.status_code == 200:
                 all_parameters = response.json()
             else:
-                raise Exception(
-                    f"Unable to retrieve parameter file at {test_instance_json['parameters']}"
-                )
+                raise Exception(f"Unable to retrieve parameter file at {test_instance_json['parameters']}")
         else:
             all_parameters = {}
         all_parameters.update(params)
 
         # Create the :class:`sciunit.Test` instance
-        test_instance = test_cls(
-            observation=observation_data, name=test_json["name"], **all_parameters
-        )
+        test_instance = test_cls(observation=observation_data, name=test_json["name"], **all_parameters)
         test_instance.uuid = test_instance_json["id"]
         return test_instance
 
@@ -752,14 +714,7 @@ class TestLibrary(BaseClient):
                 )
 
         url = self.url + "/tests/"
-        url += (
-            "?"
-            + urlencode(params, doseq=True)
-            + "&size="
-            + str(size)
-            + "&from_index="
-            + str(from_index)
-        )
+        url += "?" + urlencode(params, doseq=True) + "&size=" + str(size) + "&from_index=" + str(from_index)
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code != 200:
             handle_response_error("Error listing tests", response)
@@ -1037,9 +992,7 @@ class TestLibrary(BaseClient):
             test_data["author"] = self._format_people_name(test_data["author"])
 
         # 'data_location' is now a list of urls
-        if "data_location" in test_data and not isinstance(
-            test_data["data_location"], list
-        ):
+        if "data_location" in test_data and not isinstance(test_data["data_location"], list):
             test_data["data_location"] = [test_data["data_location"]]
 
         url = self.url + "/tests/" + test_id
@@ -1083,9 +1036,7 @@ class TestLibrary(BaseClient):
         """
 
         if test_id == "" and alias == "":
-            raise Exception(
-                "test ID or alias needs to be provided for deleting a test."
-            )
+            raise Exception("test ID or alias needs to be provided for deleting a test.")
         elif test_id != "":
             url = self.url + "/tests/" + test_id
         else:
@@ -1097,9 +1048,7 @@ class TestLibrary(BaseClient):
         elif test_json.status_code != 200:
             handle_response_error("Error in deleting test", test_json)
 
-    def get_test_instance(
-        self, instance_path="", instance_id="", test_id="", alias="", version=""
-    ):
+    def get_test_instance(self, instance_path="", instance_id="", test_id="", alias="", version=""):
         """Retrieve a specific test instance definition from the test library.
 
         A specific test instance can be retrieved
@@ -1155,13 +1104,7 @@ class TestLibrary(BaseClient):
             elif test_id and version:
                 url = self.url + "/tests/" + test_id + "/instances/?version=" + version
             elif alias and version:
-                url = (
-                    self.url
-                    + "/tests/"
-                    + quote(str(alias))
-                    + "/instances/?version="
-                    + version
-                )
+                url = self.url + "/tests/" + quote(str(alias)) + "/instances/?version=" + version
             elif test_id and not version:
                 url = self.url + "/tests/" + test_id + "/instances/latest"
             else:
@@ -1209,9 +1152,7 @@ class TestLibrary(BaseClient):
         """
 
         if instance_path == "" and test_id == "" and alias == "":
-            raise Exception(
-                "instance_path or test_id or alias needs to be provided for finding test instances."
-            )
+            raise Exception("instance_path or test_id or alias needs to be provided for finding test instances.")
         if instance_path and os.path.isfile(instance_path):
             # instance_path is a local path
             with open(instance_path) as fp:
@@ -1220,9 +1161,7 @@ class TestLibrary(BaseClient):
             if test_id:
                 url = self.url + "/tests/" + test_id + "/instances/?size=100000"
             else:
-                url = (
-                    self.url + "/tests/" + quote(str(alias)) + "/instances/?size=100000"
-                )
+                url = self.url + "/tests/" + quote(str(alias)) + "/instances/?size=100000"
             response = requests.get(url, auth=self.auth, verify=self.verify)
 
         if response.status_code != 200:
@@ -1284,9 +1223,7 @@ class TestLibrary(BaseClient):
 
         test_id = test_id or alias
         if not test_id:
-            raise Exception(
-                "test_id or alias needs to be provided for finding the test."
-            )
+            raise Exception("test_id or alias needs to be provided for finding the test.")
         else:
             url = self.url + "/tests/" + quote(str(test_id)) + "/instances/"
 
@@ -1376,13 +1313,7 @@ class TestLibrary(BaseClient):
         if instance_id:
             url = self.url + "/tests/query/instances/" + instance_id
         else:
-            url = (
-                self.url
-                + "/tests/"
-                + test_identifier
-                + "/instances/?version="
-                + version
-            )
+            url = self.url + "/tests/" + test_identifier + "/instances/?version=" + version
             response0 = requests.get(url, auth=self.auth, verify=self.verify)
             if response0.status_code != 200:
                 raise Exception("Invalid test identifier and/or version")
@@ -1536,9 +1467,7 @@ class TestLibrary(BaseClient):
         """
 
         if not result_id:
-            raise Exception(
-                "result_id needs to be provided for finding a specific result."
-            )
+            raise Exception("result_id needs to be provided for finding a specific result.")
         else:
             url = self.url + "/results/" + result_id
         response = requests.get(url, auth=self.auth, verify=self.verify)
@@ -1576,14 +1505,7 @@ class TestLibrary(BaseClient):
         """
 
         url = self.url + "/results/"
-        url += (
-            "?"
-            + urlencode(filters, doseq=True)
-            + "&size="
-            + str(size)
-            + "&from_index="
-            + str(from_index)
-        )
+        url += "?" + urlencode(filters, doseq=True) + "&size=" + str(size) + "&from_index=" + str(from_index)
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code != 200:
             handle_response_error("Error in retrieving results", response)
@@ -1634,21 +1556,15 @@ class TestLibrary(BaseClient):
             if collab_id is None and data_store:
                 collab_id = data_store.collab_id
         if collab_id is None:
-            raise Exception(
-                "Don't know where to register this result. Please specify `collab_id`!"
-            )
+            raise Exception("Don't know where to register this result. Please specify `collab_id`!")
 
         model_catalog = ModelCatalog.from_existing(self)
-        model_instance_uuid = model_catalog.find_model_instance_else_add(
-            test_result.model
-        )["id"]
+        model_instance_uuid = model_catalog.find_model_instance_else_add(test_result.model)["id"]
 
         results_storage = []
         if data_store:
             if not data_store.authorized:
-                data_store.authorize(
-                    self.auth
-                )  # relies on data store using EBRAINS authorization
+                data_store.authorize(self.auth)  # relies on data store using EBRAINS authorization
                 # if this is not the case, need to authenticate/authorize
                 # the data store before passing to `register()`
             if data_store.collab_id is None:
@@ -1668,23 +1584,11 @@ class TestLibrary(BaseClient):
             "model_instance_id": model_instance_uuid,
             "test_instance_id": test_result.test.uuid,
             "results_storage": results_storage,
-            "score": (
-                int(test_result.score)
-                if isinstance(test_result.score, bool)
-                else test_result.score
-            ),
-            "passed": (
-                None
-                if "passed" not in test_result.related_data
-                else test_result.related_data["passed"]
-            ),
+            "score": (int(test_result.score) if isinstance(test_result.score, bool) else test_result.score),
+            "passed": (None if "passed" not in test_result.related_data else test_result.related_data["passed"]),
             "timestamp": timestamp.isoformat(),
             "project_id": collab_id,
-            "normalized_score": (
-                int(test_result.score)
-                if isinstance(test_result.score, bool)
-                else test_result.score
-            ),
+            "normalized_score": (int(test_result.score) if isinstance(test_result.score, bool) else test_result.score),
         }
 
         headers = {"Content-type": "application/json"}
@@ -1697,8 +1601,10 @@ class TestLibrary(BaseClient):
         )
         if response.status_code == 201:
             result = response.json()
-            print("Result registered successfully! "
-                  f"- see https://model-catalog.apps.ebrains.eu/#result_id.{result['id']}")
+            print(
+                "Result registered successfully! "
+                f"- see https://model-catalog.apps.ebrains.eu/#result_id.{result['id']}"
+            )
             return renameNestedJSONKey(result, "project_id", "collab_id")
         else:
             handle_response_error("Error registering result", response)
@@ -1724,16 +1630,12 @@ class TestLibrary(BaseClient):
         """
 
         if not result_id:
-            raise Exception(
-                "result_id needs to be provided for finding a specific result."
-            )
+            raise Exception("result_id needs to be provided for finding a specific result.")
         else:
             url = self.url + "/results/" + result_id
         model_image_json = requests.delete(url, auth=self.auth, verify=self.verify)
         if model_image_json.status_code == 403:
-            handle_response_error(
-                "Only SuperUser accounts can delete data", model_image_json
-            )
+            handle_response_error("Only SuperUser accounts can delete data", model_image_json)
         elif model_image_json.status_code != 200:
             handle_response_error("Error in deleting result", model_image_json)
 
@@ -1821,9 +1723,7 @@ class ModelCatalog(BaseClient):
 
     __test__ = False
 
-    def __init__(
-        self, username=None, password=None, environment="production", token=None
-    ):
+    def __init__(self, username=None, password=None, environment="production", token=None):
         super(ModelCatalog, self).__init__(username, password, environment, token)
         self._set_app_info()
 
@@ -1921,9 +1821,7 @@ class ModelCatalog(BaseClient):
         """
 
         if model_id == "" and alias == "":
-            raise Exception(
-                "Model ID or alias needs to be provided for finding a model."
-            )
+            raise Exception("Model ID or alias needs to be provided for finding a model.")
         elif model_id != "":
             url = self.url + "/models/" + model_id
         else:
@@ -2008,14 +1906,7 @@ class ModelCatalog(BaseClient):
             params["project_id"] = params.pop("collab_id")
 
         url = self.url + "/models/"
-        url += (
-            "?"
-            + urlencode(params, doseq=True)
-            + "&size="
-            + str(size)
-            + "&from_index="
-            + str(from_index)
-        )
+        url += "?" + urlencode(params, doseq=True) + "&size=" + str(size) + "&from_index=" + str(from_index)
         response = requests.get(url, auth=self.auth, verify=self.verify)
         if response.status_code == 200:
             try:
@@ -2349,9 +2240,7 @@ class ModelCatalog(BaseClient):
         """
 
         if model_id == "" and alias == "":
-            raise Exception(
-                "Model ID or alias needs to be provided for deleting a model."
-            )
+            raise Exception("Model ID or alias needs to be provided for deleting a model.")
         elif model_id != "":
             url = self.url + "/models/" + model_id
         else:
@@ -2402,9 +2291,7 @@ class ModelCatalog(BaseClient):
         ]
         return self._get_attribute_options(param, valid_params)
 
-    def get_model_instance(
-        self, instance_path="", instance_id="", model_id="", alias="", version=""
-    ):
+    def get_model_instance(self, instance_path="", instance_id="", model_id="", alias="", version=""):
         """Retrieve an existing model instance.
 
         A specific model instance can be retrieved
@@ -2455,22 +2342,12 @@ class ModelCatalog(BaseClient):
             if instance_id:
                 url = self.url + "/models/query/instances/" + instance_id
             elif model_id and version:
-                url = (
-                    self.url + "/models/" + model_id + "/instances/?version=" + version
-                )
+                url = self.url + "/models/" + model_id + "/instances/?version=" + version
             else:
-                url = (
-                    self.url
-                    + "/models/"
-                    + quote(str(alias))
-                    + "/instances/?version="
-                    + version
-                )
+                url = self.url + "/models/" + quote(str(alias)) + "/instances/?version=" + version
             model_instance_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_instance_json.status_code != 200:
-            handle_response_error(
-                "Error in retrieving model instance", model_instance_json
-            )
+            handle_response_error("Error in retrieving model instance", model_instance_json)
         model_instance_json = model_instance_json.json()
         # if specifying a version, this can return multiple instances, since instances
         # can have the same version but different parameters
@@ -2545,19 +2422,13 @@ class ModelCatalog(BaseClient):
         if "drive.ebrains.eu/lib/" in model_source:
             # ***** Handles Collab storage urls *****
             repo_id = model_source.split("drive.ebrains.eu/lib/")[1].split("/")[0]
-            model_path = "/" + "/".join(
-                model_source.split("drive.ebrains.eu/lib/")[1].split("/")[2:]
-            )
+            model_path = "/" + "/".join(model_source.split("drive.ebrains.eu/lib/")[1].split("/")[2:])
             datastore = URI_SCHEME_MAP["collab_v2"](collab_id=repo_id, auth=self.auth)
-            fileList = datastore.download_data(
-                model_path, local_directory=local_directory, overwrite=overwrite
-            )
+            fileList = datastore.download_data(model_path, local_directory=local_directory, overwrite=overwrite)
         elif model_source.startswith("swift://cscs.ch/"):
             # ***** Handles CSCS private urls *****
             datastore = URI_SCHEME_MAP["swift"]()
-            fileList = datastore.download_data(
-                str(model_source), local_directory=local_directory, overwrite=overwrite
-            )
+            fileList = datastore.download_data(str(model_source), local_directory=local_directory, overwrite=overwrite)
         elif model_source.startswith("https://object.cscs.ch/"):
             # ***** Handles CSCS public urls (file or folder) *****
             if "?prefix" in model_source:
@@ -2579,28 +2450,20 @@ class ModelCatalog(BaseClient):
                     req = requests.get(base_source)
                     contents = req.text.split("\n")
                     files_match = [
-                        os.path.join(base_source, x)
-                        for x in contents
-                        if x.startswith(model_rel_source) and "." in x
+                        os.path.join(base_source, x) for x in contents if x.startswith(model_rel_source) and "." in x
                     ]
                     local_directory = os.path.join(local_directory, dir_name)
                     Path(local_directory).mkdir(parents=True, exist_ok=True)
                 else:
                     files_match = [model_source]
                 datastore = URI_SCHEME_MAP["http"]()
-                fileList = datastore.download_data(
-                    files_match, local_directory=local_directory, overwrite=overwrite
-                )
+                fileList = datastore.download_data(files_match, local_directory=local_directory, overwrite=overwrite)
             else:
-                raise FileNotFoundError(
-                    "Requested file/folder not found: {}".format(model_source)
-                )
+                raise FileNotFoundError("Requested file/folder not found: {}".format(model_source))
         else:
             # ***** Handles ModelDB and external urls (only file; not folder) *****
             datastore = URI_SCHEME_MAP["http"]()
-            fileList = datastore.download_data(
-                str(model_source), local_directory=local_directory, overwrite=overwrite
-            )
+            fileList = datastore.download_data(str(model_source), local_directory=local_directory, overwrite=overwrite)
 
         if len(fileList) > 0:
             flag = True
@@ -2643,9 +2506,7 @@ class ModelCatalog(BaseClient):
         """
 
         if instance_path == "" and model_id == "" and alias == "":
-            raise Exception(
-                "instance_path or model_id or alias needs to be provided for finding model instances."
-            )
+            raise Exception("instance_path or model_id or alias needs to be provided for finding model instances.")
         if instance_path and os.path.isfile(instance_path):
             # instance_path is a local path
             with open(instance_path) as fp:
@@ -2654,17 +2515,10 @@ class ModelCatalog(BaseClient):
             if model_id:
                 url = self.url + "/models/" + model_id + "/instances/?size=100000"
             else:
-                url = (
-                    self.url
-                    + "/models/"
-                    + quote(str(alias))
-                    + "/instances/?size=100000"
-                )
+                url = self.url + "/models/" + quote(str(alias)) + "/instances/?size=100000"
             model_instances_json = requests.get(url, auth=self.auth, verify=self.verify)
         if model_instances_json.status_code != 200:
-            handle_response_error(
-                "Error in retrieving model instances", model_instances_json
-            )
+            handle_response_error("Error in retrieving model instances", model_instances_json)
         model_instances_json = model_instances_json.json()
         return model_instances_json
 
@@ -2736,9 +2590,7 @@ class ModelCatalog(BaseClient):
 
         model_id = model_id or alias
         if not model_id:
-            raise Exception(
-                "model_id or alias needs to be provided for finding the model."
-            )
+            raise Exception("model_id or alias needs to be provided for finding the model.")
         else:
             url = self.url + "/models/" + quote(str(model_id)) + "/instances/"
 
@@ -2783,17 +2635,13 @@ class ModelCatalog(BaseClient):
 
         if not getattr(model_obj, "model_instance_uuid", None):
             # check that the model is registered with the model registry.
-            if not hasattr(model_obj, "model_uuid") and not hasattr(
-                model_obj, "model_alias"
-            ):
+            if not hasattr(model_obj, "model_uuid") and not hasattr(model_obj, "model_alias"):
                 raise AttributeError(
                     "Model object does not have a 'model_uuid'/'model_alias' attribute. "
                     "Please register it with the Validation Framework and add the 'model_uuid'/'model_alias' to the model object."
                 )
             if not hasattr(model_obj, "model_version"):
-                raise AttributeError(
-                    "Model object does not have a 'model_version' attribute"
-                )
+                raise AttributeError("Model object does not have a 'model_version' attribute")
 
             model_instance = self.get_model_instance(
                 model_id=getattr(model_obj, "model_uuid", None),
@@ -2810,9 +2658,7 @@ class ModelCatalog(BaseClient):
                     parameters=getattr(model_obj, "parameters", ""),
                 )
         else:
-            model_instance = self.get_model_instance(
-                instance_id=model_obj.model_instance_uuid
-            )
+            model_instance = self.get_model_instance(instance_id=model_obj.model_instance_uuid)
         return model_instance
 
     def edit_model_instance(
@@ -2886,18 +2732,12 @@ class ModelCatalog(BaseClient):
                                                 license="BSD 3-Clause")
         """
 
-        if (
-            instance_id == ""
-            and (model_id == "" or not version)
-            and (alias == "" or not version)
-        ):
+        if instance_id == "" and (model_id == "" or not version) and (alias == "" or not version):
             raise Exception(
                 "instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance."
             )
 
-        instance_data = {
-            key: value for key, value in locals().items() if value is not None
-        }
+        instance_data = {key: value for key, value in locals().items() if value is not None}
 
         # assign existing values for parameters not specified
         if instance_id:
@@ -2930,9 +2770,7 @@ class ModelCatalog(BaseClient):
         if response.status_code == 200:
             return response.json()
         else:
-            handle_response_error(
-                "Error in editing model instance at {}".format(url), response
-            )
+            handle_response_error("Error in editing model instance at {}".format(url), response)
 
     def delete_model_instance(self, instance_id="", model_id="", alias="", version=""):
         """ONLY FOR SUPERUSERS: Delete an existing model instance.
@@ -2965,11 +2803,7 @@ class ModelCatalog(BaseClient):
         >>> model_catalog.delete_model_instance(alias="B1", version="1.0")
         """
 
-        if (
-            instance_id == ""
-            and (model_id == "" or not version)
-            and (alias == "" or not version)
-        ):
+        if instance_id == "" and (model_id == "" or not version) and (alias == "" or not version):
             raise Exception(
                 "instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance."
             )
@@ -2988,13 +2822,9 @@ class ModelCatalog(BaseClient):
             raise NotImplementedError("Need to retrieve instance to get id")
         model_instance_json = requests.delete(url, auth=self.auth, verify=self.verify)
         if model_instance_json.status_code == 403:
-            handle_response_error(
-                "Only SuperUser accounts can delete data", model_instance_json
-            )
+            handle_response_error("Only SuperUser accounts can delete data", model_instance_json)
         elif model_instance_json.status_code != 200:
-            handle_response_error(
-                "Error in deleting model instance", model_instance_json
-            )
+            handle_response_error("Error in deleting model instance", model_instance_json)
 
 
 def _get_ip_address():

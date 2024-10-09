@@ -21,9 +21,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
     test_id = myTestID
     sleep(20)
     model = model_catalog.get_model(model_id=model_id)
-    model = sample.SampleModel(
-        model_uuid=model_id, model_version=model["instances"][0]["version"]
-    )
+    model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"])
 
     test_name = "Test_{}_{}_py{}_getValTest_1".format(
         datetime.now().strftime("%Y%m%d-%H%M%S"),

@@ -17,8 +17,10 @@ def generate_for_version(version):  # e.g. version="0.9.0"
     with open("./authors.json") as fp:
         authors = json.load(fp)
 
-    if pypi_metadata['info']['requires_python']:
-        requirements = [f"Python {pypi_metadata['info']['requires_python']}"] + pypi_metadata["info"]["requires_dist"] or []
+    if pypi_metadata["info"]["requires_python"]:
+        requirements = [f"Python {pypi_metadata['info']['requires_python']}"] + pypi_metadata["info"][
+            "requires_dist"
+        ] or []
     else:
         requirements = None
 

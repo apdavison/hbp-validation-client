@@ -18,10 +18,7 @@ def test_getTest_none(testLibrary):
     test_library = testLibrary
     with pytest.raises(Exception) as excinfo:
         test = test_library.get_test_definition()
-    assert (
-        str(excinfo.value)
-        == "test_path or test_id or alias needs to be provided for finding a test."
-    )
+    assert str(excinfo.value) == "test_path or test_id or alias needs to be provided for finding a test."
 
 
 # 1.2) Using test_id
@@ -80,10 +77,7 @@ def test_getTest_empty_id(testLibrary):
     test_library = testLibrary
     with pytest.raises(Exception) as excinfo:
         test = test_library.get_test_definition(test_id="")
-    assert (
-        str(excinfo.value)
-        == "test_path or test_id or alias needs to be provided for finding a test."
-    )
+    assert str(excinfo.value) == "test_path or test_id or alias needs to be provided for finding a test."
 
 
 # 1.9) Using empty alias
@@ -91,10 +85,7 @@ def test_getTest_empty_alias(testLibrary):
     test_library = testLibrary
     with pytest.raises(Exception) as excinfo:
         test = test_library.get_test_definition(alias="")
-    assert (
-        str(excinfo.value)
-        == "test_path or test_id or alias needs to be provided for finding a test."
-    )
+    assert str(excinfo.value) == "test_path or test_id or alias needs to be provided for finding a test."
 
 
 """
@@ -183,9 +174,9 @@ def test_getTestValid_many(testLibrary):
     test_library = testLibrary
     with pytest.raises(TypeError) as excinfo:
         data = test_library.get_attribute_options("cell_type", "brain_region")
-    assert "takes at most 2 arguments" in str(
+    assert "takes at most 2 arguments" in str(excinfo.value) or "takes from 1 to 2 positional arguments" in str(
         excinfo.value
-    ) or "takes from 1 to 2 positional arguments" in str(excinfo.value)
+    )
 
 
 # 3.4) Invalid parameter

@@ -161,9 +161,7 @@ def prepare_run_test_offline(
         test_library = TestLibrary(username, password, environment=environment)
 
     if test_instance_id == "" and test_id == "" and test_alias == "":
-        raise Exception(
-            "test_instance_id or test_id or test_alias needs to be provided for finding test."
-        )
+        raise Exception("test_instance_id or test_id or test_alias needs to be provided for finding test.")
 
     # Gather specified test info
     test_instance_json = test_library.get_test_instance(
@@ -184,19 +182,13 @@ def prepare_run_test_offline(
         test_id,
         datetime.now().strftime("%Y%m%d-%H%M%S"),
     )
-    test_observation_paths = test_library.get_test_definition(test_id=test_id)[
-        "data_location"
-    ]
+    test_observation_paths = test_library.get_test_definition(test_id=test_id)["data_location"]
     if len(test_observation_paths) == 0:
-        raise Exception(
-            "No observation data found for test with id: {}".format(test_id)
-        )
+        raise Exception("No observation data found for test with id: {}".format(test_id))
     for test_observation_path in test_observation_paths:
         parse_result = urlparse(test_observation_path)
         datastore = URI_SCHEME_MAP[parse_result.scheme](auth=test_library.auth)
-        test_observation_file = datastore.download_data(
-            [test_observation_path], local_directory=base_folder
-        )[0]
+        test_observation_file = datastore.download_data([test_observation_path], local_directory=base_folder)[0]
 
     # Create test config required for offline execution
     test_info = {}
@@ -204,9 +196,7 @@ def prepare_run_test_offline(
     test_info["test_instance_id"] = test_instance_id
     test_info["test_instance_path"] = test_instance_path
     test_info["test_instance_parameters"] = test_instance_parameters
-    test_info["test_observation_file"] = os.path.basename(
-        os.path.realpath(test_observation_file)
-    )
+    test_info["test_observation_file"] = os.path.basename(os.path.realpath(test_observation_file))
     test_info["params"] = params
 
     # Save test info to config file
@@ -247,9 +237,7 @@ def run_test_offline(model="", test_config_file=""):
     """
 
     if not os.path.isfile(test_config_file):
-        raise Exception(
-            "'test_config_file' should direct to file describing the test configuration."
-        )
+        raise Exception("'test_config_file' should direct to file describing the test configuration.")
     base_folder = os.path.dirname(os.path.realpath(test_config_file))
 
     # Load the test info from config file
@@ -264,9 +252,7 @@ def run_test_offline(model="", test_config_file=""):
     test_cls = getattr(test_module, cls_name)
 
     # Read observation data required by test
-    with open(
-        os.path.join(base_folder, test_info["test_observation_file"]), "rb"
-    ) as file:
+    with open(os.path.join(base_folder, test_info["test_observation_file"]), "rb") as file:
         observation_data = file.read()
     content_type = mimetypes.guess_type(test_info["test_observation_file"])[0]
     if content_type == "application/json":
@@ -338,11 +324,7 @@ def run_test_offline(model="", test_config_file=""):
     test_result_file = os.path.join(
         base_folder,
         "results",
-        "result__"
-        + model.name
-        + "__"
-        + datetime.now().strftime("%Y%m%d%H%M%S")
-        + ".pkl",
+        "result__" + model.name + "__" + datetime.now().strftime("%Y%m%d%H%M%S") + ".pkl",
     )
     with open(test_result_file, "wb") as file:
         pickle.dump(score_obj, file)
@@ -407,9 +389,7 @@ def upload_test_result(
     """
 
     if not os.path.isfile(test_result_file):
-        raise Exception(
-            "'test_result_file' should direct to file containg the test result data."
-        )
+        raise Exception("'test_result_file' should direct to file containg the test result data.")
 
     # Load result info from file
     with open(test_result_file, "rb") as file:
@@ -424,9 +404,7 @@ def upload_test_result(
     else:
         model_catalog = ModelCatalog(username, password, environment=environment)
     model_instance_uuid = model_catalog.find_model_instance_else_add(score.model)["id"]
-    model_instance_json = model_catalog.get_model_instance(
-        instance_id=model_instance_uuid
-    )
+    model_instance_json = model_catalog.get_model_instance(instance_id=model_instance_uuid)
     model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
     model_host_collab_id = model_json["collab_id"]
     model_name = model_json["name"]
@@ -463,13 +441,11 @@ def upload_test_result(
             collab_id=storage_collab_id, base_folder=collab_folder, auth=test_library.auth
         )
     else:
-         collab_storage = CollabBucketDataStore(
+        collab_storage = CollabBucketDataStore(
             collab_id=storage_collab_id, base_folder=collab_folder, auth=test_library.auth
         )
 
-    response = test_library.register_result(
-        test_result=score, data_store=collab_storage
-    )
+    response = test_library.register_result(test_result=score, data_store=collab_storage)
     return response, score.score
 
 
@@ -663,16 +639,10 @@ def run_test_standalone(
         test_library = TestLibrary(username, password, environment=environment)
 
     if test_instance_id == "" and test_id == "" and test_alias == "":
-        raise Exception(
-            "test_instance_id or test_id or test_alias needs to be provided for finding test."
-        )
+        raise Exception("test_instance_id or test_id or test_alias needs to be provided for finding test.")
 
     test = test_library.get_validation_test(
-        instance_id=test_instance_id,
-        test_id=test_id,
-        alias=test_alias,
-        version=test_version,
-        **params
+        instance_id=test_instance_id, test_id=test_id, alias=test_alias, version=test_version, **params
     )
 
     # # Gather specified test info
@@ -763,9 +733,7 @@ def run_test_standalone(
     else:
         model_catalog = ModelCatalog(username, password, environment=environment)
     model_instance_uuid = model_catalog.find_model_instance_else_add(score.model)["id"]
-    model_instance_json = model_catalog.get_model_instance(
-        instance_id=model_instance_uuid
-    )
+    model_instance_json = model_catalog.get_model_instance(instance_id=model_instance_uuid)
     model_json = model_catalog.get_model(model_id=model_instance_json["model_id"])
     model_host_collab_id = model_json["collab_id"]
     model_name = model_json["name"]
@@ -803,13 +771,11 @@ def run_test_standalone(
             collab_id=storage_collab_id, base_folder=collab_folder, auth=test_library.auth
         )
     else:
-         collab_storage = CollabBucketDataStore(
+        collab_storage = CollabBucketDataStore(
             collab_id=storage_collab_id, base_folder=collab_folder, auth=test_library.auth
         )
 
-    response = test_library.register_result(
-        test_result=score, data_store=collab_storage
-    )
+    response = test_library.register_result(test_result=score, data_store=collab_storage)
     return response, score
 
 
@@ -919,9 +885,7 @@ def generate_HTML_report(
     result_list = list(collections.OrderedDict.fromkeys(result_list).keys())
 
     # utilize each result entry
-    result_summary_table = (
-        []
-    )  # list of dicts, each with 4 keys -> result_id, model_label, test_label, score
+    result_summary_table = []  # list of dicts, each with 4 keys -> result_id, model_label, test_label, score
     list_results = []
     list_models = []
     list_model_instances = []
@@ -931,12 +895,8 @@ def generate_HTML_report(
     for r_id in result_list:
         result = test_library.get_result(result_id=r_id)
         valid_result_uuids.append(r_id)
-        model_instance = model_catalog.get_model_instance(
-            instance_id=result["model_instance_id"]
-        )
-        test_instance = test_library.get_test_instance(
-            instance_id=result["test_instance_id"]
-        )
+        model_instance = model_catalog.get_model_instance(instance_id=result["model_instance_id"])
+        test_instance = test_library.get_test_instance(instance_id=result["test_instance_id"])
         model = model_catalog.get_model(model_id=model_instance["model_id"])
         test = test_library.get_test_definition(test_id=test_instance["test_id"])
 
@@ -947,27 +907,13 @@ def generate_HTML_report(
         list_test_instances.append(test_instance)
 
         model_label = (
-            (model["alias"] if model["alias"] else model["name"])
-            + " ("
-            + str(model_instance["version"])
-            + ")"
+            (model["alias"] if model["alias"] else model["name"]) + " (" + str(model_instance["version"]) + ")"
         )
-        test_label = (
-            (test["alias"] if test["alias"] else test["name"])
-            + " ("
-            + str(test_instance["version"])
-            + ")"
-        )
+        test_label = (test["alias"] if test["alias"] else test["name"]) + " (" + str(test_instance["version"]) + ")"
         if show_links:
-            result_url = (
-                "https://model-catalog.apps.ebrains.eu/#result_id.{}".format(r_id)
-            )
-            model_url = "https://model-catalog.apps.ebrains.eu/#model_id.{}".format(
-                model["id"]
-            )
-            test_url = "https://model-catalog.apps.ebrains.eu/#test_id.{}".format(
-                test["id"]
-            )
+            result_url = "https://model-catalog.apps.ebrains.eu/#result_id.{}".format(r_id)
+            model_url = "https://model-catalog.apps.ebrains.eu/#model_id.{}".format(model["id"])
+            test_url = "https://model-catalog.apps.ebrains.eu/#test_id.{}".format(test["id"])
             result_summary_table.append(
                 {
                     "result_id": (r_id, result_url),
@@ -987,13 +933,9 @@ def generate_HTML_report(
             )
 
     timestamp = datetime.now()
-    report_name = str(
-        "EBRAINS_VF_Report_" + timestamp.strftime("%Y%m%d-%H%M%S") + ".html"
-    )
+    report_name = str("EBRAINS_VF_Report_" + timestamp.strftime("%Y%m%d-%H%M%S") + ".html")
 
-    template_path = pkg_resources.resource_filename(
-        "ebrains_validation_framework", "templates/report_template.html"
-    )
+    template_path = pkg_resources.resource_filename("ebrains_validation_framework", "templates/report_template.html")
     env = Environment(loader=FileSystemLoader(os.path.dirname(template_path)))
     template = env.get_template(os.path.basename(template_path))
 
@@ -1094,9 +1036,7 @@ def generate_PDF_report(
         try:
             from bs4 import BeautifulSoup
         except ImportError:
-            print(
-                "To use 'only_results=True', please install the following package: beautifulsoup4"
-            )
+            print("To use 'only_results=True', please install the following package: beautifulsoup4")
             return
 
     valid_result_uuids = None
@@ -1120,9 +1060,7 @@ def generate_PDF_report(
         for item in html_soup.findAll("ul", {"class": "tabs"}):
             item.parent.decompose()
         # remove model and test tabs
-        for item in html_soup.findAll(
-            "div", id=lambda x: x and x.startswith(("model_", "test_"))
-        ):
+        for item in html_soup.findAll("div", id=lambda x: x and x.startswith(("model_", "test_"))):
             item.decompose()
         html_string = html_soup
 
@@ -1272,39 +1210,25 @@ def generate_score_matrix(
     model_instances_dict = collections.OrderedDict()
     test_instances_dict = collections.OrderedDict()
 
-    excluded_results = (
-        []
-    )  # not latest entry for a particular model instance and test instance combination
+    excluded_results = []  # not latest entry for a particular model instance and test instance combination
     for r_id in result_list:
         result = test_library.get_result(result_id=r_id)
-        temp_score = (
-            round(float(result["score"]), round_places)
-            if round_places
-            else result["score"]
-        )
+        temp_score = round(float(result["score"]), round_places) if round_places else result["score"]
         # '#*#' is used as separator between score and result UUID (latter used for constructing hyperlink)
         if result["test_instance_id"] in results_dict.keys():
-            if (
-                result["model_instance_id"]
-                not in results_dict[result["test_instance_id"]].keys()
-            ):
-                results_dict[result["test_instance_id"]][
-                    result["model_instance_id"]
-                ] = [result["timestamp"], str(temp_score) + "#*#" + r_id]
-            elif (
-                result["timestamp"]
-                > results_dict[result["test_instance_id"]][result["model_instance_id"]][
-                    0
+            if result["model_instance_id"] not in results_dict[result["test_instance_id"]].keys():
+                results_dict[result["test_instance_id"]][result["model_instance_id"]] = [
+                    result["timestamp"],
+                    str(temp_score) + "#*#" + r_id,
                 ]
-            ):
+            elif result["timestamp"] > results_dict[result["test_instance_id"]][result["model_instance_id"]][0]:
                 excluded_results.append(
-                    results_dict[result["test_instance_id"]][
-                        result["model_instance_id"]
-                    ][1].split("#*#")[1]
+                    results_dict[result["test_instance_id"]][result["model_instance_id"]][1].split("#*#")[1]
                 )
-                results_dict[result["test_instance_id"]][
-                    result["model_instance_id"]
-                ] = [result["timestamp"], str(temp_score) + "#*#" + r_id]
+                results_dict[result["test_instance_id"]][result["model_instance_id"]] = [
+                    result["timestamp"],
+                    str(temp_score) + "#*#" + r_id,
+                ]
             else:
                 excluded_results.append(r_id)
         else:
@@ -1359,11 +1283,7 @@ def generate_score_matrix(
             return value
         score, result_uuid = value.split("#*#")
         if show_links:
-            result_url = (
-                "https://model-catalog.apps.ebrains.eu/#result_id.{}".format(
-                    result_uuid
-                )
-            )
+            result_url = "https://model-catalog.apps.ebrains.eu/#result_id.{}".format(result_uuid)
             return '<a target="_blank" href="{}">{}</a>'.format(result_url, score)
         else:
             return score
@@ -1426,13 +1346,9 @@ def display_score_matrix_html(styled_df=None, df=None):
     """
 
     if styled_df is None and df is None:
-        raise Exception(
-            "styled_df or df needs to be provided for displaying the score matrix."
-        )
+        raise Exception("styled_df or df needs to be provided for displaying the score matrix.")
 
-    filename = "hbp_vf_score_dataframe_{}.html".format(
-        datetime.now().strftime("%Y%m%d-%H%M%S")
-    )
+    filename = "ebrains_vf_score_dataframe_{}.html".format(datetime.now().strftime("%Y%m%d-%H%M%S"))
     if styled_df:
         df = get_raw_dataframe(styled_df)
     df.to_html(filename)
