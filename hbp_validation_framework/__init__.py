@@ -244,6 +244,7 @@ class BaseClient(object):
                 )
         else:
             output_names_list.append({"given_name": "", "family_name": ""})
+
         return output_names_list
 
     # def exists_in_collab_else_create(self, collab_id):
@@ -2113,12 +2114,13 @@ class ModelCatalog(BaseClient):
                                     "version":"2.0", "parameters":""}],
                         )
         """
-
         model_data = {}
         args = locals()
 
         # handle naming difference with API: collab_id <-> project_id
         args["project_id"] = args.pop("collab_id")
+
+        required_fields = ("project_id", "name", "author", "owner")
 
         for field in [
             "project_id",
@@ -2137,6 +2139,8 @@ class ModelCatalog(BaseClient):
         ]:
             if args[field]:
                 model_data[field] = args[field]
+            elif field in required_fields:
+                raise KeyError(f"'{field}' field required")
 
         values = self.get_attribute_options()
         for field in [
@@ -2160,6 +2164,7 @@ class ModelCatalog(BaseClient):
 
         url = self.url + "/models/"
         headers = {"Content-type": "application/json"}
+
         response = requests.post(
             url,
             data=json.dumps(model_data),
