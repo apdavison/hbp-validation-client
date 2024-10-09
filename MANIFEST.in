@@ -1,6 +1,7 @@
 include setup.py
-include README.rst
+include README.md
 include LICENSE.txt
 include requirements.txt
 include ebrains_validation_framework/*.py
+include ebrains_validation_framework/templates/*.html
 recursive-include ebrains_validation_framework/jsonTreeViewer *

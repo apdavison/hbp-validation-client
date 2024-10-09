@@ -1,3 +1,0 @@
-sciunit
-requests
-ebrains-drive
