@@ -24,6 +24,9 @@ def generate_for_version(version):  # e.g. version="0.9.0"
     else:
         requirements = None
 
+    for url in pypi_metadata["urls"]:
+        if url["url"].endswith(".tar.gz"):
+            download_url = url["url"]
     return {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "@type": "SoftwareSourceCode",
@@ -31,7 +34,7 @@ def generate_for_version(version):  # e.g. version="0.9.0"
         "codeRepository": "https://github.com/HumanBrainProject/ebrains-validation-client",
         # "contIntegration": "https://gitlab.ebrains.eu/model-validation/todo",
         "dateModified": date_parser.parse(pypi_metadata["urls"][0]["upload_time"]).date().isoformat(),
-        "downloadUrl": pypi_metadata["urls"][0]["url"],
+        "downloadUrl": download_url,
         "issueTracker": "https://github.com/HumanBrainProject/ebrains-validation-client/issues",
         "name": "ebrains-validation-framework",
         "version": version,
