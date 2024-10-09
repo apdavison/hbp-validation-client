@@ -1,0 +1,46 @@
+[project]
+name = "ebrains_validation_framework"
+version = "0.9.1"
+description = "Python client for the EBRAINS Validation Framework web services."
+readme = "README.md"
+authors = [
+    { name="Andrew P. Davison", email="andrew.davison@cnrs.fr" },
+    { name="Shailesh Appukuttan", email="appukuttan.shailesh@gmail.com" }
+]
+requires-python = ">=3.8"
+license = {text = "BSD-3-Clause"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3"
+]
+keywords = ["ebrains", "hbp", "model validation"]
+dependencies=[
+    "requests", "nameparser", "ebrains_drive"
+]
+
+[project.optional-dependencies]
+
+reports = [
+    "Jinja2", "pyppdf", "beautifulsoup4", "hbp_archive"
+]
+
+utils = ["sciunit"]
+
+[project.urls]
+"Homepage" = "https://github.com/HumanBrainProject/ebrains-validation-client"
+
+[tool.setuptools.packages.find]
+include = ["ebrains_validation_framework*"]
+
+[build-system]
+ requires = [
+     "setuptools",
+     "wheel",
+ ]
+ build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 119

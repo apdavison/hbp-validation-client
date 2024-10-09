@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from time import sleep
 
-from hbp_validation_framework import sample
+from ebrains_validation_framework import sample
 
 import pytest
 from .conftest import TESTING_COLLAB
@@ -21,9 +21,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
     test_id = myTestID
     sleep(20)
     model = model_catalog.get_model(model_id=model_id)
-    model = sample.SampleModel(
-        model_uuid=model_id, model_version=model["instances"][0]["version"]
-    )
+    model = sample.SampleModel(model_uuid=model_id, model_version=model["instances"][0]["version"])
 
     test_name = "Test_{}_{}_py{}_getValTest_1".format(
         datetime.now().strftime("%Y%m%d-%H%M%S"),
@@ -49,8 +47,8 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
         instances=[
             {
                 "version": "1.0",
-                "repository": "https://github.com/HumanBrainProject/hbp-validation-client.git",
-                "path": "hbp_validation_framework.sample.SampleTest",
+                "repository": "https://github.com/HumanBrainProject/ebrains-validation-client.git",
+                "path": "ebrains_validation_framework.sample.SampleTest",
             }
         ],
     )
@@ -62,7 +60,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
 
-    result = test_library.register_result(score, collab_id="model-validation")
+    result = test_library.register_result(score, collab_id=TESTING_COLLAB)
     assert isinstance(uuid.UUID(result["id"], version=4), uuid.UUID)
 
 
@@ -95,9 +93,6 @@ def test_list_results_valid(testLibrary, myTestID, myResultID):
 
 # 3.2) No filters
 # because it takes too long to get all results, fetch first 10 and test 'size' parameter
-@pytest.mark.xfail(
-    reason="can fail because of https://github.com/HumanBrainProject/hbp-validation-framework/issues/274"
-)
 def test_list_results_no_filter(testLibrary):
     test_library = testLibrary
     results = test_library.list_results(size=10)
@@ -106,9 +101,6 @@ def test_list_results_no_filter(testLibrary):
 
 
 # 3.3) Check if 'from_index' parameter works as expected
-@pytest.mark.xfail(
-    reason="can fail because of https://github.com/HumanBrainProject/hbp-validation-framework/issues/274"
-)
 def test_list_results_no_filter_check_index(testLibrary):
     test_library = testLibrary
     results1 = test_library.list_results(size=5, from_index=0)

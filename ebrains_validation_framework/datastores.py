@@ -21,7 +21,6 @@ import json
 import mimetypes
 from warnings import warn
 from pathlib import Path
-from urllib.parse import urlparse
 from urllib.request import urlretrieve
 
 import requests
@@ -42,6 +41,7 @@ class FileSystemDataStore(object):
     def load_data(self, local_path):
         with open(local_path) as fp:
             observation_data = json.load(fp)
+        return observation_data
 
 
 class _CollabDataStore(object):
@@ -94,13 +94,10 @@ class CollabDriveDataStore(_CollabDataStore):
                     os.path.dirname(relative_path),
                     parent=os.path.join("/", self.base_folder),
                 )
-                parent = os.path.join(
-                    "/", self.base_folder, os.path.dirname(relative_path)
-                )
+                parent = os.path.join("/", self.base_folder, os.path.dirname(relative_path))
             else:
                 parent = os.path.join("/", self.base_folder)
 
-            filename = os.path.basename(relative_path)
             seafdir = self.repo.get_dir(parent)
             file_entity = seafdir.upload_local_file(local_path, overwrite=overwrite)
             uploaded_file_paths.append(
@@ -109,7 +106,8 @@ class CollabDriveDataStore(_CollabDataStore):
                     "filesize": file_entity.size,
                 }
             )
-            # uploaded_file_paths.append(file_entity._get_download_link()) # this does not work as the link changes with token
+            # this does not work as the link changes with token
+            # uploaded_file_paths.append(file_entity._get_download_link())
         return uploaded_file_paths
 
     def _make_folders(self, folder_path, parent):
@@ -143,14 +141,11 @@ class CollabDriveDataStore(_CollabDataStore):
         if not overwrite:
             # confirm that each target filepath doesn't already exist
             for remote_path in remote_paths:
-                local_path = os.path.join(
-                    local_directory, os.path.basename(remote_path)
-                )
+                local_path = os.path.join(local_directory, os.path.basename(remote_path))
                 if os.path.exists(local_path):
                     raise FileExistsError(
-                        "Target file path `{}` already exists!\nSet `overwrite=True` if you wish overwrite existing files!".format(
-                            local_path
-                        )
+                        f"Target file path `{local_path}` already exists!\n"
+                        "Set `overwrite=True` if you wish overwrite existing files!"
                     )
 
         for remote_path in remote_paths:
@@ -183,7 +178,6 @@ class CollabBucketDataStore(_CollabDataStore):
         self.client = ebrains_drive.BucketApiClient(token=auth.token)
         self._authorized = True
         self.bucket = self.client.buckets.get_bucket(self.collab_id)
-
 
     def upload_data(self, file_paths, overwrite=False):
         if not self.authorized:
@@ -238,29 +232,24 @@ class HTTPDataStore(object):
             for url in remote_paths:
                 req = requests.head(url)
                 if req.status_code == 200:
-                    if url.startswith(
-                        "https://senselab.med.yale.edu/modeldb/"
-                    ) and url.endswith("&mime=application/zip"):
-                        filename = req.headers["Content-Disposition"].split(
-                            "filename="
-                        )[1]
+                    if url.startswith("https://senselab.med.yale.edu/modeldb/") and url.endswith(
+                        "&mime=application/zip"
+                    ):
+                        filename = req.headers["Content-Disposition"].split("filename=")[1]
                     else:
                         filename = url.split("/")[-1]
                     local_path = os.path.join(local_directory, filename)
                     # local_path = os.path.join(local_directory, os.path.basename(urlparse(url).path))
                     if os.path.exists(local_path):
                         raise FileExistsError(
-                            "Target file path `{}` already exists!\nSet `overwrite=True` if you wish overwrite existing files!".format(
-                                local_path
-                            )
+                            f"Target file path `{local_path}` already exists!\n"
+                            "Set `overwrite=True` if you wish overwrite existing files!"
                         )
 
         for url in remote_paths:
             req = requests.head(url)
             if req.status_code == 200:
-                if url.startswith(
-                    "https://senselab.med.yale.edu/modeldb/"
-                ) and url.endswith("&mime=application/zip"):
+                if url.startswith("https://senselab.med.yale.edu/modeldb/") and url.endswith("&mime=application/zip"):
                     filename = req.headers["Content-Disposition"].split("filename=")[1]
                 else:
                     filename = url.split("/")[-1]
@@ -319,9 +308,7 @@ class SwiftDataStore(object):
         url_prefix = ""
         if container_obj.public_url:
             url_prefix = container_obj.public_url + "/"
-        remote_paths = container_obj.upload(
-            file_paths, remote_directory=remote_directory, overwrite=overwrite
-        )
+        remote_paths = container_obj.upload(file_paths, remote_directory=remote_directory, overwrite=overwrite)
         uploaded_file_paths = []
         for ind, f in enumerate(file_paths):
             uploaded_file_paths.append(
@@ -340,18 +327,16 @@ class SwiftDataStore(object):
             return
 
         name_parts = remote_path.split("swift://cscs.ch/")[1].split("/")
-        if name_parts[0].startswith(
-            "bp00sp"
-        ):  # presuming all project names start like this
+        if name_parts[0].startswith("bp00sp"):  # presuming all project names start like this
             prj_name = name_parts[0]
             ind = 1
         else:
             prj_name = None
             ind = 0
         cont_name = name_parts[ind]
-        entity_path = "/".join(name_parts[ind + 1 :])
+        entity_path = "/".join(name_parts[ind + 1:])
         pre_path = None
-        if not "." in name_parts[-1]:
+        if "." not in name_parts[-1]:
             dirname = name_parts[-1]
             pre_path = entity_path.replace(dirname, "", 1)
 
@@ -365,9 +350,7 @@ class SwiftDataStore(object):
             container.project._get_container_info()
         return container, entity_path, pre_path
 
-    def download_data(
-        self, remote_paths, local_directory=".", username="", overwrite=False
-    ):
+    def download_data(self, remote_paths, local_directory=".", username="", overwrite=False):
         if isinstance(remote_paths, str):
             remote_paths = [remote_paths]
         local_paths = []
@@ -375,30 +358,23 @@ class SwiftDataStore(object):
         if not overwrite:
             # confirm that each target filepath doesn't already exist
             for remote_path in remote_paths:
-                local_path = os.path.join(
-                    local_directory, os.path.basename(remote_path)
-                )
+                local_path = os.path.join(local_directory, os.path.basename(remote_path))
                 if os.path.exists(local_path):
                     raise FileExistsError(
-                        "Target file path `{}` already exists!\nSet `overwrite=True` if you wish overwrite existing files!".format(
-                            local_path
-                        )
+                        f"Target file path `{local_path}` already exists!\n"
+                        "Set `overwrite=True` if you wish overwrite existing files!"
                     )
 
         for remote_path in remote_paths:
-            container, entity_path, pre_path = self.get_container(
-                remote_path, username=username
-            )
+            container, entity_path, pre_path = self.get_container(remote_path, username=username)
             contents = container.list()
             contents_match = [x for x in contents if x.name.startswith(entity_path)]
             for item in contents_match:
                 if pre_path:
-                    localdir = os.path.join(
-                        local_directory, entity_path.replace(pre_path, "", 1)
-                    )
+                    localdir = os.path.join(local_directory, entity_path.replace(pre_path, "", 1))
                 else:
                     localdir = local_directory
-                if not "directory" in item.content_type:  # download files
+                if "directory" not in item.content_type:  # download files
                     outpath = container.download(
                         item.name,
                         local_directory=localdir,
@@ -410,9 +386,7 @@ class SwiftDataStore(object):
         return local_paths
 
     def load_data(self, remote_path, username=""):
-        container, entity_path, pre_path = self.get_container(
-            remote_path, username=username
-        )
+        container, entity_path, pre_path = self.get_container(remote_path, username=username)
         content = container.read(entity_path)
         content_type = mimetypes.guess_type(remote_path)[0]
         if content_type == "application/json":

@@ -3,7 +3,7 @@ import uuid
 from time import sleep
 
 import sciunit
-from hbp_validation_framework import sample, utils
+from ebrains_validation_framework import sample, utils
 
 import pytest
 
@@ -29,9 +29,7 @@ def test_generate_HTML_report(modelCatalog, myResultID):
     model_catalog = modelCatalog
     result_id = myResultID
     sleep(20)
-    report_path, valid_uuids = utils.generate_HTML_report(
-        client_obj=model_catalog, result_list=[result_id]
-    )
+    report_path, valid_uuids = utils.generate_HTML_report(client_obj=model_catalog, result_list=[result_id])
     assert isinstance(valid_uuids, list)
     assert len(valid_uuids) == 1
     assert isinstance(uuid.UUID(valid_uuids[0], version=4), uuid.UUID)
@@ -77,9 +75,7 @@ def test_run_test_offline(modelCatalog, testLibrary, myModelID, myTestID):
     )
     model = model_catalog.get_model(model_id=model_id)
     test_model = sample.SampleModel(model_instance_uuid=model["instances"][0]["id"])
-    test_result_file = utils.run_test_offline(
-        model=test_model, test_config_file=test_config_file
-    )
+    test_result_file = utils.run_test_offline(model=test_model, test_config_file=test_config_file)
     assert os.path.isfile(test_result_file)
 
 
@@ -103,12 +99,8 @@ def test_upload_test_result(modelCatalog, testLibrary, myModelID, myTestID):
     )
     model = model_catalog.get_model(model_id=model_id)
     test_model = sample.SampleModel(model_instance_uuid=model["instances"][0]["id"])
-    test_result_file = utils.run_test_offline(
-        model=test_model, test_config_file=test_config_file
-    )
-    result, score = utils.upload_test_result(
-        test_result_file=test_result_file, client_obj=test_library
-    )
+    test_result_file = utils.run_test_offline(model=test_model, test_config_file=test_config_file)
+    result, score = utils.upload_test_result(test_result_file=test_result_file, client_obj=test_library)
     assert isinstance(uuid.UUID(result["id"], version=4), uuid.UUID)
     assert isinstance(score, float)
 

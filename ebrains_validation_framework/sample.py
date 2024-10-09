@@ -1,9 +1,6 @@
 import sciunit
 from sciunit import Model, Test, Score
 
-import quantities
-import os
-
 
 class SampleScore(Score):
     """For testing purposes"""
@@ -35,9 +32,7 @@ class SampleTest(Test):
 class SampleModel(Model):
     """For testing purposes"""
 
-    def __init__(
-        self, name="Test Model", model_uuid="", model_version="", model_instance_uuid=""
-    ):
+    def __init__(self, name="Test Model", model_uuid="", model_version="", model_instance_uuid=""):
         sciunit.Model.__init__(self, name=name)
         self.model_uuid = model_uuid
         self.model_version = model_version

@@ -15,10 +15,7 @@ def test_getModel_none(modelCatalog):
     model_catalog = modelCatalog
     with pytest.raises(Exception) as excinfo:
         model = model_catalog.get_model()
-    assert (
-        str(excinfo.value)
-        == "Model ID or alias needs to be provided for finding a model."
-    )
+    assert str(excinfo.value) == "Model ID or alias needs to be provided for finding a model."
 
 
 # 1.2) Using model_id
@@ -77,9 +74,7 @@ def test_getModel_empty_id(modelCatalog):
     model_catalog = modelCatalog
     with pytest.raises(Exception) as excinfo:
         model = model_catalog.get_model(model_id="")
-    assert "Model ID or alias needs to be provided for finding a model." in str(
-        excinfo.value
-    )
+    assert "Model ID or alias needs to be provided for finding a model." in str(excinfo.value)
 
 
 # 1.9) Using empty alias
@@ -87,9 +82,7 @@ def test_getModel_empty_alias(modelCatalog):
     model_catalog = modelCatalog
     with pytest.raises(Exception) as excinfo:
         model = model_catalog.get_model(alias="")
-    assert "Model ID or alias needs to be provided for finding a model." in str(
-        excinfo.value
-    )
+    assert "Model ID or alias needs to be provided for finding a model." in str(excinfo.value)
 
 
 # 1.10) Hide instances
@@ -128,9 +121,7 @@ def test_getList_one_filter(modelCatalog, myModelID):
 # 2.3) Multiple filters
 def test_getList_many_filters(modelCatalog, myModelID):
     model_catalog = modelCatalog
-    models = model_catalog.list_models(
-        cell_type="striatum medium spiny neuron", brain_region="striatum"
-    )
+    models = model_catalog.list_models(cell_type="striatum medium spiny neuron", brain_region="striatum")
     assert isinstance(models, list)
     assert len(models) > 0
 
@@ -192,9 +183,9 @@ def test_getModelValid_many(modelCatalog):
     model_catalog = modelCatalog
     with pytest.raises(TypeError) as excinfo:
         data = model_catalog.get_attribute_options("cell_type", "brain_region")
-    assert "takes at most 2 arguments" in str(
+    assert "takes at most 2 arguments" in str(excinfo.value) or "takes from 1 to 2 positional arguments" in str(
         excinfo.value
-    ) or "takes from 1 to 2 positional arguments" in str(excinfo.value)
+    )
 
 
 # 3.4) Invalid parameter
@@ -216,9 +207,7 @@ def test_addModel_none(modelCatalog):
         model = model_catalog.register_model()
 
 
-# 4.2) Missing mandatory parameter (model name)
-# Note: author name was no longer mandatory, so changed to model name
-@pytest.mark.skip(reason="registrtion without model name incorrectly allowed currently")
+# 4.2) Missing mandatory parameter (model name, author)
 def test_addModel_missingParam(modelCatalog):
     model_catalog = modelCatalog
     with pytest.raises(Exception) as excinfo:

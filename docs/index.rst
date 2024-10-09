@@ -5,7 +5,7 @@ EBRAINS/HBP Validation Framework - Python Client: Documentation
 .. toctree::
    :maxdepth: 2
 
-.. automodule:: hbp_validation_framework
+.. automodule:: ebrains_validation_framework
 
 Quick Overview
 ==============
@@ -188,5 +188,5 @@ ModelCatalog
 
 Utilities
 ============
-.. automodule:: hbp_validation_framework.utils
+.. automodule:: ebrains_validation_framework.utils
    :members:

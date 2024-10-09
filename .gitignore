@@ -5,6 +5,7 @@
 .bak
 *.tmp*
 hbp_validation_framework/jsonTreeViewer/data.js
+ebrains_validation_framework/jsonTreeViewer/data.js
 
 ### Python template
 # Byte-compiled / optimized / DLL files
