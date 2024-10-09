@@ -1,11 +1,12 @@
-===============================================================
-EBRAINS/HBP Validation Framework - Python Client: Documentation
-===============================================================
+===========================================================
+EBRAINS Validation Framework - Python Client: Documentation
+===========================================================
 
 .. toctree::
    :maxdepth: 2
 
-.. automodule:: ebrains_validation_framework
+   reference
+
 
 Quick Overview
 ==============
@@ -154,7 +155,7 @@ General Info
 
 
 Regarding EBRAINS Authentication
-============================
+================================
 The Python Client for the Validation Framework attempts to simplify the EBRAINS
 authentication process. It does this as follows:
 
@@ -176,17 +177,8 @@ requests that require authentication. This approach has been found to significan
 speed-up the processing of the requests. If the authentication token expires, or is
 found to be invalid, then the user would again be given the above two options.
 
-TestLibrary
-===========
-.. autoclass:: TestLibrary
-    :members:
 
-ModelCatalog
-============
-.. autoclass:: ModelCatalog
-    :members:
+Reference
+=========
 
-Utilities
-============
-.. automodule:: ebrains_validation_framework.utils
-   :members:
+See :doc:`reference`.
