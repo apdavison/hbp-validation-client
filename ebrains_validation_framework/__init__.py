@@ -1,7 +1,7 @@
 """
 A Python package for working with the EBRAINS / Human Brain Project Model Validation Framework.
 
-Andrew Davison and Shailesh Appukuttan, CNRS, 2017-2023
+Andrew Davison and Shailesh Appukuttan, CNRS, 2017-2024
 
 License: BSD 3-clause, see LICENSE.txt
 
@@ -244,6 +244,7 @@ class BaseClient(object):
                 )
         else:
             output_names_list.append({"given_name": "", "family_name": ""})
+
         return output_names_list
 
     # def exists_in_collab_else_create(self, collab_id):
@@ -1695,9 +1696,10 @@ class TestLibrary(BaseClient):
             verify=self.verify,
         )
         if response.status_code == 201:
+            result = response.json()
             print("Result registered successfully! "
                   f"- see https://model-catalog.apps.ebrains.eu/#result_id.{result['id']}")
-            return renameNestedJSONKey(response.json(), "project_id", "collab_id")
+            return renameNestedJSONKey(result, "project_id", "collab_id")
         else:
             handle_response_error("Error registering result", response)
 
@@ -2112,12 +2114,13 @@ class ModelCatalog(BaseClient):
                                     "version":"2.0", "parameters":""}],
                         )
         """
-
         model_data = {}
         args = locals()
 
         # handle naming difference with API: collab_id <-> project_id
         args["project_id"] = args.pop("collab_id")
+
+        required_fields = ("project_id", "name", "author", "owner")
 
         for field in [
             "project_id",
@@ -2136,6 +2139,8 @@ class ModelCatalog(BaseClient):
         ]:
             if args[field]:
                 model_data[field] = args[field]
+            elif field in required_fields:
+                raise KeyError(f"'{field}' field required")
 
         values = self.get_attribute_options()
         for field in [
@@ -2159,6 +2164,7 @@ class ModelCatalog(BaseClient):
 
         url = self.url + "/models/"
         headers = {"Content-type": "application/json"}
+
         response = requests.post(
             url,
             data=json.dumps(model_data),

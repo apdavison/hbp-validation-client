@@ -216,9 +216,7 @@ def test_addModel_none(modelCatalog):
         model = model_catalog.register_model()
 
 
-# 4.2) Missing mandatory parameter (model name)
-# Note: author name was no longer mandatory, so changed to model name
-@pytest.mark.skip(reason="registrtion without model name incorrectly allowed currently")
+# 4.2) Missing mandatory parameter (model name, author)
 def test_addModel_missingParam(modelCatalog):
     model_catalog = modelCatalog
     with pytest.raises(Exception) as excinfo:

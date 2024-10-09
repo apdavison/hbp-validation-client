@@ -18,7 +18,7 @@ template_files = package_files("ebrains_validation_framework", "templates")
 
 setup(
     name="ebrains_validation_framework",
-    version="0.8.3.dev",
+    version="0.8.3",
     packages=["ebrains_validation_framework"],
     package_data={"": json_files + template_files},
     url="https://github.com/HumanBrainProject/hbp-validation-client",
