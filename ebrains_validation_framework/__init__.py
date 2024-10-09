@@ -102,6 +102,7 @@ class BaseClient(object):
         elif environment == "dev":
             self.url = "http://localhost:8000"
         else:
+            err_msg_base = "Cannot load environment info: config.json"
             if os.path.isfile("config.json") and os.access("config.json", os.R_OK):
                 with open("config.json") as config_file:
                     config = json.load(config_file)
@@ -111,18 +112,12 @@ class BaseClient(object):
                             self.verify = config[environment].get("verify_ssl", True)
                         else:
                             raise KeyError(
-                                "Cannot load environment info: config.json does not contain sufficient info for environment = {}".format(
-                                    environment
-                                )
+                                f"{err_msg_base} does not contain sufficient info for environment = {environment}"
                             )
                     else:
-                        raise KeyError(
-                            "Cannot load environment info: config.json does not contain environment = {}".format(
-                                environment
-                            )
-                        )
+                        raise KeyError(f"{err_msg_base} does not contain environment = {environment}")
             else:
-                raise IOError("Cannot load environment info: config.json not found in the current directory.")
+                raise IOError(f"{err_msg_base} not found in the current directory.")
         if self.token:
             pass
         elif password is None:
@@ -140,7 +135,8 @@ class BaseClient(object):
                             self.token = data["access_token"]
                             if not self._check_token_valid():
                                 print(
-                                    "EBRAINS authentication token is invalid or has expired. Will need to re-authenticate."
+                                    "EBRAINS authentication token is invalid or has expired. "
+                                    "Will need to re-authenticate."
                                 )
                                 self.token = None
                         else:
@@ -162,7 +158,8 @@ class BaseClient(object):
                         self._ebrains_auth(username, password)
                     except Exception:
                         print(
-                            "Authentication Failure. Possibly incorrect EBRAINS password saved in environment variable 'EBRAINS_PASS'."
+                            "Authentication Failure. "
+                            "Possibly incorrect EBRAINS password saved in environment variable 'EBRAINS_PASS'."
                         )
                 if not hasattr(self, "config"):
                     try:
@@ -323,7 +320,6 @@ class BaseClient(object):
         """
         EBRAINS authentication
         """
-        redirect_uri = self.url + "/auth"
         session = requests.Session()
         # log-in page of model validation service
         r_login = session.get(self.url + "/login", allow_redirects=False)
@@ -789,12 +785,15 @@ class TestLibrary(BaseClient):
 
         Examples
         --------
-        >>> test = test_library.add_test(name="Cell Density Test", alias="", version="1.0", author="Shailesh Appukuttan",
-                                species="Mouse (Mus musculus)", age="TBD", brain_region="Hippocampus", cell_type="Other",
-                                recording_modality="electron microscopy", test_type="network: microcircuit", score_type="mean squared error", description="Later",
-                                data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/hippounit/feat_CA1_pyr_cACpyr_more_features.json",
-                                data_type="Mean, SD", publication="Halasy et al., 1996",
-                                repository="https://github.com/appukuttan-shailesh/morphounit.git", path="morphounit.tests.CellDensityTest")
+        >>> test = test_library.add_test(
+                name="Cell Density Test", alias="", version="1.0", author="Shailesh Appukuttan",
+                species="Mouse (Mus musculus)", age="TBD", brain_region="Hippocampus", cell_type="Other",
+                recording_modality="electron microscopy", test_type="network: microcircuit",
+                score_type="mean squared error", description="Later",
+                data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/hippounit/feat_CA1_pyr_cACpyr_more_features.json",
+                data_type="Mean, SD", publication="Halasy et al., 1996",
+                repository="https://github.com/appukuttan-shailesh/morphounit.git",
+                path="morphounit.tests.CellDensityTest")
         """
 
         test_data = {}
@@ -936,9 +935,14 @@ class TestLibrary(BaseClient):
 
         Examples
         --------
-        test = test_library.edit_test(name="Cell Density Test", test_id="7b63f87b-d709-4194-bae1-15329daf3dec", alias="CDT-6", author="Shailesh Appukuttan", publication="Halasy et al., 1996",
-                                      species="Mouse (Mus musculus)", brain_region="Hippocampus", cell_type="Other", age="TBD", recording_modality="electron microscopy",
-                                      test_type="network: microcircuit", score_type="mean squared error", protocol="To be filled sometime later", data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/hippounit/feat_CA1_pyr_cACpyr_more_features.json", data_type="Mean, SD")
+        test = test_library.edit_test(
+                   name="Cell Density Test", test_id="7b63f87b-d709-4194-bae1-15329daf3dec", alias="CDT-6",
+                   author="Shailesh Appukuttan", publication="Halasy et al., 1996",
+                   species="Mouse (Mus musculus)", brain_region="Hippocampus", cell_type="Other", age="TBD",
+                   recording_modality="electron microscopy", test_type="network: microcircuit",
+                   score_type="mean squared error", protocol="To be filled sometime later",
+                   data_location="https://object.cscs.ch/v1/AUTH_c0a333ecf7c045809321ce9d9ecdfdea/sp6_validation_data/hippounit/feat_CA1_pyr_cACpyr_more_features.json",
+                   data_type="Mean, SD")
         """
 
         if not test_id:
@@ -1098,7 +1102,6 @@ class TestLibrary(BaseClient):
             else:
                 raise Exception("Error in local file path specified by instance_path.")
         else:
-            test_identifier = test_id or alias
             if instance_id:
                 url = self.url + "/tests/query/instances/" + instance_id
             elif test_id and version:
@@ -1300,7 +1303,8 @@ class TestLibrary(BaseClient):
         test_identifier = test_id or alias
         if instance_id == "" and (test_identifier == "" or version is None):
             raise Exception(
-                "instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance."
+                "instance_id or (test_id, version) or (alias, version) "
+                "needs to be provided for finding a test instance."
             )
 
         instance_data = {}
@@ -1368,7 +1372,8 @@ class TestLibrary(BaseClient):
         test_identifier = test_id or alias
         if instance_id == "" and (test_identifier == "" or version == ""):
             raise Exception(
-                "instance_id or (test_id, version) or (alias, version) needs to be provided for finding a test instance."
+                "instance_id or (test_id, version) or (alias, version) "
+                "needs to be provided for finding a test instance."
             )
 
         if instance_id:
@@ -1525,7 +1530,8 @@ class TestLibrary(BaseClient):
         data_store : :class:`DataStore`
             a :class:`DataStore` instance, for uploading related data generated by the test run, e.g. figures.
         collab_id : str
-            String input specifying the Collab path, e.g. 'model-validation' to indicate Collab 'https://wiki.ebrains.eu/bin/view/Collabs/model-validation/'.
+            String input specifying the Collab path, e.g. 'model-validation' to indicate
+            Collab 'https://wiki.ebrains.eu/bin/view/Collabs/model-validation/'.
             This is used to indicate the Collab where results should be saved.
 
         Note
@@ -2332,7 +2338,8 @@ class ModelCatalog(BaseClient):
             and (alias == "" or version == "")
         ):
             raise Exception(
-                "instance_path or instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance."
+                "instance_path or instance_id or (model_id, version) or (alias, version) "
+                "needs to be provided for finding a model instance."
             )
         if instance_path and os.path.isfile(instance_path):
             # instance_path is a local path
@@ -2638,7 +2645,8 @@ class ModelCatalog(BaseClient):
             if not hasattr(model_obj, "model_uuid") and not hasattr(model_obj, "model_alias"):
                 raise AttributeError(
                     "Model object does not have a 'model_uuid'/'model_alias' attribute. "
-                    "Please register it with the Validation Framework and add the 'model_uuid'/'model_alias' to the model object."
+                    "Please register it with the Validation Framework and add "
+                    "the 'model_uuid'/'model_alias' to the model object."
                 )
             if not hasattr(model_obj, "model_version"):
                 raise AttributeError("Model object does not have a 'model_version' attribute")
@@ -2734,7 +2742,8 @@ class ModelCatalog(BaseClient):
 
         if instance_id == "" and (model_id == "" or not version) and (alias == "" or not version):
             raise Exception(
-                "instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance."
+                "instance_id or (model_id, version) or (alias, version) "
+                "needs to be provided for finding a model instance."
             )
 
         instance_data = {key: value for key, value in locals().items() if value is not None}
@@ -2805,13 +2814,9 @@ class ModelCatalog(BaseClient):
 
         if instance_id == "" and (model_id == "" or not version) and (alias == "" or not version):
             raise Exception(
-                "instance_id or (model_id, version) or (alias, version) needs to be provided for finding a model instance."
+                "instance_id or (model_id, version) or (alias, version) "
+                "needs to be provided for finding a model instance."
             )
-
-        if instance_id:
-            id = instance_id  # as needed by API
-        if alias:
-            model_alias = alias  # as needed by API
 
         if instance_id:
             if model_id:

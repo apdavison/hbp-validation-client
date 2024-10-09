@@ -21,7 +21,6 @@ import json
 import mimetypes
 from warnings import warn
 from pathlib import Path
-from urllib.parse import urlparse
 from urllib.request import urlretrieve
 
 import requests
@@ -42,6 +41,7 @@ class FileSystemDataStore(object):
     def load_data(self, local_path):
         with open(local_path) as fp:
             observation_data = json.load(fp)
+        return observation_data
 
 
 class _CollabDataStore(object):
@@ -98,7 +98,6 @@ class CollabDriveDataStore(_CollabDataStore):
             else:
                 parent = os.path.join("/", self.base_folder)
 
-            filename = os.path.basename(relative_path)
             seafdir = self.repo.get_dir(parent)
             file_entity = seafdir.upload_local_file(local_path, overwrite=overwrite)
             uploaded_file_paths.append(
@@ -107,7 +106,8 @@ class CollabDriveDataStore(_CollabDataStore):
                     "filesize": file_entity.size,
                 }
             )
-            # uploaded_file_paths.append(file_entity._get_download_link()) # this does not work as the link changes with token
+            # this does not work as the link changes with token
+            # uploaded_file_paths.append(file_entity._get_download_link())
         return uploaded_file_paths
 
     def _make_folders(self, folder_path, parent):
@@ -144,9 +144,8 @@ class CollabDriveDataStore(_CollabDataStore):
                 local_path = os.path.join(local_directory, os.path.basename(remote_path))
                 if os.path.exists(local_path):
                     raise FileExistsError(
-                        "Target file path `{}` already exists!\nSet `overwrite=True` if you wish overwrite existing files!".format(
-                            local_path
-                        )
+                        f"Target file path `{local_path}` already exists!\n"
+                        "Set `overwrite=True` if you wish overwrite existing files!"
                     )
 
         for remote_path in remote_paths:
@@ -243,9 +242,8 @@ class HTTPDataStore(object):
                     # local_path = os.path.join(local_directory, os.path.basename(urlparse(url).path))
                     if os.path.exists(local_path):
                         raise FileExistsError(
-                            "Target file path `{}` already exists!\nSet `overwrite=True` if you wish overwrite existing files!".format(
-                                local_path
-                            )
+                            f"Target file path `{local_path}` already exists!\n"
+                            "Set `overwrite=True` if you wish overwrite existing files!"
                         )
 
         for url in remote_paths:
@@ -336,9 +334,9 @@ class SwiftDataStore(object):
             prj_name = None
             ind = 0
         cont_name = name_parts[ind]
-        entity_path = "/".join(name_parts[ind + 1 :])
+        entity_path = "/".join(name_parts[ind + 1:])
         pre_path = None
-        if not "." in name_parts[-1]:
+        if "." not in name_parts[-1]:
             dirname = name_parts[-1]
             pre_path = entity_path.replace(dirname, "", 1)
 
@@ -363,9 +361,8 @@ class SwiftDataStore(object):
                 local_path = os.path.join(local_directory, os.path.basename(remote_path))
                 if os.path.exists(local_path):
                     raise FileExistsError(
-                        "Target file path `{}` already exists!\nSet `overwrite=True` if you wish overwrite existing files!".format(
-                            local_path
-                        )
+                        f"Target file path `{local_path}` already exists!\n"
+                        "Set `overwrite=True` if you wish overwrite existing files!"
                     )
 
         for remote_path in remote_paths:
@@ -377,7 +374,7 @@ class SwiftDataStore(object):
                     localdir = os.path.join(local_directory, entity_path.replace(pre_path, "", 1))
                 else:
                     localdir = local_directory
-                if not "directory" in item.content_type:  # download files
+                if "directory" not in item.content_type:  # download files
                     outpath = container.download(
                         item.name,
                         local_directory=localdir,

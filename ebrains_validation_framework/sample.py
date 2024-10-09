@@ -1,9 +1,6 @@
 import sciunit
 from sciunit import Model, Test, Score
 
-import quantities
-import os
-
 
 class SampleScore(Score):
     """For testing purposes"""

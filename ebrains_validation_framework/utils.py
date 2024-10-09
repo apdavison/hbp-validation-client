@@ -28,7 +28,6 @@ import math
 import mimetypes
 import pickle
 import webbrowser
-import argparse
 import collections
 import pkg_resources
 from datetime import datetime
@@ -264,7 +263,7 @@ def run_test_offline(model="", test_config_file=""):
     try:
         if isinstance(eval(test_instance_parameters), dict):
             params.update(eval(test_instance_parameters))
-    except:
+    except Exception:
         pass
     test = test_cls(observation=observation_data, **params)
     test.uuid = test_info["test_instance_id"]
@@ -518,7 +517,9 @@ def run_test(
 
     Examples
     --------
-    >>> result, score = utils.run_test(username="EBRAINS_USERNAME", password="EBRAINS_PASSWORD" environment="production", model=cell_model, test_alias="basalg_msn_d1", test_version="1.0", storage_collab_id="8123", register_result=True)
+    >>> result, score = utils.run_test(username="EBRAINS_USERNAME", password="EBRAINS_PASSWORD"
+                                       environment="production", model=cell_model, test_alias="basalg_msn_d1",
+                                       test_version="1.0", storage_collab_id="8123", register_result=True)
     """
 
     test_config_file = prepare_run_test_offline(
@@ -630,7 +631,8 @@ def run_test_standalone(
 
     Examples
     --------
-    >>> result, score = utils.run_test_standalone(username="shailesh", model=mymodel, test_alias="CDT-5", test_version="5.0")
+    >>> result, score = utils.run_test_standalone(username="shailesh", model=mymodel,
+                                                  test_alias="CDT-5", test_version="5.0")
     """
 
     if client_obj:
