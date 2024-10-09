@@ -1695,9 +1695,10 @@ class TestLibrary(BaseClient):
             verify=self.verify,
         )
         if response.status_code == 201:
+            result = response.json()
             print("Result registered successfully! "
                   f"- see https://model-catalog.apps.ebrains.eu/#result_id.{result['id']}")
-            return renameNestedJSONKey(response.json(), "project_id", "collab_id")
+            return renameNestedJSONKey(result, "project_id", "collab_id")
         else:
             handle_response_error("Error registering result", response)
 

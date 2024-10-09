@@ -62,7 +62,7 @@ def test_register_result_valid(modelCatalog, testLibrary, myModelID, myTestID):
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     folder_name = "results_{}_{}_{}".format(model.name, model.model_uuid[:8], timestamp)
 
-    result = test_library.register_result(score, collab_id="model-validation")
+    result = test_library.register_result(score, collab_id=TESTING_COLLAB)
     assert isinstance(uuid.UUID(result["id"], version=4), uuid.UUID)
 
 

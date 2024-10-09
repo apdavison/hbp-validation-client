@@ -226,7 +226,7 @@ def test_editTestInstance_valid_id(testLibrary, myTestID):
     assert test_instance["id"] == test["instances"][0]["id"]
     assert test_instance["repository"] == "http://www.12345.com"
     assert test_instance["path"] == "hbp_validation_framework.sample.SampleTest"
-    # assert test_instance["parameters"] == "http://example.com/config.json"  # to re-enable one parameters supported in openMINDS
+    # assert test_instance["parameters"] == "http://example.com/config.json"  # to re-enable once parameters supported in openMINDS
     assert test_instance["description"] == "e"
 
 

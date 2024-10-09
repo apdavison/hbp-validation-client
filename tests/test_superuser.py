@@ -7,12 +7,14 @@ from hbp_validation_framework import ModelCatalog, TestLibrary, sample
 
 import pytest
 
-EBRAINS_USERNAME = os.environ.get("EBRAINS_USER")
-EBRAINS_PASSWORD = os.environ.get("EBRAINS_PASS")
-TOKEN = os.environ.get("EBRAINS_AUTH_TOKEN")
-EBRAINS_USERNAME_NORMAL_USER = os.environ.get("EBRAINS_USER_NORMAL")
-EBRAINS_PASSWORD_NORMAL_USER = os.environ.get("EBRAINS_PASS_NORMAL")
-TOKEN_NORMAL_USER = os.environ.get("EBRAINS_AUTH_TOKEN_NORMAL")
+from .conftest import TESTING_COLLAB
+
+EBRAINS_USERNAME_ADMIN = os.environ.get("EBRAINS_USER_ADMIN")
+EBRAINS_PASSWORD_ADMIN = os.environ.get("EBRAINS_PASS_ADMIN")
+TOKEN_ADMIN = os.environ.get("EBRAINS_AUTH_TOKEN_ADMIN")
+EBRAINS_USERNAME_NORMAL_USER = os.environ.get("EBRAINS_USER")
+EBRAINS_PASSWORD_NORMAL_USER = os.environ.get("EBRAINS_PASS")
+TOKEN_NORMAL_USER = os.environ.get("VF_TEST_TOKEN")
 
 
 """
@@ -23,14 +25,14 @@ TOKEN_NORMAL_USER = os.environ.get("EBRAINS_AUTH_TOKEN_NORMAL")
 def test_delete_superUser(request):
     ENVIRONMENT = request.config.getoption("--environment")
 
-    if EBRAINS_USERNAME and EBRAINS_PASSWORD:
+    if EBRAINS_USERNAME_ADMIN and EBRAINS_PASSWORD_ADMIN:
         model_catalog = ModelCatalog(
-            username=EBRAINS_USERNAME,
-            password=EBRAINS_PASSWORD,
+            username=EBRAINS_USERNAME_ADMIN,
+            password=EBRAINS_PASSWORD_ADMIN,
             environment=ENVIRONMENT,
         )
-    elif TOKEN:
-        model_catalog = ModelCatalog(token=TOKEN, environment=ENVIRONMENT)
+    elif TOKEN_ADMIN:
+        model_catalog = ModelCatalog(token=TOKEN_ADMIN, environment=ENVIRONMENT)
     else:
         raise Exception(
             "Credentials not provided. Please define environment variables (EBRAINS_AUTH_TOKEN or EBRAINS_USER and EBRAINS_PASS"
@@ -72,6 +74,7 @@ def test_delete_superUser(request):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id="model-validation",
         name="IGNORE - Test Test - " + test_name,
         alias=test_name,
         author={"family_name": "Tester", "given_name": "Validation"},
@@ -149,7 +152,7 @@ def test_delete_normalUser(request):
             password=EBRAINS_PASSWORD_NORMAL_USER,
             environment=ENVIRONMENT,
         )
-    elif TOKEN:
+    elif TOKEN_NORMAL_USER:
         model_catalog = ModelCatalog(token=TOKEN_NORMAL_USER, environment=ENVIRONMENT)
     else:
         raise Exception(
@@ -161,7 +164,7 @@ def test_delete_normalUser(request):
         platform.python_version(),
     )
     model = model_catalog.register_model(
-        collab_id="validation-tester",
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Model - " + model_name,
         alias=model_name,
         author={"family_name": "Tester", "given_name": "Validation"},
@@ -191,6 +194,7 @@ def test_delete_normalUser(request):
         platform.python_version(),
     )
     test = test_library.add_test(
+        collab_id=TESTING_COLLAB,
         name="IGNORE - Test Test - " + test_name,
         alias=test_name,
         author={"family_name": "Tester", "given_name": "Validation"},
@@ -225,8 +229,8 @@ def test_delete_normalUser(request):
     )
 
     result = test_library.register_result(
-        score, collab_id="validation-tester"
-    )  # Collab ID = validation-tester
+        score, collab_id=TESTING_COLLAB
+    )  # Collab ID = validation-framework-testing
 
     # normal users cannot delete results
     with pytest.raises(Exception) as excinfo:

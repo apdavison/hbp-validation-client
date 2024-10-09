@@ -9,9 +9,8 @@ import pytest
 
 EBRAINS_USERNAME = os.environ.get("EBRAINS_USER")
 EBRAINS_PASSWORD = os.environ.get("EBRAINS_PASS", None)
-TOKEN = os.environ.get("EBRAINS_AUTH_TOKEN")
-# TESTING_COLLAB = "validation-framework-testing"
-TESTING_COLLAB = "model-validation"
+TOKEN = os.environ.get("VF_TEST_TOKEN")
+TESTING_COLLAB = "validation-framework-testing"
 
 
 def pytest_addoption(parser):

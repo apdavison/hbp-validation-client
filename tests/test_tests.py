@@ -113,7 +113,7 @@ def test_getList_no_filter(testLibrary):
 # 2.2) Single filter
 def test_getList_one_filter(testLibrary, myTestID):
     test_library = testLibrary
-    tests = test_library.list_tests(cell_type="granule cell")
+    tests = test_library.list_tests(cell_type="hippocampus CA1 pyramidal neuron")
     assert isinstance(tests, list)
     assert len(tests) > 0
 
@@ -122,8 +122,8 @@ def test_getList_one_filter(testLibrary, myTestID):
 def test_getList_many_filters(testLibrary, myTestID):
     test_library = testLibrary
     tests = test_library.list_tests(
-        cell_type="granule cell",
-        brain_region="collection of basal ganglia",
+        cell_type="hippocampus CA1 pyramidal neuron",
+        brain_region="CA1 field of hippocampus",
         species="Mus musculus",
     )
     assert isinstance(tests, list)
